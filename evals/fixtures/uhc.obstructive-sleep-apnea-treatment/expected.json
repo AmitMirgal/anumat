@@ -1,0 +1,135 @@
+{
+  "market": "us",
+  "title": "Obstructive and Central Sleep Apnea Treatment",
+  "payer": "UnitedHealthcare",
+  "policy_number": "2026T0525UU",
+  "effective_date": "2026-04-01",
+  "revision_date": null,
+  "auth_type": "medical_necessity",
+  "codes": [
+    { "system": "CPT", "code": "0964T", "display": "Impression and custom preparation of jaw expansion oral prosthesis for obstructive sleep apnea, including initial adjustment; single arch, without mandibular advancement mechanism" },
+    { "system": "CPT", "code": "0965T", "display": "Impression and custom preparation of jaw expansion oral prosthesis for obstructive sleep apnea, including initial adjustment; dual arch, with additional mandibular advancement, non -fixed hinge mechanism" },
+    { "system": "CPT", "code": "0966T", "display": "Impression and custom preparation of jaw expansion oral prosthesis for obstructive sleep apnea, including initial adjustment; dual arch, with additional mandibular advancement, fixed hinge mechanism" },
+    { "system": "CPT", "code": "21142", "display": "Reconstruction midface, LeFort I; 2 pieces, segment movement in any direction, without bone graft" },
+    { "system": "CPT", "code": "21199", "display": "Osteotomy, mandible, segmental; with genioglossus advancement" },
+    { "system": "CPT", "code": "21206", "display": "Osteotomy, maxilla, segmental (e.g., Wassmund or Schuchard)" },
+    { "system": "CPT", "code": "21685", "display": "Hyoid myotomy and suspension" },
+    { "system": "CPT", "code": "33276", "display": "Insertion of phrenic nerve stimulator system (pulse generator and stimulating lead[s]), including vessel catheterization, all imaging guidance, and pulse generator initial analysis with diagnostic mode activation, when performed" },
+    { "system": "CPT", "code": "33277", "display": "Insertion of phrenic nerve stimulator transvenous sensing lead (List separately in addition to code for primary procedure)" },
+    { "system": "CPT", "code": "33278", "display": "Removal of phrenic nerve stimulator, including vessel catheterization, all imaging guidance, and interrogation and programming, when performed; system, including pulse generator and lead(s)" },
+    { "system": "CPT", "code": "33279", "display": "Removal of phrenic nerve stimulator, including vessel catheterization, all imaging guidance, and interrogation and programming, when performed; transvenous stimulation or sensing lead(s) only" },
+    { "system": "CPT", "code": "33280", "display": "Removal of phrenic nerve stimulator, including vessel catheterization, all imaging guidance, and interrogation and programming, when performed; pulse generator only" },
+    { "system": "CPT", "code": "33281", "display": "Repositioning of phrenic nerve stimulator transvenous lead(s)" },
+    { "system": "CPT", "code": "33287", "display": "Removal and replacement of phrenic nerve stimulator, including vessel catheterization, all imaging guidance, and interrogation and programming, when performed; pulse generator" },
+    { "system": "CPT", "code": "33288", "display": "Removal and replacement of phrenic nerve stimulator, including vessel catheterization, all imaging guidance, and interrogation and programming, when performed; transvenous stimulation or sensing lead(s)" },
+    { "system": "CPT", "code": "41512", "display": "Tongue base suspension, permanent suture technique" },
+    { "system": "CPT", "code": "41530", "display": "Submucosal ablation of the tongue base, radiofrequency, 1 or more sites, per session" },
+    { "system": "CPT", "code": "41599", "display": "Unlisted procedure, tongue, floor of mouth" },
+    { "system": "CPT", "code": "42140", "display": "Uvulectomy, excision of uvula" },
+    { "system": "CPT", "code": "42145", "display": "Palatopharyngoplasty (e.g., uvulopalatopharyngoplasty, uvulopharyngoplasty)" },
+    { "system": "CPT", "code": "64568", "display": "Open implantation of cranial nerve (e.g., vagus nerve) neurostimulator electrode array and pulse generator" },
+    { "system": "CPT", "code": "64569", "display": "Revision or replacement of cranial nerve (e.g., vagus nerve) neurostimulator electrode array, including connection to existing pulse generator" },
+    { "system": "CPT", "code": "64570", "display": "Removal of cranial nerve (e.g., vagus nerve) neurostimulator electrode array and pulse generator" },
+    { "system": "CPT", "code": "64582", "display": "Open implantation of hypoglossal nerve neurostimulator array, pulse generator, and distal respiratory sensor electrode or electrode array" },
+    { "system": "CPT", "code": "64583", "display": "Revision or replacement of hypoglossal nerve neurostimulator array and distal respiratory sensor electrode or electrode array, including connection to existing pulse generator" },
+    { "system": "CPT", "code": "64584", "display": "Removal of hypoglossal nerve neurostimulator array, pulse generator, and distal respiratory sensor electrode or electrode array" },
+    { "system": "CPT", "code": "93150", "display": "Therapy activation of implanted phrenic nerve stimulator system, including all interrogation and programming" },
+    { "system": "CPT", "code": "93151", "display": "Interrogation and programming (minimum one parameter) of implanted phrenic nerve stimulator system" },
+    { "system": "CPT", "code": "93152", "display": "Interrogation and programming of implanted phrenic nerve stimulator system during polysomnography" },
+    { "system": "CPT", "code": "93153", "display": "Interrogation without programming of implanted phrenic nerve stimulator system" },
+    { "system": "HCPCS", "code": "A7049", "display": "Expiratory positive airway pressure intranasal resistance valve" },
+    { "system": "HCPCS", "code": "E0485", "display": "Oral device/appliance used to reduce upper airway collapsibility, adjustable or nonadjustable, prefabricated, includes fitting and adjustment" },
+    { "system": "HCPCS", "code": "E0486", "display": "Oral device/appliance used to reduce upper airway collapsibility, adjustable or nonadjustable, custom fabricated, includes fitting and adjustment" },
+    { "system": "HCPCS", "code": "E0490", "display": "Power source and control electronics unit for oral device/appliance for neuromuscular electrical stimulation of the tongue muscle, controlled by hardware remote" },
+    { "system": "HCPCS", "code": "E0492", "display": "Power source and control electronics unit for oral device/appliance for neuromuscular electrical stimulation of the tongue muscle, controlled by phone application" },
+    { "system": "HCPCS", "code": "E0493", "display": "Oral device/appliance for neuromuscular electrical stimulation of the tongue muscle, used in conjunction with the power source and control electronics unit, controlled by phone application, 90 - day supply" },
+    { "system": "HCPCS", "code": "E0530", "display": "Electronic positional obstructive sleep apnea treatment, with sensor, includes all components and accessories, any type" },
+    { "system": "HCPCS", "code": "E1399", "display": "Durable medical equipment, miscellaneous" },
+    { "system": "HCPCS", "code": "K1027", "display": "Oral device/appliance used to reduce upper airway collapsibility, without fixed mechanical hinge, custom fabricated, includes fitting and adjustment" },
+    { "system": "HCPCS", "code": "L8679", "display": "Implantable neurostimulator, pulse generator, any type" },
+    { "system": "HCPCS", "code": "L8680", "display": "Implantable neurostimulator electrode, each" },
+    { "system": "HCPCS", "code": "L8686", "display": "Implantable neurostimulator pulse generator, single array, nonrechargeable, includes extension" },
+    { "system": "HCPCS", "code": "S2080", "display": "Laser-assisted uvulopalatoplasty (LAUP)" },
+    { "system": "HCPCS", "code": "S2900", "display": "Surgical techniques requiring use of robotic surgical system (list separately in addition to code for primary procedure)" }
+  ],
+  "indications": [
+    {
+      "name": "Removable oral appliances for obstructive sleep apnea",
+      "match": "all",
+      "criteria": [
+        { "text": "Evaluated before treatment, in person or by telemedicine, by a qualified physician or a physician-supervised Advanced Practice Provider who diagnoses OSA and recommends the course of treatment" },
+        { "text": "OSA documented by a sleep study such as attended polysomnography or home sleep apnea testing" },
+        { "text": "Treating physician or Advanced Practice Provider documents that PAP therapy had no therapeutic efficacy, or that the individual is intolerant of or has refused PAP" },
+        { "text": "Meets the InterQual CP Durable Medical Equipment, Noninvasive Airway Assistive Devices criteria for removable oral appliances" }
+      ]
+    },
+    {
+      "name": "Uvulopalatopharyngoplasty, mandibular osteotomy, and maxillomandibular osteotomy and advancement in adults",
+      "match": "all",
+      "criteria": [
+        { "text": "Evaluated before treatment, in person or by telemedicine, by a qualified physician or a physician-supervised Advanced Practice Provider who diagnoses OSA and recommends the course of treatment" },
+        { "text": "Moderate to severe OSA with AHI ≥ 15 or RDI ≥ 15 on attended polysomnography" },
+        { "text": "Excessive daytime sleepiness documented with an Epworth Sleepiness Scale score above 10 or another validated tool" },
+        { "text": "PAP therapy had no therapeutic efficacy, or the individual refused or is intolerant of PAP" },
+        { "text": "For maxillomandibular osteotomy and advancement, craniofacial disproportion or deformities with evidence of maxillomandibular deficiency" },
+        { "text": "For mandibular osteotomy, retrolingual or lower pharyngeal function obstruction" }
+      ]
+    },
+    {
+      "name": "Hypoglossal nerve stimulation in adults with moderate to severe OSA",
+      "match": "all",
+      "criteria": [
+        { "text": "Evaluated before treatment, in person or by telemedicine, by a qualified physician or a physician-supervised Advanced Practice Provider who diagnoses OSA and recommends the course of treatment" },
+        { "text": "BMI ≤ 40 kg/m²" },
+        { "text": "AHI ≥ 15 and ≤ 100 on attended polysomnography" },
+        { "text": "Central and mixed apneas are less than 25% of the total AHI on attended polysomnography" },
+        { "text": "No complete blockage or complete concentric collapse of the soft palate on drug-induced sleep endoscopy" },
+        { "text": "PAP therapy had no therapeutic efficacy, or the individual refused or is intolerant of PAP" },
+        { "text": "FDA-approved device used in accordance with FDA guidelines" }
+      ]
+    },
+    {
+      "name": "Hypoglossal nerve stimulation in adolescents aged 10 to 18 years with Down syndrome",
+      "match": "all",
+      "criteria": [
+        { "text": "Evaluated before treatment, in person or by telemedicine, by a qualified physician or a physician-supervised Advanced Practice Provider who diagnoses OSA and recommends the course of treatment" },
+        { "text": "Severe OSA with AHI ≥ 10 and RDI ≤ 50 events per hour on attended polysomnography" },
+        { "text": "BMI below the 95th percentile for age" },
+        { "text": "Central and mixed apneas are less than 25% of the total AHI" },
+        { "text": "Contraindication for, or not effectively treated with, a prior adenotonsillectomy" },
+        { "text": "Confirmed failure or intolerance of PAP therapy despite attempts to improve adherence" },
+        { "text": "No tracheostomy use during sleep" },
+        { "text": "No complete blockage or concentric collapse at the soft palate level on drug-induced sleep endoscopy" },
+        { "text": "Individual and caregiver refuse an MMA procedure for nonconcentric palatal collapse" },
+        { "text": "FDA-approved device used in accordance with FDA guidelines" }
+      ]
+    }
+  ],
+  "exclusions": [
+    "Devices for treating positional OSA",
+    "Nasal dilator devices for treating OSA",
+    "Intranasal expiratory resistance valve, such as Bongo Rx",
+    "Prefabricated oral appliance or device",
+    "Nonsurgical electrical muscular training",
+    "Mandibular vertical repositioning devices, such as Slow Wave",
+    "Morning repositioning devices",
+    "Epigenetic appliances, such as Homeoblock or DNA (Daytime/Nighttime appliance)",
+    "Advanced Lightwire Functional appliances",
+    "Lingual suspension, also called tongue stabilization, tongue stitch, or tongue fixation",
+    "Isolated hyoid myotomy",
+    "Stand-alone uvulectomy",
+    "Transoral robotic surgery",
+    "Distraction osteogenesis for maxillary expansion",
+    "Implantable phrenic nerve stimulation devices, such as the remedē System, for central sleep apnea",
+    "Removable oral appliances for treating central sleep apnea",
+    "Dental services, such as CDT codes D9947, D9948, and D9949, are excluded from coverage under the medical plan"
+  ],
+  "documentation_requirements": [
+    "A sleep study documenting OSA, such as attended polysomnography or home sleep apnea testing, for removable oral appliances",
+    "Documentation from the treating physician or Advanced Practice Provider that PAP therapy had no therapeutic efficacy, or that the individual is intolerant of or has refused PAP",
+    "Excessive daytime sleepiness documented with an Epworth Sleepiness Scale score above 10 or another validated tool",
+    "Repeat polysomnography if there has been clinically significant weight loss or gain, a change in cardiovascular disease, or persistent or recurrent symptoms since the last study",
+    "Medical records documentation may be required to assess whether the member meets the clinical criteria for coverage"
+  ],
+  "site_of_care": []
+}

@@ -1,0 +1,15 @@
+{
+  "policy_key": "uhc.obstructive-sleep-apnea-treatment",
+  "title": "Obstructive and Central Sleep Apnea Treatment",
+  "payer": "UnitedHealthcare",
+  "source_url": "https://www.uhcprovider.com/content/dam/provider/docs/public/policies/comm-medical-drug/obstructive-sleep-apnea-treatment.pdf",
+  "retrieved": "2026-09-28",
+  "converter": "@firecrawl/anydoc 0.2.4",
+  "excerpt": "Keeps the title block, Coverage Rationale through the converter-merged table row that also holds the Medical Records Documentation Used for Reviews text, Applicable Codes, and the opening of Clinical Evidence as a distractor, and drops the Definitions entries after that row.",
+  "candidate_deviations": [
+    "Sets auth_type to prior_authorization although the excerpt never states a prior authorization requirement.",
+    "Drops HCPCS E1399 and K1027 from the HCPCS table.",
+    "Rewrites the adult hypoglossal nerve stimulation AHI criterion as at least 15 on a sleep study, which loses the upper bound of 100 and the attended polysomnography requirement.",
+    "Omits the dental services exclusion for CDT codes D9947, D9948, and D9949 that sits in the Applicable Codes coding clarification."
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "policy_key": "cigna.bariatric-surgery",
+  "title": "Bariatric Surgery and Procedures",
+  "payer": "Cigna",
+  "source_url": "https://static.cigna.com/assets/chcp/pdf/coveragePolicies/medical/mm_0051_coveragepositioncriteria_bariatric_surgery.pdf",
+  "retrieved": "2026-09-28",
+  "converter": "@firecrawl/anydoc 0.2.4",
+  "excerpt": "Keeps the title block with its instructions for use, Coverage Policy, Coding Information, and the opening of General Background with the BMI classification table as a distractor.",
+  "candidate_deviations": [
+    "Sets revision_date to 2027-07-15, which is the printed Next Review Date and not a revision date.",
+    "Drops CPT 47379 and 43235 from the liver biopsy and upper endoscopy tables at the end of Coding Information.",
+    "Rewrites the adult revision criterion from weight loss failure at least two years after the previous procedure to weight loss failure within two years, which reverses its meaning.",
+    "Omits the exclusion for stomach aspiration therapy such as AspireAssist.",
+    "Adds a site of care requirement for an accredited bariatric center that the Cigna excerpt never states."
+  ]
+}

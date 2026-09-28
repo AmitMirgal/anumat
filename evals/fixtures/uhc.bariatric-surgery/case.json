@@ -1,0 +1,15 @@
+{
+  "policy_key": "uhc.bariatric-surgery",
+  "title": "Bariatric Surgery",
+  "payer": "UnitedHealthcare",
+  "source_url": "https://www.uhcprovider.com/content/dam/provider/docs/public/policies/comm-medical-drug/bariatric-surgery.pdf",
+  "retrieved": "2026-09-28",
+  "converter": "@firecrawl/anydoc 0.2.4",
+  "excerpt": "Keeps the title block, Coverage Rationale, Medical Records Documentation Used for Reviews, Applicable Codes, and the first paragraph of Clinical Evidence as a distractor.",
+  "candidate_deviations": [
+    "Drops CPT 0813T, the first row of the code table, and CPT 64999, the one code printed after the page break.",
+    "Narrows the adult psychosocial-behavioral evaluation to a psychological evaluation by a licensed psychologist or psychiatrist.",
+    "Omits the exclusion for silastic ring vertical gastric bypass.",
+    "Drops the documentation requirement for records showing that band slippage correction was attempted."
+  ]
+}

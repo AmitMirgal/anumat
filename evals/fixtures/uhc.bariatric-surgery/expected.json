@@ -1,0 +1,183 @@
+{
+  "market": "us",
+  "title": "Bariatric Surgery",
+  "payer": "UnitedHealthcare",
+  "policy_number": "2026T0362RR",
+  "effective_date": "2026-05-01",
+  "revision_date": null,
+  "auth_type": "medical_necessity",
+  "codes": [
+    { "system": "CPT", "code": "0813T", "display": "Esophagogastroduodenoscopy, flexible, transoral, with volume adjustment of intragastric bariatric balloon" },
+    { "system": "CPT", "code": "43290", "display": "Esophagogastroduodenoscopy, flexible, transoral; with deployment of intragastric bariatric balloon" },
+    { "system": "CPT", "code": "43291", "display": "Esophagogastroduodenoscopy, flexible, transoral; with removal of intragastric bariatric balloon(s)" },
+    { "system": "CPT", "code": "43644", "display": "Laparoscopy, surgical, gastric restrictive procedure; with gastric bypass and Roux-en-Y gastroenterostomy (roux limb 150 cm or less)" },
+    { "system": "CPT", "code": "43645", "display": "Laparoscopy, surgical, gastric restrictive procedure; with gastric bypass and small intestine reconstruction to limit absorption" },
+    { "system": "CPT", "code": "43647", "display": "Laparoscopy, surgical; implantation or replacement of gastric neurostimulator electrodes, antrum" },
+    { "system": "CPT", "code": "43648", "display": "Laparoscopy, surgical; revision or removal of gastric neurostimulator electrodes, antrum" },
+    { "system": "CPT", "code": "43659", "display": "Unlisted laparoscopy procedure, stomach" },
+    { "system": "CPT", "code": "43770", "display": "Laparoscopy, surgical, gastric restrictive procedure; placement of adjustable gastric restrictive device (e.g., gastric band and subcutaneous port components)" },
+    { "system": "CPT", "code": "43771", "display": "Laparoscopy, surgical, gastric restrictive procedure; revision of adjustable gastric restrictive device component only" },
+    { "system": "CPT", "code": "43772", "display": "Laparoscopy, surgical, gastric restrictive procedure; removal of adjustable gastric restrictive device component only" },
+    { "system": "CPT", "code": "43773", "display": "Laparoscopy, surgical, gastric restrictive procedure; removal and replacement of adjustable gastric restrictive device component only" },
+    { "system": "CPT", "code": "43774", "display": "Laparoscopy, surgical, gastric restrictive procedure; removal of adjustable gastric restrictive device and subcutaneous port components" },
+    { "system": "CPT", "code": "43775", "display": "Laparoscopy, surgical, gastric restrictive procedure; longitudinal gastrectomy (i.e., sleeve gastrectomy)" },
+    { "system": "CPT", "code": "43843", "display": "Gastric restrictive procedure, without gastric bypass, for morbid obesity; other than vertical-banded gastroplasty" },
+    { "system": "CPT", "code": "43845", "display": "Gastric restrictive procedure with partial gastrectomy, pylorus-preserving duodenoileostomy and ileoileostomy (50 to 100 cm common channel) to limit absorption (biliopancreatic diversion with duodenal switch)" },
+    { "system": "CPT", "code": "43846", "display": "Gastric restrictive procedure, with gastric bypass for morbid obesity; with short limb (150 cm or less) Roux-en-Y gastroenterostomy" },
+    { "system": "CPT", "code": "43847", "display": "Gastric restrictive procedure, with gastric bypass for morbid obesity; with small intestine reconstruction to limit absorption" },
+    { "system": "CPT", "code": "43848", "display": "Revision, open, of gastric restrictive procedure for morbid obesity, other than adjustable gastric restrictive device (separate procedure)" },
+    { "system": "CPT", "code": "43860", "display": "Revision of gastrojejunal anastomosis (gastrojejunostomy) with reconstruction, with or without partial gastrectomy or intestine resection; without vagotomy" },
+    { "system": "CPT", "code": "43865", "display": "Revision of gastrojejunal anastomosis (gastrojejunostomy) with reconstruction, with or without partial gastrectomy or intestine resection; with vagotomy" },
+    { "system": "CPT", "code": "43881", "display": "Implantation or replacement of gastric neurostimulator electrodes, antrum, open" },
+    { "system": "CPT", "code": "43882", "display": "Revision or removal of gastric neurostimulator electrodes, antrum, open" },
+    { "system": "CPT", "code": "43886", "display": "Gastric restrictive procedure, open; revision of subcutaneous port component only" },
+    { "system": "CPT", "code": "43887", "display": "Gastric restrictive procedure, open; removal of subcutaneous port component only" },
+    { "system": "CPT", "code": "43888", "display": "Gastric restrictive procedure, open; removal and replacement of subcutaneous port component only" },
+    { "system": "CPT", "code": "43889", "display": "Gastric restrictive procedure, transoral, endoscopic sleeve gastroplasty (ESG), including argon plasma coagulation, when performed" },
+    { "system": "CPT", "code": "43999", "display": "Unlisted procedure, stomach" },
+    { "system": "CPT", "code": "64590", "display": "Insertion or replacement of peripheral, sacral, or gastric neurostimulator pulse generator or receiver, requiring pocket creation and connection between electrode array and pulse generator or receiver" },
+    { "system": "CPT", "code": "64595", "display": "Revision or removal of peripheral, sacral, or gastric neurostimulator pulse generator or receiver, with detachable connection to electrode array" },
+    { "system": "CPT", "code": "64999", "display": "Unlisted procedure, nervous system" }
+  ],
+  "indications": [
+    {
+      "name": "Bariatric surgery in adults aged 18 years or older",
+      "match": "all",
+      "criteria": [
+        {
+          "text": "Uses one of the proven bariatric procedures listed in the coverage rationale",
+          "any_of": [
+            "Biliopancreatic diversion or biliopancreatic diversion with duodenal switch",
+            "Gastric bypass, including robotic-assisted gastric bypass",
+            "Adjustable gastric banding by open or laparoscopic approach, for individuals ≥ 18 years of age",
+            "Sleeve gastrectomy (vertical sleeve gastrectomy)"
+          ]
+        },
+        {
+          "text": "Body mass index threshold, with lower thresholds for individuals of Asian descent",
+          "any_of": [
+            "BMI ≥ 40 kg/m², or ≥ 37.5 kg/m² in individuals of Asian descent",
+            "BMI 35 to 39.9 kg/m², or 32.5 to 37.4 kg/m² in individuals of Asian descent, with one or more listed comorbidities"
+          ]
+        },
+        {
+          "text": "For BMI 35 to 39.9 kg/m² (32.5 to 37.4 kg/m² in Asian descent), one or more of these comorbidities",
+          "any_of": [
+            "Insulin resistance or type 2 diabetes",
+            "Cardiovascular disease such as history of stroke or myocardial infarction, poorly controlled hypertension despite pharmacotherapy (systolic above 140 mm Hg or diastolic 90 mm Hg or greater), coronary artery disease, or hyperlipidemia",
+            "History of cardiomyopathy",
+            "Obstructive sleep apnea confirmed on polysomnography with an Apnea-Hypopnea Index or Respiratory Disturbance Index ≥ 30",
+            "Evidence of metabolic dysfunction-associated steatotic liver disease",
+            "Idiopathic intracranial hypertension (pseudotumor cerebri)"
+          ]
+        },
+        {
+          "text": "Presurgical preparation by one of two routes",
+          "any_of": [
+            "Both a preoperative evaluation with a detailed weight history and dietary and physical activity patterns, and a psychosocial-behavioral evaluation by a professional in a behavioral health discipline that screens for risk factors or potential postoperative challenges",
+            "Participation in a multidisciplinary surgical preparatory regimen"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bariatric surgery in adolescents aged 12 to 17 years",
+      "match": "all",
+      "criteria": [
+        {
+          "text": "Uses one of the proven bariatric procedures listed in the coverage rationale",
+          "any_of": [
+            "Biliopancreatic diversion or biliopancreatic diversion with duodenal switch",
+            "Gastric bypass, including robotic-assisted gastric bypass",
+            "Adjustable gastric banding by open or laparoscopic approach, for individuals ≥ 18 years of age",
+            "Sleeve gastrectomy (vertical sleeve gastrectomy)"
+          ]
+        },
+        {
+          "text": "Obesity class",
+          "any_of": [
+            "Class III obesity",
+            "Class II obesity with one or more listed comorbidities"
+          ]
+        },
+        {
+          "text": "For Class II obesity, one or more of these comorbidities",
+          "any_of": [
+            "Insulin resistance or type 2 diabetes",
+            "Poorly controlled hypertension despite pharmacotherapy (systolic above 140 mm Hg or diastolic 90 mm Hg or greater)",
+            "Hyperlipidemia",
+            "Obstructive sleep apnea confirmed on polysomnography with an Apnea-Hypopnea Index or Respiratory Disturbance Index ≥ 30",
+            "Evidence of metabolic dysfunction-associated steatotic liver disease",
+            "Idiopathic intracranial hypertension (pseudotumor cerebri)"
+          ]
+        },
+        {
+          "text": "Evaluation at or in consultation with a multidisciplinary center focused on the surgical treatment of severe childhood obesity"
+        }
+      ]
+    },
+    {
+      "name": "Planned two-stage bariatric procedure",
+      "match": "all",
+      "criteria": [
+        { "text": "Initial BMI ≥ 50 kg/m² before the first-stage bariatric procedure" },
+        { "text": "Second stage occurs within 2 years after the primary bariatric surgery procedure" },
+        { "text": "Individual has been adherent to nutrition and exercise" },
+        { "text": "Individual meets the medical necessity criteria above at the time of the second-stage procedure" }
+      ]
+    },
+    {
+      "name": "Revisional bariatric surgery",
+      "match": "all",
+      "criteria": [
+        {
+          "text": "Uses one of the proven bariatric procedures listed in the coverage rationale",
+          "any_of": [
+            "Biliopancreatic diversion or biliopancreatic diversion with duodenal switch",
+            "Gastric bypass, including robotic-assisted gastric bypass",
+            "Adjustable gastric banding by open or laparoscopic approach, for individuals ≥ 18 years of age",
+            "Sleeve gastrectomy (vertical sleeve gastrectomy)"
+          ]
+        },
+        {
+          "text": "Technical failure or major complication from the initial procedure, such as one of these",
+          "any_of": [
+            "Bowel perforation, including adjustable gastric band erosion",
+            "Adjustable gastric band migration (slippage) that cannot be corrected with manipulation or adjustment",
+            "Leak",
+            "Obstruction confirmed by imaging studies",
+            "Staple-line failure",
+            "Mechanical adjustable gastric band failure",
+            "Uncontrollable reflux related to sleeve gastrectomy after failed maximum nonpharmacological and pharmacological management (such as at least 1 month of double-dose proton pump inhibitor, H2 blocker, or sucralfate), with severe esophagitis grade C or D confirmed by endoscopy"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Removal of an adjustable gastric band",
+      "match": "all",
+      "criteria": [
+        { "text": "Removal of the adjustable gastric band and all related components does not result in a revisional surgery" }
+      ]
+    }
+  ],
+  "exclusions": [
+    "Revisional bariatric surgery for any indication other than those listed as proven",
+    "Bariatric surgery as the primary treatment for any condition other than obesity",
+    "Bariatric artery embolization",
+    "Gastric electrical stimulation with an implantable gastric stimulator",
+    "Laparoscopic greater curvature plication, also known as total gastric vertical plication",
+    "Mini-gastric bypass, laparoscopic mini-gastric bypass, or one-anastomosis gastric bypass",
+    "Silastic ring vertical gastric bypass",
+    "Single-anastomosis duodenal switch, also known as duodenal switch with single anastomosis or stomach intestinal pylorus-sparing surgery",
+    "Transoral endoscopic surgery, including endoscopic sleeve gastroplasty (including OverStitch), gastrointestinal liners, intragastric balloon, transoral outlet reduction (TORe), and the TransPyloric Shuttle device",
+    "Vagus nerve blocking (VBLOC)"
+  ],
+  "documentation_requirements": [
+    "Medical records documentation may be required to assess whether the member meets the clinical criteria for coverage",
+    "For revision after band slippage, records showing that manipulation or adjustment to correct the slippage was attempted"
+  ],
+  "site_of_care": [
+    "Adolescent evaluation at or in consultation with a multidisciplinary center for surgical treatment of severe childhood obesity, which may include centers accredited by the Metabolic and Bariatric Surgery Accreditation and Quality Improvement Program or with similar programmatic components"
+  ]
+}

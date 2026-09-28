@@ -1,0 +1,283 @@
+{
+  "market": "us",
+  "title": "Bariatric Surgery and Procedures",
+  "payer": "Cigna",
+  "policy_number": "0051",
+  "effective_date": "2026-07-15",
+  "revision_date": null,
+  "auth_type": "medical_necessity",
+  "codes": [
+    { "system": "CPT", "code": "43633", "display": "Gastrectomy, partial, distal; with Roux-en-Y reconstruction" },
+    { "system": "CPT", "code": "43644", "display": "Laparoscopy, surgical, gastric restrictive procedure; with gastric bypass and Roux-en-Y gastroenterostomy (roux limb 150 cm or less)" },
+    { "system": "CPT", "code": "43645", "display": "Laparoscopy, surgical, gastric restrictive procedure; with gastric bypass and small intestine reconstruction to limit absorption" },
+    { "system": "CPT", "code": "43659", "display": "Unlisted laparoscopy procedure, stomach" },
+    { "system": "CPT", "code": "43770", "display": "Laparoscopy, surgical, gastric restrictive procedure; placement of adjustable gastric restrictive device (eg, gastric band and subcutaneous port components)" },
+    { "system": "CPT", "code": "43775", "display": "Laparoscopy, surgical, gastric restrictive procedure; longitudinal gastrectomy (ie, sleeve gastrectomy)" },
+    { "system": "CPT", "code": "43842", "display": "Gastric restrictive procedure, without gastric bypass, for morbid obesity; vertical-banded gastroplasty" },
+    { "system": "CPT", "code": "43843", "display": "Gastric restrictive procedure, without gastric bypass, for morbid obesity; other than vertical-banded gastroplasty" },
+    { "system": "CPT", "code": "43845", "display": "Gastric restrictive procedure with partial gastrectomy, pylorus-preserving duodenoileostomy and ileoileostomy (50 to 100 cm common channel) to limit absorption (biliopancreatic diversion with duodenal switch)" },
+    { "system": "CPT", "code": "43846", "display": "Gastric restrictive procedure, with gastric bypass for morbid obesity; with short limb (150 cm or less) Roux-en-Y gastroenterostomy" },
+    { "system": "CPT", "code": "43847", "display": "Gastric restrictive procedure, with gastric bypass for morbid obesity; with small intestine reconstruction to limit absorption" },
+    { "system": "CPT", "code": "43889", "display": "Gastric restrictive procedure, transoral, endoscopic sleeve gastroplasty (ESG), including argon plasma coagulation, when performed" },
+    { "system": "CPT", "code": "43999", "display": "Unlisted procedure, stomach" },
+    { "system": "CPT", "code": "44799", "display": "Unlisted procedure, small intestine" },
+    { "system": "CPT", "code": "43881", "display": "Implantation or replacement of gastric neurostimulator electrodes, antrum, open" },
+    { "system": "CPT", "code": "64553", "display": "Percutaneous implantation of neurostimulator electrode array; cranial nerve" },
+    { "system": "CPT", "code": "64568", "display": "Open implantation of cranial nerve (eg, vagus nerve) neurostimulator electrode array and pulse generator" },
+    { "system": "CPT", "code": "64590", "display": "Insertion or replacement of peripheral or gastric neurostimulator pulse generator or receiver, direct or inductive coupling" },
+    { "system": "CPT", "code": "0908T", "display": "Open implantation of integrated neurostimulation system, vagus nerve, including analysis and programming, when performed" },
+    { "system": "CPT", "code": "43289", "display": "Unlisted laparoscopy procedure, esophagus" },
+    { "system": "CPT", "code": "43290", "display": "Esophagogastroduodenoscopy, flexible, transoral; with deployment of intragastric bariatric balloon" },
+    { "system": "CPT", "code": "43499", "display": "Unlisted procedure, esophagus" },
+    { "system": "CPT", "code": "44238", "display": "Unlisted laparoscopy procedure, intestine (except rectum)" },
+    { "system": "CPT", "code": "64999", "display": "Unlisted procedure, nervous system" },
+    { "system": "CPT", "code": "0813T", "display": "Esophagogastroduodenoscopy, flexible, transoral, with volume adjustment of intragastric bariatric balloon" },
+    { "system": "HCPCS", "code": "C9785", "display": "Endoscopic outlet reduction, gastric pouch application, with endoscopy and intraluminal tube insertion, if performed, including all system and tissue anchoring components" },
+    { "system": "CPT", "code": "43771", "display": "Laparoscopy, surgical, gastric restrictive procedure; revision of adjustable gastric restrictive device component only" },
+    { "system": "CPT", "code": "43772", "display": "Laparoscopy, surgical, gastric restrictive procedure; removal of adjustable gastric restrictive device component only" },
+    { "system": "CPT", "code": "43773", "display": "Laparoscopy, surgical, gastric restrictive procedure; removal and replacement of adjustable gastric restrictive device component only" },
+    { "system": "CPT", "code": "43774", "display": "Laparoscopy, surgical, gastric restrictive procedure; removal of adjustable gastric restrictive device and subcutaneous port components" },
+    { "system": "CPT", "code": "43848", "display": "Revision, open, of gastric restrictive procedure for morbid obesity, other than adjustable gastric restrictive device (separate procedure)" },
+    { "system": "CPT", "code": "43860", "display": "Revision of gastrojejunal anastomosis (gastrojejunostomy) with reconstruction, with or without partial gastrectomy or intestine resection; without vagotomy" },
+    { "system": "CPT", "code": "43865", "display": "Revision of gastrojejunal anastomosis (gastrojejunostomy) with reconstruction, with or without partial gastrectomy or intestine resection; with vagotomy" },
+    { "system": "CPT", "code": "43886", "display": "Gastric restrictive procedure, open; revision of subcutaneous port component only" },
+    { "system": "CPT", "code": "43888", "display": "Gastric restrictive procedure, open; removal and replacement of subcutaneous port component only" },
+    { "system": "CPT", "code": "43631", "display": "Gastrectomy, partial, distal; with gastroduodenostomy" },
+    { "system": "CPT", "code": "43632", "display": "Gastrectomy, partial, distal; with gastrojejunostomy" },
+    { "system": "CPT", "code": "43634", "display": "Gastrectomy, partial, distal; with formation of intestinal pouch" },
+    { "system": "CPT", "code": "47379", "display": "Unlisted laparoscopic procedure, liver" },
+    { "system": "CPT", "code": "43235", "display": "Esophagogastroduodenoscopy, flexible, transoral; diagnostic, including collection of specimen(s) by brushing or washing, when performed (separate procedure)" }
+  ],
+  "indications": [
+    {
+      "name": "Initial bariatric surgery for obesity in adults aged 18 years or older",
+      "match": "all",
+      "criteria": [
+        {
+          "text": "Body mass index threshold, with lower thresholds for Asians when ethnicity is confirmed by provider attestation",
+          "any_of": [
+            "BMI ≥ 35 kg/m² (class 2 obesity), or ≥ 27.5 kg/m² in Asians",
+            "BMI 30 to 34.9 kg/m² (class 1 obesity), or 25 to 27.4 kg/m² in Asians, with at least one clinically significant obesity-related comorbidity"
+          ]
+        },
+        {
+          "text": "For BMI 30 to 34.9 kg/m² (25 to 27.4 kg/m² in Asians), at least one clinically significant obesity-related comorbidity, including but not limited to these",
+          "any_of": [
+            "Mechanical arthropathy in a weight-bearing joint (symptomatic degenerative joint disease)",
+            "Diabetes mellitus",
+            "Poorly controlled hypertension despite optimal medical management (systolic at least 140 mm Hg or diastolic 90 mm Hg or greater)",
+            "Hyperlipidemia",
+            "Coronary artery disease",
+            "Lower extremity lymphatic or venous obstruction",
+            "Obstructive sleep apnea",
+            "Pulmonary hypertension",
+            "Evidence of fatty liver disease, meaning metabolic dysfunction-associated steatotic liver disease (MASLD) or metabolic dysfunction-associated steatohepatitis (MASH)",
+            "Gastroesophageal reflux disease refractory to medical therapy"
+          ]
+        },
+        { "text": "Thorough multidisciplinary evaluation within the previous 12 months includes a description of the proposed procedure or procedures" },
+        { "text": "Multidisciplinary evaluation includes documentation of failure of weight loss by medical management" },
+        { "text": "Multidisciplinary evaluation includes unequivocal clearance for bariatric surgery by a mental health provider" },
+        { "text": "Multidisciplinary evaluation includes a nutritional evaluation by a physician, physician assistant, nurse practitioner, or registered dietician" },
+        {
+          "text": "Uses one of the covered open or laparoscopic initial procedures",
+          "any_of": [
+            "Vertical band gastroplasty",
+            "Adjustable silicone gastric banding, such as LAP-BAND or REALIZE",
+            "Sleeve gastrectomy as a stand-alone or staged procedure",
+            "Roux-en-Y gastric bypass with a roux limb less than 150 cm",
+            "Roux-en-Y gastric bypass with a roux limb greater than 150 cm",
+            "Biliopancreatic diversion with duodenal switch (BPD/DS)",
+            "Biliopancreatic diversion (BPD) without duodenal switch",
+            "Single-anastomosis duodenal-ileal bypass with sleeve gastrectomy (SADI-S), also called loop duodenal switch",
+            "Endoscopic sleeve gastroplasty"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Adjustment of a silicone gastric band in adults",
+      "match": "all",
+      "criteria": [
+        { "text": "Adjustment controls the rate of weight loss or treats symptoms secondary to gastric restriction" },
+        { "text": "Follows a medically necessary adjustable silicone gastric banding procedure" }
+      ]
+    },
+    {
+      "name": "Replacement of an adjustable silicone gastric band, or band removal with conversion to a second bariatric procedure, in adults",
+      "match": "all",
+      "criteria": [
+        { "text": "Evidence of band slippage or band component malfunction" },
+        { "text": "The faulty component cannot be repaired" }
+      ]
+    },
+    {
+      "name": "Gastric band removal in adults",
+      "match": "all",
+      "criteria": [
+        { "text": "Gastrointestinal symptoms such as persistent nausea or vomiting or gastroesophageal reflux, with or without imaging evidence of obstruction" }
+      ]
+    },
+    {
+      "name": "Repair, reversal, or conversion after a major complication in adults",
+      "match": "all",
+      "criteria": [
+        {
+          "text": "Develops a major complication from a previous bariatric surgical procedure, such as one of these",
+          "any_of": [
+            "Stricture",
+            "Obstruction",
+            "Erosion",
+            "Gastric prolapse",
+            "Ulceration",
+            "Fistula formation",
+            "Esophageal dilatation",
+            "Gastroesophageal reflux disease refractory to medical therapy"
+          ]
+        },
+        {
+          "text": "The procedure is one of these",
+          "any_of": [
+            "Surgical repair or reversal (takedown)",
+            "Conversion to a medically necessary bariatric surgical procedure"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Revision or conversion without a major complication in adults",
+      "match": "all",
+      "criteria": [
+        { "text": "Weight loss failure ≥ two years following a previous bariatric surgical procedure" },
+        { "text": "Meets the initial medical necessity criteria for surgery" },
+        {
+          "text": "The requested procedure is one of these",
+          "any_of": [
+            "Vertical band gastroplasty",
+            "Adjustable silicone gastric banding",
+            "Sleeve gastrectomy as a stand-alone or staged procedure",
+            "Roux-en-Y gastric bypass with a roux limb less than 150 cm",
+            "Roux-en-Y gastric bypass with a roux limb greater than 150 cm",
+            "Biliopancreatic diversion with duodenal switch (BPD/DS)",
+            "Biliopancreatic diversion (BPD) without duodenal switch",
+            "Revision of gastrojejunal anastomosis (gastrojejunostomy)",
+            "Single-anastomosis duodenal-ileal bypass with sleeve gastrectomy (SADI-S), also called loop duodenal switch"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Initial bariatric surgery for morbid obesity in adolescents aged 11 to 17 years",
+      "match": "all",
+      "criteria": [
+        {
+          "text": "Obesity threshold by BMI or percentile, whichever is lower",
+          "any_of": [
+            "BMI ≥ 40 kg/m² or ≥ 140% of the 95th percentile (class 3 obesity)",
+            "BMI 35 to 39.9 kg/m² or ≥ 120% of the 95th percentile (class 2 obesity), with at least one clinically significant obesity-related comorbidity"
+          ]
+        },
+        {
+          "text": "For class 2 obesity, at least one clinically significant obesity-related comorbidity, including but not limited to these",
+          "any_of": [
+            "Coronary artery disease",
+            "Diabetes mellitus",
+            "Idiopathic intracranial hypertension",
+            "Poorly controlled hypertension despite optimal medical management (systolic at least 140 mm Hg or diastolic 90 mm Hg or greater)",
+            "Obstructive sleep apnea",
+            "Gastroesophageal reflux",
+            "Metabolic dysfunction-associated steatohepatitis (MASH)"
+          ]
+        },
+        { "text": "Thorough multidisciplinary evaluation within the previous 12 months includes a description of the proposed procedure or procedures" },
+        { "text": "Multidisciplinary evaluation includes documentation of failure of weight loss by medical management" },
+        { "text": "Multidisciplinary evaluation includes unequivocal clearance for bariatric surgery by a mental health provider" },
+        { "text": "Multidisciplinary evaluation includes a nutritional evaluation by a physician, physician assistant, nurse practitioner, or registered dietician" },
+        {
+          "text": "Uses one of the covered open or laparoscopic procedures for adolescents",
+          "any_of": [
+            "Sleeve gastrectomy",
+            "Roux-en-Y gastric bypass with a roux limb less than 150 cm",
+            "Roux-en-Y gastric bypass with a roux limb greater than 150 cm"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Repair or conversion after a major complication in adolescents",
+      "match": "all",
+      "criteria": [
+        {
+          "text": "Develops a major complication from a previous bariatric surgical procedure, such as one of these",
+          "any_of": [
+            "Stricture",
+            "Obstruction",
+            "Erosion",
+            "Gastric prolapse",
+            "Ulceration",
+            "Fistula formation",
+            "Esophageal dilatation",
+            "Gastroesophageal reflux disease refractory to medical therapy"
+          ]
+        },
+        {
+          "text": "The procedure is one of these",
+          "any_of": [
+            "Surgical repair",
+            "Conversion to a medically necessary bariatric surgical procedure, which is Roux-en-Y gastric bypass or sleeve gastrectomy"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Revision or conversion without a major complication in adolescents",
+      "match": "all",
+      "criteria": [
+        { "text": "Weight loss failure ≥ two years following a previous bariatric surgical procedure" },
+        { "text": "Meets the initial medical necessity criteria for surgery" },
+        {
+          "text": "The requested procedure is one of these",
+          "any_of": [
+            "Sleeve gastrectomy",
+            "Roux-en-Y gastric bypass with a roux limb less than 150 cm",
+            "Roux-en-Y gastric bypass with a roux limb greater than 150 cm",
+            "Revision of gastrojejunal anastomosis (gastrojejunostomy)"
+          ]
+        }
+      ]
+    }
+  ],
+  "exclusions": [
+    "Gastric electrical stimulation (GES) or gastric pacing for the treatment of obesity",
+    "Vagus nerve stimulation for the treatment of obesity",
+    "Band over bypass",
+    "Band over sleeve",
+    "Fobi-Pouch (limiting proximal gastric pouch)",
+    "Intestinal bypass (jejunoileal bypass)",
+    "Intragastric balloon, such as Orbera, ReShape, or Obalon",
+    "Laparoscopic greater curvature plication",
+    "Mini-gastric bypass, one anastomosis gastric bypass (OAGB), or loop gastric bypass",
+    "Endoscopic bariatric surgery procedures, including but not limited to NOTES, restorative obesity surgery endoluminal (ROSE), StomaphyX, duodenojejunal bypass liners such as Endobarrier, and transoral gastroplasty such as TOGA",
+    "Transoral outlet reduction (TORe)",
+    "Roux-en-Y gastric bypass combined with simultaneous gastric banding",
+    "Stomach aspiration therapy, such as AspireAssist",
+    "Vagus nerve blocking, such as Maestro",
+    "Surgical reversal, revision, or conversion for inadequate weight loss due to noncompliance with postoperative nutrition and exercise recommendations",
+    "Surgical reversal, revision, or conversion for any indication other than those listed as medically necessary",
+    "All bariatric surgical procedures for morbid obesity in an adolescent other than sleeve gastrectomy and Roux-en-Y gastric bypass",
+    "Partial distal gastrectomy with gastroduodenostomy (CPT 43631) for reporting bariatric surgery",
+    "Partial distal gastrectomy with gastrojejunostomy (CPT 43632) for reporting bariatric surgery",
+    "Partial distal gastrectomy with formation of intestinal pouch (CPT 43634) for reporting bariatric surgery",
+    "Bariatric surgery for the primary treatment of any condition other than obesity or morbid obesity",
+    "Liver biopsy with bariatric surgery in the absence of signs or symptoms of liver disease, such as elevated liver enzymes, enlarged liver, or abnormal intraoperative findings",
+    "Upper gastrointestinal endoscopy performed concurrently with bariatric surgery to confirm a surgical anastomosis or establish anatomical landmarks, which is integral to the procedure and not separately reimbursable"
+  ],
+  "documentation_requirements": [
+    "Provider attestation confirming Asian ethnicity when the lower BMI thresholds for Asians are applied",
+    "A description of the proposed procedure or procedures from a multidisciplinary evaluation within the previous 12 months",
+    "Documentation of failure of weight loss by medical management",
+    "Unequivocal clearance for bariatric surgery by a mental health provider",
+    "A nutritional evaluation by a physician, physician assistant, nurse practitioner, or registered dietician"
+  ],
+  "site_of_care": []
+}
