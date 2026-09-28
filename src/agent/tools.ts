@@ -34,6 +34,7 @@ export const reviewSchema = z.strictObject({
 export type Review = z.infer<typeof reviewSchema>;
 
 const MAX_CHARS_PER_READ = 40_000;
+const OUTLINE_DEPTH = 3;
 const SCOPE_KEY = 'anumat.job';
 
 export class JobScope {
@@ -66,7 +67,7 @@ export function createPolicyTools(market: Market, sources: AgentSources) {
   const get_policy_document = createTool({
     id: 'get_policy_document',
     description:
-      'Read a converted policy document by id. Without section_ids it returns the outline: section ids, levels, headings, and sizes in characters. With section_ids it returns those sections, each with its subsections, up to 40,000 characters per call.',
+      'Read a converted policy document by id. Without section_ids it returns the outline: section ids, levels, headings, and sizes in characters, three heading levels deep. With section_ids it returns those sections, each with all its subsections, up to 40,000 characters per call.',
     inputSchema: z.object({
       document_id: z.string(),
       section_ids: z.array(z.string()).min(1).max(12).optional(),
@@ -76,17 +77,15 @@ export function createPolicyTools(market: Market, sources: AgentSources) {
       if (document_id !== scope.target.documentId) return outsideJob('Document', document_id);
       const markdown = await sources.markdown(document_id);
       const sections = outline(markdown);
+      const topLevel = Math.min(...sections.map((section) => section.level || Number.POSITIVE_INFINITY));
       const result = section_ids
         ? { document_id, ...readSections(markdown, sections, section_ids, MAX_CHARS_PER_READ) }
         : {
             document_id,
             total_chars: markdown.length,
-            sections: sections.map(({ id, level, heading, start, end }) => ({
-              id,
-              level,
-              heading: heading.slice(0, 120),
-              chars: end - start,
-            })),
+            sections: sections
+              .filter((section) => section.level < topLevel + OUTLINE_DEPTH)
+              .map(({ id, level, heading, start, end }) => ({ id, level, heading: heading.slice(0, 120), chars: end - start })),
           };
       if ('unknown_ids' in result) scope.sectionsRead.push(...result.sections.map((section) => section.id));
       scope.charsRead += JSON.stringify(result).length;
