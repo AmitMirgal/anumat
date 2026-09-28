@@ -212,6 +212,20 @@ export async function listVersions(
   return toPage(rows, page.limit, (row) => [row.createdAt.toISOString(), row.id]);
 }
 
+export async function saveDiffNotes(
+  db: Db,
+  diffId: string,
+  notes: { summary: string | null; review: unknown },
+): Promise<PolicyDiff> {
+  return one(
+    await db
+      .update(policyDiffs)
+      .set({ summary: notes.summary, review: notes.review })
+      .where(eq(policyDiffs.id, diffId))
+      .returning(),
+  );
+}
+
 export async function getDiff(db: Db, id: string): Promise<PolicyDiff> {
   const [diff] = await db.select().from(policyDiffs).where(eq(policyDiffs.id, id));
   if (!diff) throw new AppError('not_found', `Diff ${id} not found`);
