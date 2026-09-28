@@ -32,6 +32,14 @@ It starts from the gold and adds the mistakes listed in `candidate_deviations` i
 The offline eval replays it through the agent tools.
 It is not model output.
 
+## Diff fixtures
+
+`diffs/uhc-bariatric-revision/` checks the change set the US diff computes.
+`previous.json` is the UHC bariatric gold.
+`current.json` is a hand-edited revision of it with a new effective date, CPT 0813T removed, CPT 43842 added, a changed BMI threshold, one exclusion removed, and one documentation requirement added.
+`expected-changes.json` holds the seven changes those edits produce, checked by hand.
+Change the diff behavior only together with this fixture.
+
 ## Check the fixtures
 
 Run `pnpm exec vitest run test/fixtures.test.ts` from the repository root.

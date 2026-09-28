@@ -25,6 +25,8 @@ const apiKeys = z.string().transform((raw, ctx) => {
   return keys;
 });
 
+export const DEFAULT_MODELS = { strong: 'anthropic/claude-sonnet-4-5', cheap: 'anthropic/claude-haiku-4-5' };
+
 const EnvSchema = z.object({
   DATABASE_URL: z.url(),
   HOST: z.string().default('127.0.0.1'),
@@ -33,8 +35,8 @@ const EnvSchema = z.object({
   ANUMAT_DATA_DIR: z.string().default('./data/policies'),
   ANUMAT_STORAGE: z.enum(['local', 's3']).default('local'),
   ANUMAT_LLM_MODE: z.enum(['live', 'replay']).default('live'),
-  ANUMAT_STRONG_MODEL: z.string().default('anthropic/claude-sonnet-4-5'),
-  ANUMAT_CHEAP_MODEL: z.string().default('anthropic/claude-haiku-4-5'),
+  ANUMAT_STRONG_MODEL: z.string().default(DEFAULT_MODELS.strong),
+  ANUMAT_CHEAP_MODEL: z.string().default(DEFAULT_MODELS.cheap),
   FIRECRAWL_API_KEY: optionalSecret,
   FIRECRAWL_API_URL: z.url().optional(),
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(120),

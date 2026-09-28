@@ -56,8 +56,11 @@ export type ExtractResult = {
 };
 export type DiffNotes = { summary: string | null; review: Review | null; failures: string[] };
 
+export type ModelStatus = { model: string; hasAuth: boolean; envVar: string | undefined };
+
 export type PolicyAgent = {
   readonly models: ModelSource;
+  modelStatus(mode: ModeId): Promise<ModelStatus>;
   extractDocument(job: DocumentJob): Promise<ExtractResult>;
   annotateDiff(job: { diffId: string; documentId: string; policyKey: string; changes: Change[] }): Promise<DiffNotes>;
 };
@@ -103,46 +106,62 @@ export async function createPolicyAgent(options: {
   });
   await controller.init();
 
-  async function run(scope: JobScope, content: string): Promise<{ model: string; lastToolError: string | undefined }> {
+  type Session = Awaited<ReturnType<typeof controller.createSession>>;
+  async function statusOf(session: Session): Promise<ModelStatus> {
+    const model = session.model.get();
+    if (models.kind === 'scripted') return { model, hasAuth: true, envVar: undefined };
+    const auth = await controller.getCurrentModelAuthStatus(session);
+    return { model, hasAuth: auth.hasAuth, envVar: auth.apiKeyEnvVar };
+  }
+
+  async function withSession<T>(mode: ModeId, use: (session: Session) => Promise<T>): Promise<T> {
     const resourceId = `anumat-job:${randomUUID()}`;
     const session = await controller.createSession({ resourceId });
-    const errors: string[] = [];
-    let lastToolError: string | undefined;
-    const unsubscribe = session.subscribe((event) => {
-      if (event.type === 'error') errors.push(event.error.message);
-      if (event.type === 'tool_end' && typeof event.result === 'object' && event.result && 'error' in event.result) {
-        lastToolError = 'message' in event.result ? String(event.result.message) : 'tool error';
-      }
-    });
     try {
-      await session.mode.switch({ modeId: scope.mode });
-      const model = session.model.get();
-      if (models.kind === 'router') {
-        const auth = await controller.getCurrentModelAuthStatus(session);
-        if (!auth.hasAuth) {
-          throw new AppError(
-            'llm_not_configured',
-            `No API key is configured for ${model}. Set ${auth.apiKeyEnvVar ?? 'its provider API key'} to run the ${scope.mode} step.`,
-            { mode: scope.mode, model, env_var: auth.apiKeyEnvVar },
-          );
-        }
-      }
-      await session.sendMessage({ content, requestContext: jobContext(scope) });
-      if (errors.length > 0) {
-        throw new AppError('extraction_failed', `The ${scope.mode} step failed: ${errors.join('; ')}`, {
-          mode: scope.mode,
-          model,
-        });
-      }
-      return { model, lastToolError };
+      await session.mode.switch({ modeId: mode });
+      return await use(session);
     } finally {
-      unsubscribe();
       await controller.deleteSession({ resourceId });
     }
   }
 
+  function run(scope: JobScope, content: string): Promise<{ model: string; lastToolError: string | undefined }> {
+    return withSession(scope.mode, async (session) => {
+      const errors: string[] = [];
+      let lastToolError: string | undefined;
+      const unsubscribe = session.subscribe((event) => {
+        if (event.type === 'error') errors.push(event.error.message);
+        if (event.type === 'tool_end' && typeof event.result === 'object' && event.result && 'error' in event.result) {
+          lastToolError = 'message' in event.result ? String(event.result.message) : 'tool error';
+        }
+      });
+      try {
+        const { model, hasAuth, envVar } = await statusOf(session);
+        if (!hasAuth) {
+          throw new AppError(
+            'llm_not_configured',
+            `No API key is configured for ${model}. Set ${envVar ?? 'its provider API key'} to run the ${scope.mode} step.`,
+            { mode: scope.mode, model, env_var: envVar },
+          );
+        }
+        await session.sendMessage({ content, requestContext: jobContext(scope) });
+        if (errors.length > 0) {
+          throw new AppError('extraction_failed', `The ${scope.mode} step failed: ${errors.join('; ')}`, {
+            mode: scope.mode,
+            model,
+          });
+        }
+        return { model, lastToolError };
+      } finally {
+        unsubscribe();
+      }
+    });
+  }
+
   return {
     models,
+
+    modelStatus: (mode) => withSession(mode, statusOf),
 
     async extractDocument(job) {
       const about = `${job.payer}: ${job.title}`;

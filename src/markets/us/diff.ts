@@ -8,7 +8,7 @@ const SCALARS = ['title', 'payer', 'policy_number', 'effective_date', 'revision_
 const TEXT_LISTS = ['exclusions', 'documentation_requirements', 'site_of_care'] as const;
 
 const normalize = (value: string) => value.toLowerCase().replace(/\s+/g, ' ').trim();
-const renderCriterion = (c: Criterion) => (c.any_of ? `${c.text} (any of: ${c.any_of.join('; ')})` : c.text);
+export const renderCriterion = (c: Criterion) => (c.any_of ? `${c.text} (any of: ${c.any_of.join('; ')})` : c.text);
 
 function diffSets(field: string, before: string[], after: string[], key?: string): Change[] {
   const beforeByKey = new Map(before.map((v) => [normalize(v), v]));

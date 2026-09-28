@@ -1,0 +1,50 @@
+[
+  {
+    "field": "effective_date",
+    "kind": "changed",
+    "before": "2026-05-01",
+    "after": "2026-11-01"
+  },
+  {
+    "field": "codes",
+    "kind": "removed",
+    "key": "CPT 0813T",
+    "before": {
+      "system": "CPT",
+      "code": "0813T",
+      "display": "Esophagogastroduodenoscopy, flexible, transoral, with volume adjustment of intragastric bariatric balloon"
+    }
+  },
+  {
+    "field": "codes",
+    "kind": "added",
+    "key": "CPT 43842",
+    "after": {
+      "system": "CPT",
+      "code": "43842",
+      "display": "Gastric restrictive procedure, without gastric bypass, for morbid obesity; vertical-banded gastroplasty"
+    }
+  },
+  {
+    "field": "criteria",
+    "kind": "removed",
+    "key": "Bariatric surgery in adults aged 18 years or older",
+    "before": "Body mass index threshold, with lower thresholds for individuals of Asian descent (any of: BMI ≥ 40 kg/m², or ≥ 37.5 kg/m² in individuals of Asian descent; BMI 35 to 39.9 kg/m², or 32.5 to 37.4 kg/m² in individuals of Asian descent, with one or more listed comorbidities)"
+  },
+  {
+    "field": "criteria",
+    "kind": "added",
+    "key": "Bariatric surgery in adults aged 18 years or older",
+    "after": "Body mass index threshold, with lower thresholds for individuals of Asian descent (any of: BMI ≥ 40 kg/m², or ≥ 35 kg/m² in individuals of Asian descent; BMI 35 to 39.9 kg/m², or 32.5 to 37.4 kg/m² in individuals of Asian descent, with one or more listed comorbidities)"
+  },
+  {
+    "field": "exclusions",
+    "kind": "removed",
+    "before": "Bariatric artery embolization"
+  },
+  {
+    "field": "documentation_requirements",
+    "kind": "added",
+    "after": "Documentation of participation in a multidisciplinary preoperative program"
+  }
+]
