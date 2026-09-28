@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { AppError } from './errors';
 
-export type PageRequest = { limit: number; cursor: string | undefined };
+export type PageRequest = { limit: number; cursor?: string | undefined };
 export type Page<T> = { items: T[]; nextCursor: string | null };
 
 export const encodeCursor = (values: (string | number)[]) => Buffer.from(JSON.stringify(values)).toString('base64url');
