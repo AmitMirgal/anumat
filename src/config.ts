@@ -1,10 +1,5 @@
 import { z } from 'zod';
 
-const optionalSecret = z
-  .string()
-  .optional()
-  .transform((value) => (value ? value : undefined));
-
 const apiKeys = z.string().transform((raw, ctx) => {
   const keys = raw
     .split(',')
@@ -37,7 +32,7 @@ const EnvSchema = z.object({
   ANUMAT_LLM_MODE: z.enum(['live', 'replay']).default('live'),
   ANUMAT_STRONG_MODEL: z.string().default(DEFAULT_MODELS.strong),
   ANUMAT_CHEAP_MODEL: z.string().default(DEFAULT_MODELS.cheap),
-  FIRECRAWL_API_KEY: optionalSecret,
+  FIRECRAWL_API_KEY: z.string().optional(),
   FIRECRAWL_API_URL: z.url().optional(),
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(120),
 });
@@ -57,7 +52,7 @@ export type Config = {
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const parsed = EnvSchema.safeParse(env);
+  const parsed = EnvSchema.safeParse(Object.fromEntries(Object.entries(env).filter(([, value]) => value !== '')));
   if (!parsed.success) {
     throw new Error(`Invalid environment:\n${z.prettifyError(parsed.error)}`);
   }
