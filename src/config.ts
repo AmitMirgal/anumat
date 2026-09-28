@@ -36,6 +36,7 @@ const EnvSchema = z.object({
   ANUMAT_STRONG_MODEL: z.string().default('anthropic/claude-sonnet-4-5'),
   ANUMAT_CHEAP_MODEL: z.string().default('anthropic/claude-haiku-4-5'),
   FIRECRAWL_API_KEY: optionalSecret,
+  FIRECRAWL_API_URL: z.url().optional(),
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(120),
 });
 
@@ -49,6 +50,7 @@ export type Config = {
   llmMode: 'live' | 'replay';
   models: { strong: string; cheap: string };
   firecrawlApiKey: string | undefined;
+  firecrawlApiUrl: string | undefined;
   rateLimitPerMinute: number;
 };
 
@@ -68,6 +70,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     llmMode: e.ANUMAT_LLM_MODE,
     models: { strong: e.ANUMAT_STRONG_MODEL, cheap: e.ANUMAT_CHEAP_MODEL },
     firecrawlApiKey: e.FIRECRAWL_API_KEY,
+    firecrawlApiUrl: e.FIRECRAWL_API_URL,
     rateLimitPerMinute: e.RATE_LIMIT_PER_MINUTE,
   };
 }
