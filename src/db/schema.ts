@@ -23,7 +23,7 @@ export const documentStatus = pgEnum('document_status', ['converted', 'failed'])
 export const versionStatus = pgEnum('version_status', ['proposed', 'approved', 'rejected', 'superseded']);
 export const watchOutcome = pgEnum('watch_outcome', ['unchanged', 'new_artifact', 'error']);
 
-const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
+const createdAt = () => timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow();
 const updatedAt = () =>
   timestamp('updated_at', { withTimezone: true })
     .notNull()
