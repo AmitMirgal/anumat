@@ -35,6 +35,11 @@ export async function getPayer(db: Db, id: string): Promise<Payer> {
   return payer;
 }
 
+export async function findPayerBySlug(db: Db, slug: string): Promise<Payer | undefined> {
+  const [payer] = await db.select().from(payers).where(eq(payers.slug, slug));
+  return payer;
+}
+
 export async function listPayers(db: Db, page: PageRequest): Promise<Page<Payer>> {
   const after = page.cursor ? decodeCursor(page.cursor, stringCursor)[0] : undefined;
   const rows = await db
@@ -89,6 +94,11 @@ export async function registerSource(
 export async function getSource(db: Db, id: string): Promise<PolicySource> {
   const [source] = await db.select().from(policySources).where(eq(policySources.id, id));
   if (!source) throw new AppError('not_found', `Source ${id} not found`);
+  return source;
+}
+
+export async function findSourceByPolicyKey(db: Db, policyKey: string): Promise<PolicySource | undefined> {
+  const [source] = await db.select().from(policySources).where(eq(policySources.policyKey, policyKey));
   return source;
 }
 
