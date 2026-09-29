@@ -1,8 +1,8 @@
 import { toMarkdownBytes } from '@firecrawl/anydoc';
-import type { converter } from '../db/schema';
 import { AppError } from '../errors';
 
-export type Converter = (typeof converter.enumValues)[number];
+export const converters = ['anydoc', 'firecrawl-parse'] as const;
+export type Converter = (typeof converters)[number];
 export type OcrOptions = { apiKey: string | undefined; apiUrl: string | undefined };
 
 function anydocCode(error: unknown): string | undefined {

@@ -34,7 +34,7 @@ export function createApp(ctx: AppContext) {
       ocr: ctx.config.firecrawlApiKey ? 'configured' : 'missing',
     };
     try {
-      await ctx.sql`select 1`;
+      await ctx.db.$queryRaw`SELECT 1`;
     } catch {
       return c.json({ status: 'not_ready', checks: { database: 'down', ...checks } }, 503);
     }

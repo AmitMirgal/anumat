@@ -34,11 +34,14 @@ export async function testContext(options: { models: ModelSource; adapter: Sourc
     ctx,
     reset: t.reset,
     counts: async () => {
-      const [row] = await t.sql`select
+      const [row] = await t.db.$queryRaw<
+        Array<{ artifacts: number; documents: number; versions: number; runs: number }>
+      >`select
         (select count(*) from policy_artifacts)::int as artifacts,
         (select count(*) from policy_documents)::int as documents,
         (select count(*) from policy_versions)::int as versions,
         (select count(*) from watch_runs)::int as runs`;
+      if (!row) throw new Error('Expected the count query to return a row');
       return row;
     },
     close: async () => {

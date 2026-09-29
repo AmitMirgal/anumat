@@ -1,9 +1,9 @@
 import type { z } from 'zod';
-import type { market } from '../db/schema';
+import type { Market } from '../generated/prisma/client';
 import { diffUsExtractions } from './us/diff';
 import { US_SCHEMA_ID, usExtractSchema } from './us/extract-schema';
 
-export type Market = (typeof market.enumValues)[number];
+export type { Market };
 
 export type Change = {
   field: string;

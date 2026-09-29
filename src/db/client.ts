@@ -1,25 +1,37 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import { AppError } from '../errors';
-import * as schema from './schema';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Prisma, PrismaClient } from '../generated/prisma/client';
 
-export function connect(databaseUrl: string) {
-  const sql = postgres(databaseUrl, { max: 10, onnotice: () => {} });
-  return { sql, db: drizzle(sql, { schema }) };
+export function connect(databaseUrl: string): PrismaClient {
+  const adapter = new PrismaPg({ connectionString: databaseUrl, max: 10 });
+  return new PrismaClient({ adapter });
 }
 
-export type Db = ReturnType<typeof connect>['db'];
-export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
-export type Sql = ReturnType<typeof connect>['sql'];
+export type Db = PrismaClient;
+export type Tx = Prisma.TransactionClient;
 
-export function one<T>(rows: T[]): T {
-  const [row] = rows;
-  if (row === undefined) throw new AppError('internal', 'Expected the statement to return a row');
-  return row;
+export function jsonInput(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+  if (value === null) return Prisma.JsonNull;
+  return value as Prisma.InputJsonValue;
 }
 
 export function uniqueViolation(error: unknown): string | undefined {
-  const cause = error instanceof Error && error.cause instanceof Error ? error.cause : error;
-  if (!(cause instanceof Error) || !('code' in cause) || cause.code !== '23505') return undefined;
-  return 'constraint_name' in cause && typeof cause.constraint_name === 'string' ? cause.constraint_name : 'unique';
+  const seen = new Set<unknown>();
+  let current: unknown = error;
+  while (current && typeof current === 'object' && !seen.has(current)) {
+    seen.add(current);
+    if ('code' in current && current.code === '23505') {
+      if ('constraint' in current && typeof current.constraint === 'string') return current.constraint;
+      if ('constraint_name' in current && typeof current.constraint_name === 'string') return current.constraint_name;
+      return 'unique';
+    }
+    if ('code' in current && current.code === 'P2002') {
+      const meta = 'meta' in current && current.meta && typeof current.meta === 'object' ? current.meta : undefined;
+      const target = meta && 'target' in meta ? meta.target : undefined;
+      if (typeof target === 'string') return target;
+      if (Array.isArray(target) && target.every((item) => typeof item === 'string')) return target.join(',');
+      return 'unique';
+    }
+    current = 'cause' in current ? current.cause : undefined;
+  }
+  return undefined;
 }

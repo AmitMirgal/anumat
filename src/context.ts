@@ -2,7 +2,7 @@ import { createPolicyAgent, type ModelSource, type PolicyAgent } from './agent/p
 import { fixtureExtractions, replayModels } from './agent/replay-model';
 import { databaseSources } from './agent/sources';
 import type { Config } from './config';
-import { connect, type Db, type Sql } from './db/client';
+import { connect, type Db } from './db/client';
 import type { Market } from './markets/registry';
 import { type AdapterType, adapters, type SourceAdapter } from './sources/adapters';
 import { type BlobStore, createBlobStore } from './storage/blob-store';
@@ -12,7 +12,6 @@ export const FIXTURES_DIR = 'evals/fixtures';
 export type AppContext = {
   config: Config;
   db: Db;
-  sql: Sql;
   blobs: BlobStore;
   adapters: Record<AdapterType, SourceAdapter>;
   agents: Record<Market, PolicyAgent>;
@@ -28,13 +27,12 @@ export async function createContext(
   config: Config,
   overrides: { models?: ModelSource; adapters?: Record<AdapterType, SourceAdapter> } = {},
 ): Promise<AppContext> {
-  const { db, sql } = connect(config.databaseUrl);
+  const db = connect(config.databaseUrl);
   const blobs = createBlobStore(config);
   const models = overrides.models ?? modelSource(config);
   return {
     config,
     db,
-    sql,
     blobs,
     adapters: overrides.adapters ?? adapters,
     agents: { us: await createPolicyAgent({ market: 'us', models, sources: databaseSources(db, blobs) }) },
@@ -42,5 +40,5 @@ export async function createContext(
 }
 
 export async function closeContext(ctx: AppContext): Promise<void> {
-  await ctx.sql.end();
+  await ctx.db.$disconnect();
 }

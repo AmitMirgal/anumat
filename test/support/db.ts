@@ -1,21 +1,33 @@
 import { createHash } from 'node:crypto';
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { registerPayer, registerSource } from '../../src/catalog';
-import { connect, type Db, one } from '../../src/db/client';
-import { policyArtifacts, policyDocuments } from '../../src/db/schema';
+import { connect, type Db } from '../../src/db/client';
+
+const execFileAsync = promisify(execFile);
 
 export const TEST_DATABASE_URL =
   process.env.TEST_DATABASE_URL ?? 'postgres://anumat:anumat@127.0.0.1:5432/anumat_test';
 
+let migrated = false;
+
+async function migrateTestDatabase() {
+  if (migrated) return;
+  await execFileAsync('pnpm', ['exec', 'prisma', 'migrate', 'deploy'], {
+    env: { ...process.env, DATABASE_URL: TEST_DATABASE_URL },
+  });
+  migrated = true;
+}
+
 export async function testDb() {
-  const { db, sql } = connect(TEST_DATABASE_URL);
-  await migrate(db, { migrationsFolder: 'drizzle' });
+  await migrateTestDatabase();
+  const db = connect(TEST_DATABASE_URL);
   return {
     db,
-    sql,
+    sql: db.$queryRaw.bind(db),
     reset: () =>
-      sql`truncate table watch_runs, policy_diffs, policy_versions, policy_documents, policy_artifacts, policy_sources, payers cascade`,
-    close: () => sql.end(),
+      db.$executeRaw`TRUNCATE TABLE watch_runs, policy_diffs, policy_versions, policy_documents, policy_artifacts, policy_sources, payers CASCADE`,
+    close: () => db.$disconnect(),
   };
 }
 
@@ -26,16 +38,21 @@ export async function seedSource(db: Db, sourceUrl = 'https://payer.test/bariatr
 
 export async function seedDocument(db: Db, sourceId: string, content: string) {
   const sha = createHash('sha256').update(content).digest('hex');
-  const artifact = one(
-    await db
-      .insert(policyArtifacts)
-      .values({ sourceId, contentSha256: sha, storagePath: `pdf/${sha}.pdf`, mime: 'application/pdf', byteSize: content.length })
-      .returning(),
-  );
-  return one(
-    await db
-      .insert(policyDocuments)
-      .values({ artifactId: artifact.id, status: 'converted', converter: 'anydoc', markdownPath: `markdown/${sha}.md` })
-      .returning(),
-  );
+  const artifact = await db.policyArtifact.create({
+    data: {
+      sourceId,
+      contentSha256: sha,
+      storagePath: `pdf/${sha}.pdf`,
+      mime: 'application/pdf',
+      byteSize: content.length,
+    },
+  });
+  return db.policyDocument.create({
+    data: {
+      artifactId: artifact.id,
+      status: 'converted',
+      converter: 'anydoc',
+      markdownPath: `markdown/${sha}.md`,
+    },
+  });
 }

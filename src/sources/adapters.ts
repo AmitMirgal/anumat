@@ -1,7 +1,7 @@
-import type { adapterType } from '../db/schema';
 import { AppError } from '../errors';
+import type { AdapterType } from '../generated/prisma/client';
 
-export type AdapterType = (typeof adapterType.enumValues)[number];
+export type { AdapterType };
 export type FetchedArtifact = { bytes: Uint8Array; mime: string };
 
 export interface SourceAdapter {

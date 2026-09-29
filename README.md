@@ -44,8 +44,8 @@ Without `ANTHROPIC_API_KEY` (or the key for the provider you configure), a check
 | --- | --- |
 | `pnpm dev` | Starts the API on port 4471 and restarts it when a file changes. |
 | `pnpm start` | Starts the API without file watching. |
-| `pnpm db:migrate` | Applies the migrations in `drizzle/` to `DATABASE_URL`. |
-| `pnpm db:generate` | Generates a migration after a change to `src/db/schema.ts`. |
+| `pnpm db:migrate` | Applies `prisma/migrations` to `DATABASE_URL`. |
+| `pnpm db:generate` | Generates the Prisma Client from `prisma/schema.prisma`. |
 | `pnpm db:seed` | Registers UnitedHealthcare, Cigna, and three policy PDFs. It skips rows that already exist. |
 | `pnpm watch` | Checks every enabled source whose `check_interval_hours` has passed, then exits. Run it from cron, for example `*/30 * * * * cd /path/to/anumat && pnpm watch`. |
 | `pnpm test` | Runs the unit and integration tests against `TEST_DATABASE_URL`. |
@@ -99,7 +99,7 @@ flowchart TD
 6. A person approves or rejects the proposal. Approval assigns the next version number and requires that the proposal's base is still the latest approved version.
 7. `GET /v1/policies/:policyKey` serves approved versions only.
 
-Every step converges when it runs again. A check after a failure resumes from the stored artifact or document. Postgres enforces one open proposal per policy, one version per document, required fields for each status, and triggers that reject any change to an approved version or a stored change set.
+Every step converges when it runs again. A check after a failure resumes from the stored artifact or document. `prisma/schema.prisma` defines the tables, relations, foreign-key indexes, and the partial unique index for one open proposal per policy. Unique columns still enforce one version per document and one diff per version. The init migration also adds the checks and immutability triggers Prisma cannot represent: required fields for each status, format checks, and triggers that reject any change to an approved version or a stored change set. After a schema change, create the migration with `pnpm exec prisma migrate dev --name <name>`, then run `pnpm db:generate`.
 
 ### Agent modes and token use
 

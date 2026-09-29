@@ -4,7 +4,7 @@ import { connect } from '../src/db/client';
 import { log } from '../src/log';
 import { US_SEED_PAYERS, US_SEED_SOURCES } from '../src/markets/us/seed-sources';
 
-const { db, sql } = connect(loadConfig().databaseUrl);
+const db = connect(loadConfig().databaseUrl);
 try {
   const payerIds = new Map<string, string>();
   for (const payer of US_SEED_PAYERS) {
@@ -22,5 +22,5 @@ try {
     log.info({ policyKey: source.policyKey, sourceId: source.id, created: !existing, url: source.sourceUrl }, 'seed source');
   }
 } finally {
-  await sql.end();
+  await db.$disconnect();
 }

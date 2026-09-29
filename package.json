@@ -11,8 +11,9 @@
   "scripts": {
     "dev": "tsx watch --env-file-if-exists=.env src/main.ts",
     "start": "tsx --env-file-if-exists=.env src/main.ts",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx --env-file-if-exists=.env scripts/migrate.ts",
+    "postinstall": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx --env-file-if-exists=.env scripts/seed.ts",
     "watch": "tsx --env-file-if-exists=.env src/jobs/watch.ts",
     "demo": "tsx --env-file-if-exists=.env scripts/demo.ts",
@@ -24,16 +25,18 @@
     "@firecrawl/anydoc": "^0.2.4",
     "@hono/node-server": "^2.1.1",
     "@mastra/core": "^1.71.0",
-    "drizzle-orm": "^0.45.3",
+    "@prisma/adapter-pg": "^7.4.0",
+    "@prisma/client": "^7.4.0",
     "hono": "^4.13.10",
+    "pg": "^8.16.3",
     "pino": "^10.3.1",
-    "postgres": "^3.4.9",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@mastra/evals": "^1.10.3",
     "@types/node": "^24.0.0",
-    "drizzle-kit": "^0.31.11",
+    "@types/pg": "^8.15.5",
+    "prisma": "^7.4.0",
     "tsx": "^4.23.15",
     "typescript": "~5.9.3",
     "vitest": "^4.1.11"

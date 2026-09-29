@@ -2,7 +2,7 @@ import { type Context, Hono } from 'hono';
 import { z } from 'zod';
 import { getSource, listPayers, listSources, type Payer, type PolicySource, registerPayer, registerSource } from '../catalog';
 import type { AppContext } from '../context';
-import { market, versionStatus } from '../db/schema';
+import { Market, VersionStatus } from '../generated/prisma/client';
 import { AppError } from '../errors';
 import type { Page } from '../pagination';
 import { checkSource, type WatchRun } from '../pipeline/check';
@@ -28,20 +28,20 @@ const pageQuery = z.object({
   cursor: z.string().optional(),
 });
 
-const NewPayer = z.strictObject({ name: z.string().min(2).max(120), slug, market: z.enum(market.enumValues) });
+const NewPayer = z.strictObject({ name: z.string().min(2).max(120), slug, market: z.enum(Market) });
 const NewSource = z.strictObject({
   payer_id: id,
   title: z.string().min(2).max(300),
   source_url: z.url({ protocol: /^https?$/ }),
   policy_slug: slug.optional(),
-  market: z.enum(market.enumValues).optional(),
+  market: z.enum(Market).optional(),
   adapter_type: z.literal('http_pdf').optional(),
   check_interval_hours: z.number().int().min(1).max(720).optional(),
   enabled: z.boolean().optional(),
 });
 const Rejection = z.strictObject({ reason: z.string().min(3).max(1000) });
 const VersionFilter = pageQuery.extend({
-  status: z.enum(versionStatus.enumValues).optional(),
+  status: z.enum(VersionStatus).optional(),
   policy_key: z.string().optional(),
 });
 

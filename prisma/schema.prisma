@@ -1,0 +1,198 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Market {
+  us
+
+  @@map("market")
+}
+
+enum AdapterType {
+  http_pdf
+
+  @@map("adapter_type")
+}
+
+enum Converter {
+  anydoc
+  firecrawl_parse @map("firecrawl-parse")
+
+  @@map("converter")
+}
+
+enum DocumentStatus {
+  converted
+  failed
+
+  @@map("document_status")
+}
+
+enum VersionStatus {
+  proposed
+  approved
+  rejected
+  superseded
+
+  @@map("version_status")
+}
+
+enum WatchOutcome {
+  unchanged
+  new_artifact
+  error
+
+  @@map("watch_outcome")
+}
+
+model Payer {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  slug      String   @unique(map: "payers_slug_unique")
+  market    Market
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  sources   PolicySource[]
+
+  @@unique([id, market], map: "payers_id_market_key")
+  @@map("payers")
+}
+
+model PolicySource {
+  id                 String      @id @default(uuid()) @db.Uuid
+  payerId            String      @map("payer_id") @db.Uuid
+  market             Market
+  policyKey          String      @unique(map: "policy_sources_policy_key_unique") @map("policy_key")
+  title              String
+  sourceUrl          String      @unique(map: "policy_sources_source_url_unique") @map("source_url")
+  adapterType        AdapterType @default(http_pdf) @map("adapter_type")
+  checkIntervalHours Int         @default(24) @map("check_interval_hours")
+  enabled            Boolean     @default(true)
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  payer     Payer            @relation(fields: [payerId, market], references: [id, market], onDelete: NoAction, onUpdate: NoAction)
+  artifacts PolicyArtifact[]
+  versions  PolicyVersion[]
+  watchRuns WatchRun[]
+
+  @@unique([id, market, policyKey], map: "policy_sources_id_market_policy_key_key")
+  @@index([payerId, market], map: "policy_sources_payer_market_idx")
+  @@map("policy_sources")
+}
+
+model PolicyArtifact {
+  id            String   @id @default(uuid()) @db.Uuid
+  sourceId      String   @map("source_id") @db.Uuid
+  fetchedAt     DateTime @default(now()) @map("fetched_at") @db.Timestamptz(3)
+  contentSha256 String   @map("content_sha256")
+  storagePath   String   @map("storage_path")
+  mime          String
+  byteSize      Int      @map("byte_size")
+
+  source    PolicySource     @relation(fields: [sourceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  document  PolicyDocument?
+  watchRuns WatchRun[]
+
+  @@index([sourceId, fetchedAt(sort: Desc)], map: "policy_artifacts_source_fetched_idx")
+  @@map("policy_artifacts")
+}
+
+model PolicyDocument {
+  id           String          @id @default(uuid()) @db.Uuid
+  artifactId   String          @unique(map: "policy_documents_artifact_id_unique") @map("artifact_id") @db.Uuid
+  status       DocumentStatus
+  converter    Converter?
+  markdownPath String?         @map("markdown_path")
+  errorCode    String?         @map("error_code")
+  errorMessage String?         @map("error_message")
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  artifact PolicyArtifact @relation(fields: [artifactId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  version  PolicyVersion?
+
+  @@map("policy_documents")
+}
+
+model PolicyVersion {
+  id            String        @id @default(uuid()) @db.Uuid
+  sourceId      String        @map("source_id") @db.Uuid
+  market        Market
+  policyKey     String        @map("policy_key")
+  documentId    String        @unique(map: "policy_versions_document_id_unique") @map("document_id") @db.Uuid
+  baseVersionId String?       @map("base_version_id") @db.Uuid
+  supersedesId  String?       @map("supersedes_id") @db.Uuid
+  status        VersionStatus @default(proposed)
+  version       Int?
+  extractSchema String        @map("extract_schema")
+  extractedJson Json          @map("extracted_json")
+  extractedBy   String        @map("extracted_by")
+  approvedAt    DateTime?     @map("approved_at") @db.Timestamptz(3)
+  approvedBy    String?       @map("approved_by")
+  rejectedAt    DateTime?     @map("rejected_at") @db.Timestamptz(3)
+  rejectedBy    String?       @map("rejected_by")
+  rejectReason  String?       @map("reject_reason")
+  supersededAt  DateTime?     @map("superseded_at") @db.Timestamptz(3)
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  source         PolicySource   @relation(fields: [sourceId, market, policyKey], references: [id, market, policyKey], onDelete: NoAction, onUpdate: NoAction)
+  document       PolicyDocument @relation(fields: [documentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  baseVersion    PolicyVersion? @relation("VersionBase", fields: [baseVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  basedVersions  PolicyVersion[] @relation("VersionBase")
+  supersedes     PolicyVersion? @relation("VersionSupersedes", fields: [supersedesId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  supersededBy   PolicyVersion[] @relation("VersionSupersedes")
+  diffTo         PolicyDiff?    @relation("DiffTo")
+  diffsFrom      PolicyDiff[]   @relation("DiffFrom")
+  watchRuns      WatchRun[]
+
+  @@unique([policyKey, version], map: "policy_versions_policy_key_version_key")
+  @@unique([policyKey], map: "policy_versions_one_open_proposal", where: raw("status = 'proposed'"))
+  @@index([status, createdAt], map: "policy_versions_status_created_idx")
+  @@index([sourceId], map: "policy_versions_source_id_idx")
+  @@map("policy_versions")
+}
+
+model PolicyDiff {
+  id            String   @id @default(uuid()) @db.Uuid
+  policyKey     String   @map("policy_key")
+  fromVersionId String?  @map("from_version_id") @db.Uuid
+  toVersionId   String   @unique(map: "policy_diffs_to_version_id_unique") @map("to_version_id") @db.Uuid
+  diffJson      Json     @map("diff_json")
+  summary       String?
+  review        Json?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  fromVersion PolicyVersion? @relation("DiffFrom", fields: [fromVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  toVersion   PolicyVersion  @relation("DiffTo", fields: [toVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([fromVersionId], map: "policy_diffs_from_version_id_idx")
+  @@map("policy_diffs")
+}
+
+model WatchRun {
+  id           String       @id @default(uuid()) @db.Uuid
+  sourceId     String       @map("source_id") @db.Uuid
+  startedAt    DateTime     @map("started_at") @db.Timestamptz(3)
+  finishedAt   DateTime     @map("finished_at") @db.Timestamptz(3)
+  outcome      WatchOutcome
+  artifactId   String?      @map("artifact_id") @db.Uuid
+  versionId    String?      @map("version_id") @db.Uuid
+  errorCode    String?      @map("error_code")
+  errorMessage String?      @map("error_message")
+
+  source   PolicySource    @relation(fields: [sourceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  artifact PolicyArtifact? @relation(fields: [artifactId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  version  PolicyVersion?  @relation(fields: [versionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([sourceId, startedAt(sort: Desc)], map: "watch_runs_source_started_idx")
+  @@map("watch_runs")
+}

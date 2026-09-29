@@ -1,70 +1,99 @@
 import { createHash } from 'node:crypto';
-import { and, asc, desc, eq, gt, notExists, sql } from 'drizzle-orm';
 import { getPayer, getSource, type PolicySource } from '../catalog';
-import type { AppContext } from '../context';
+import type { Converter } from '../convert/pdf-to-markdown';
 import { pdfToMarkdown } from '../convert/pdf-to-markdown';
-import { one } from '../db/client';
-import { policyArtifacts, policyDocuments, policySources, policyVersions, watchRuns } from '../db/schema';
+import type { AppContext } from '../context';
 import { toAppError } from '../errors';
+import type { Converter as StoredConverter, PolicyArtifact, PolicyDocument, WatchRun } from '../generated/prisma/client';
 import { log } from '../log';
 import type { Change } from '../markets/registry';
 import type { FetchedArtifact } from '../sources/adapters';
 import { diffForVersion, type PolicyDiff, type PolicyVersion, proposeVersion, saveDiffNotes } from '../versions';
 
-type Artifact = typeof policyArtifacts.$inferSelect;
-type PolicyDocument = typeof policyDocuments.$inferSelect;
-export type WatchRun = typeof watchRuns.$inferSelect;
+export type { WatchRun };
 export type CheckResult = { run: WatchRun; version: PolicyVersion | null; diff: PolicyDiff | null };
 
 const sha256 = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 
+function storedConverter(converter: Converter): StoredConverter {
+  switch (converter) {
+    case 'anydoc':
+      return 'anydoc';
+    case 'firecrawl-parse':
+      return 'firecrawl_parse';
+    default: {
+      const unreachable: never = converter;
+      return unreachable;
+    }
+  }
+}
+
 async function recordArtifact(ctx: AppContext, source: PolicySource, fetched: FetchedArtifact) {
   const sha = sha256(fetched.bytes);
   const storagePath = await ctx.blobs.put(`pdf/${sha}.pdf`, fetched.bytes);
-  return ctx.db.transaction(async (tx) => {
-    await tx.select({ id: policySources.id }).from(policySources).where(eq(policySources.id, source.id)).for('update');
-    const [latest] = await tx
-      .select()
-      .from(policyArtifacts)
-      .where(eq(policyArtifacts.sourceId, source.id))
-      .orderBy(desc(policyArtifacts.fetchedAt))
-      .limit(1);
+  return ctx.db.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM policy_sources WHERE id = CAST(${source.id} AS uuid) FOR UPDATE`;
+    const latest = await tx.policyArtifact.findFirst({
+      where: { sourceId: source.id },
+      orderBy: { fetchedAt: 'desc' },
+    });
     if (latest?.contentSha256 === sha) return { artifact: latest, created: false };
-    const artifact = one(
-      await tx
-        .insert(policyArtifacts)
-        .values({ sourceId: source.id, contentSha256: sha, storagePath, mime: fetched.mime, byteSize: fetched.bytes.byteLength })
-        .returning(),
-    );
+    const artifact = await tx.policyArtifact.create({
+      data: {
+        sourceId: source.id,
+        contentSha256: sha,
+        storagePath,
+        mime: fetched.mime,
+        byteSize: fetched.bytes.byteLength,
+      },
+    });
     return { artifact, created: true };
   });
 }
 
-async function ensureDocument(ctx: AppContext, artifact: Artifact): Promise<PolicyDocument> {
-  const [existing] = await ctx.db.select().from(policyDocuments).where(eq(policyDocuments.artifactId, artifact.id));
+async function ensureDocument(ctx: AppContext, artifact: PolicyArtifact): Promise<PolicyDocument> {
+  const existing = await ctx.db.policyDocument.findUnique({ where: { artifactId: artifact.id } });
   if (existing?.status === 'converted') return existing;
-  const upsert = (values: Omit<typeof policyDocuments.$inferInsert, 'artifactId'>) =>
-    ctx.db
-      .insert(policyDocuments)
-      .values({ artifactId: artifact.id, ...values })
-      .onConflictDoUpdate({ target: policyDocuments.artifactId, set: values })
-      .returning();
+  const upsert = (values: {
+    status: 'converted' | 'failed';
+    converter: StoredConverter | null;
+    markdownPath: string | null;
+    errorCode: string | null;
+    errorMessage: string | null;
+  }) =>
+    ctx.db.policyDocument.upsert({
+      where: { artifactId: artifact.id },
+      create: { artifactId: artifact.id, ...values },
+      update: values,
+    });
   try {
     const { markdown, converter } = await pdfToMarkdown(await ctx.blobs.get(artifact.storagePath), {
       apiKey: ctx.config.firecrawlApiKey,
       apiUrl: ctx.config.firecrawlApiUrl,
     });
     const markdownPath = await ctx.blobs.put(`markdown/${artifact.contentSha256}.md`, new TextEncoder().encode(markdown));
-    return one(await upsert({ status: 'converted', converter, markdownPath, errorCode: null, errorMessage: null }));
+    return upsert({
+      status: 'converted',
+      converter: storedConverter(converter),
+      markdownPath,
+      errorCode: null,
+      errorMessage: null,
+    });
   } catch (error) {
     const failure = toAppError(error);
-    await upsert({ status: 'failed', converter: null, markdownPath: null, errorCode: failure.code, errorMessage: failure.message });
+    await upsert({
+      status: 'failed',
+      converter: null,
+      markdownPath: null,
+      errorCode: failure.code,
+      errorMessage: failure.message,
+    });
     throw failure;
   }
 }
 
 async function ensureVersion(ctx: AppContext, source: PolicySource, document: PolicyDocument) {
-  const [existing] = await ctx.db.select().from(policyVersions).where(eq(policyVersions.documentId, document.id));
+  const existing = await ctx.db.policyVersion.findUnique({ where: { documentId: document.id } });
   if (existing) return { version: existing, diff: await diffForVersion(ctx.db, existing.id) };
 
   const payer = await getPayer(ctx.db, source.payerId);
@@ -101,24 +130,21 @@ export async function checkSource(ctx: AppContext, sourceId: string): Promise<Ch
   const source = await getSource(ctx.db, sourceId);
   const startedAt = new Date();
   let outcome: 'unchanged' | 'new_artifact' = 'unchanged';
-  let artifact: Artifact | undefined;
+  let artifact: PolicyArtifact | undefined;
   const finish = async (fields: { version?: PolicyVersion; diff?: PolicyDiff; error?: unknown }): Promise<CheckResult> => {
     const failure = fields.error === undefined ? undefined : toAppError(fields.error);
-    const run = one(
-      await ctx.db
-        .insert(watchRuns)
-        .values({
-          sourceId: source.id,
-          startedAt,
-          finishedAt: new Date(),
-          outcome: failure ? 'error' : outcome,
-          artifactId: artifact?.id ?? null,
-          versionId: fields.version?.id ?? null,
-          errorCode: failure?.code ?? null,
-          errorMessage: failure?.message ?? null,
-        })
-        .returning(),
-    );
+    const run = await ctx.db.watchRun.create({
+      data: {
+        sourceId: source.id,
+        startedAt,
+        finishedAt: new Date(),
+        outcome: failure ? 'error' : outcome,
+        artifactId: artifact?.id ?? null,
+        versionId: fields.version?.id ?? null,
+        errorCode: failure?.code ?? null,
+        errorMessage: failure?.message ?? null,
+      },
+    });
     log.info({ sourceId: source.id, runId: run.id, outcome: run.outcome, versionId: run.versionId, error: run.errorCode }, 'watch run');
     return { run, version: fields.version ?? null, diff: fields.diff ?? null };
   };
@@ -136,20 +162,23 @@ export async function checkSource(ctx: AppContext, sourceId: string): Promise<Ch
 }
 
 export async function dueSources(ctx: AppContext): Promise<PolicySource[]> {
-  const recentRun = ctx.db
-    .select({ id: watchRuns.id })
-    .from(watchRuns)
-    .where(
-      and(
-        eq(watchRuns.sourceId, policySources.id),
-        gt(watchRuns.startedAt, sql`now() - make_interval(hours => ${policySources.checkIntervalHours})`),
-      ),
-    );
-  return ctx.db
-    .select()
-    .from(policySources)
-    .where(and(eq(policySources.enabled, true), notExists(recentRun)))
-    .orderBy(asc(policySources.policyKey));
+  const due = await ctx.db.$queryRaw<Array<{ id: string }>>`
+    SELECT s.id
+    FROM policy_sources s
+    WHERE s.enabled = true
+      AND NOT EXISTS (
+        SELECT 1
+        FROM watch_runs r
+        WHERE r.source_id = s.id
+          AND r.started_at > now() - make_interval(hours => s.check_interval_hours)
+      )
+    ORDER BY s.policy_key ASC
+  `;
+  if (due.length === 0) return [];
+  return ctx.db.policySource.findMany({
+    where: { id: { in: due.map((row) => row.id) } },
+    orderBy: { policyKey: 'asc' },
+  });
 }
 
 export async function checkDueSources(ctx: AppContext): Promise<CheckResult[]> {
