@@ -36,7 +36,7 @@ You need Node 24 (see `.nvmrc`), pnpm 10, and PostgreSQL 16.
 
 5. To run the whole loop once over HTTP, run `pnpm demo`. It needs network access to `uhcprovider.com`.
 
-Without `ANTHROPIC_API_KEY` (or the key for the provider you configure), a check still fetches, stores, and converts the PDF. The run then stops with the error `llm_not_configured`, which names the missing variable.
+Without the API key for the configured provider, a check still fetches, stores, and converts the PDF. The run then stops with `llm_not_configured`, which names that provider's variable. Google models read `GOOGLE_API_KEY` or `GOOGLE_GENERATIVE_AI_API_KEY`. Grok models read `XAI_API_KEY`. An Anthropic key is required only when a configured model id starts with `anthropic/`. `ANUMAT_LLM_MODE=replay` does not call a provider.
 
 ## Commands
 
@@ -179,10 +179,15 @@ curl -s http://127.0.0.1:4471/v1/policies/uhc.bariatric-surgery -H "authorizatio
 | `RATE_LIMIT_PER_MINUTE` | `120` | Requests per key per minute. |
 | `ANUMAT_DATA_DIR` | `./data/policies` | Where PDFs and markdown are stored. |
 | `ANUMAT_STORAGE` | `local` | `local`, or `s3` for the stub that reports `storage_not_configured`. |
-| `ANUMAT_LLM_MODE` | `live` | `live` uses the model router. `replay` uses the scripted fixture model. |
-| `ANUMAT_STRONG_MODEL` | `anthropic/claude-sonnet-4-5` | Model for extract and review. Any Mastra model router id. |
-| `ANUMAT_CHEAP_MODEL` | `anthropic/claude-haiku-4-5` | Model for triage and diff. |
-| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | none | Provider keys. The model router reads the key for the configured provider. |
+| `ANUMAT_LLM_MODE` | `live` | `live` uses the model router. `replay` uses the scripted fixture model and does not read a provider key. |
+| `ANUMAT_STRONG_MODEL` | `anthropic/claude-sonnet-4-5` | Model for extract and review. A Mastra router id, `provider/model`. Google: `google/gemini-2.5-pro`. Grok: `xai/grok-4.3`. |
+| `ANUMAT_CHEAP_MODEL` | `anthropic/claude-haiku-4-5` | Model for triage and diff. Google: `google/gemini-2.5-flash`. Grok: `xai/grok-build-0.1`. |
+| `ANTHROPIC_API_KEY` | none | Key for `anthropic/*`. |
+| `OPENAI_API_KEY` | none | Key for `openai/*`. |
+| `GOOGLE_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY` | none | Either key works for `google/*`. |
+| `XAI_API_KEY` | none | Key for `xai/*` (Grok). |
+
+The router accepts any provider id it already ships, including Anthropic, OpenAI, Google, and xAI. Mastra has no `serum` provider. A Serum model would be the string `serum/<model>`, and Anumat does not add that provider.
 | `FIRECRAWL_API_KEY` | none | Enables Firecrawl Parse for PDFs that need OCR. |
 | `FIRECRAWL_API_URL` | `https://api.firecrawl.dev` | Firecrawl endpoint, for a self-hosted Firecrawl. |
 | `ANUMAT_EVAL_LIVE` | unset | Set to `1` so `pnpm eval` scores the configured models. Otherwise the evals replay the fixtures. |

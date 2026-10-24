@@ -22,6 +22,21 @@ const apiKeys = z.string().transform((raw, ctx) => {
 
 export const DEFAULT_MODELS = { strong: 'anthropic/claude-sonnet-4-5', cheap: 'anthropic/claude-haiku-4-5' };
 
+// Mastra router ids, provider/model. Defaults stay Anthropic so an existing .env keeps working.
+// Google reads GOOGLE_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY. Grok (xAI) reads XAI_API_KEY.
+// There is no serum provider in the router. A model id is still provider/model, and serum/<model> is not registered.
+export const MODEL_EXAMPLES = {
+  google: { strong: 'google/gemini-2.5-pro', cheap: 'google/gemini-2.5-flash' },
+  grok: { strong: 'xai/grok-4.3', cheap: 'xai/grok-build-0.1' },
+} as const;
+
+const modelRouterId = z
+  .string()
+  .regex(
+    /^[^/\s]+\/\S+$/,
+    'Use a Mastra model router id, provider/model. Examples: anthropic/claude-sonnet-4-5, google/gemini-2.5-pro, xai/grok-4.3',
+  );
+
 const EnvSchema = z.object({
   DATABASE_URL: z.url(),
   HOST: z.string().default('127.0.0.1'),
@@ -30,8 +45,8 @@ const EnvSchema = z.object({
   ANUMAT_DATA_DIR: z.string().default('./data/policies'),
   ANUMAT_STORAGE: z.enum(['local', 's3']).default('local'),
   ANUMAT_LLM_MODE: z.enum(['live', 'replay']).default('live'),
-  ANUMAT_STRONG_MODEL: z.string().default(DEFAULT_MODELS.strong),
-  ANUMAT_CHEAP_MODEL: z.string().default(DEFAULT_MODELS.cheap),
+  ANUMAT_STRONG_MODEL: modelRouterId.default(DEFAULT_MODELS.strong),
+  ANUMAT_CHEAP_MODEL: modelRouterId.default(DEFAULT_MODELS.cheap),
   FIRECRAWL_API_KEY: z.string().optional(),
   FIRECRAWL_API_URL: z.url().optional(),
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(120),

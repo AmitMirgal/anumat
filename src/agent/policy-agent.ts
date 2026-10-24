@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Agent } from '@mastra/core/agent';
 import { AgentController } from '@mastra/core/agent-controller';
-import type { MastraModelConfig } from '@mastra/core/llm';
+import { getProviderConfig, type MastraModelConfig, parseModelString } from '@mastra/core/llm';
 import { AppError } from '../errors';
 import type { Change, Market } from '../markets/registry';
 import { type AgentSources, createPolicyTools, JobScope, jobContext, type Review, scopeOf, type ToolName, type Triage } from './tools';
@@ -69,6 +69,17 @@ function modelIdFor(models: ModelSource, mode: ModeId): string {
   return models.kind === 'router' ? models[MODES[mode].tier] : `${models.name}/${mode}`;
 }
 
+function credentialEnvVar(model: string, reported: string | undefined): string | undefined {
+  const { provider } = parseModelString(model);
+  const configured = provider ? getProviderConfig(provider)?.apiKeyEnvVar : undefined;
+  if (Array.isArray(configured)) {
+    const names = configured.filter((name) => name.length > 0);
+    return names.length > 0 ? names.join(' or ') : reported;
+  }
+  if (typeof configured === 'string' && configured.length > 0) return configured;
+  return reported;
+}
+
 function compactChanges(changes: Change[]): string {
   const json = JSON.stringify(changes);
   return json.length > MAX_CHANGES_CHARS ? `${json.slice(0, MAX_CHANGES_CHARS)} ...(truncated)` : json;
@@ -111,7 +122,8 @@ export async function createPolicyAgent(options: {
     const model = session.model.get();
     if (models.kind === 'scripted') return { model, hasAuth: true, envVar: undefined };
     const auth = await controller.getCurrentModelAuthStatus(session);
-    return { model, hasAuth: auth.hasAuth, envVar: auth.apiKeyEnvVar };
+    if (auth.hasAuth) return { model, hasAuth: true, envVar: undefined };
+    return { model, hasAuth: false, envVar: credentialEnvVar(model, auth.apiKeyEnvVar) };
   }
 
   async function withSession<T>(mode: ModeId, use: (session: Session) => Promise<T>): Promise<T> {
