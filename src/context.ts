@@ -28,7 +28,7 @@ export async function createContext(
   overrides: { models?: ModelSource; adapters?: Record<AdapterType, SourceAdapter> } = {},
 ): Promise<AppContext> {
   const db = connect(config.databaseUrl);
-  const blobs = createBlobStore(config);
+  const blobs = createBlobStore(config.storage);
   const models = overrides.models ?? modelSource(config);
   return {
     config,

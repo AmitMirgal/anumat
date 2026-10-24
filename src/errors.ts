@@ -16,7 +16,6 @@ export const ERROR_STATUS = {
   extraction_failed: 502,
   llm_not_configured: 503,
   ocr_not_configured: 503,
-  storage_not_configured: 503,
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_STATUS;

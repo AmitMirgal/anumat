@@ -62,7 +62,7 @@ flowchart TD
   cron["pnpm watch from cron"] --> check
   api -->|"POST /v1/sources/:id/check"| check["checkSource"]
   check --> adapter["http_pdf source adapter"]
-  adapter -->|"PDF bytes, SHA-256"| blobs[("BlobStore, ./data/policies or S3 stub")]
+  adapter -->|"PDF bytes, SHA-256"| blobs[("BlobStore, local directory or S3-compatible bucket")]
   check --> convert["anydoc, or Firecrawl Parse when pages need OCR"]
   convert --> triage
   subgraph agent["Mastra AgentController, one session per job"]
@@ -177,8 +177,13 @@ curl -s http://127.0.0.1:4471/v1/policies/uhc.bariatric-surgery -H "authorizatio
 | `HOST`, `PORT` | `127.0.0.1`, `4471` | Listen address. |
 | `LOG_LEVEL` | `info` | Pino log level. Logs are JSON lines. |
 | `RATE_LIMIT_PER_MINUTE` | `120` | Requests per key per minute. |
-| `ANUMAT_DATA_DIR` | `./data/policies` | Where PDFs and markdown are stored. |
-| `ANUMAT_STORAGE` | `local` | `local`, or `s3` for the stub that reports `storage_not_configured`. |
+| `ANUMAT_DATA_DIR` | `./data/policies` | Directory for PDFs and markdown when `ANUMAT_STORAGE` is `local`. |
+| `ANUMAT_STORAGE` | `local` | `local` writes `ANUMAT_DATA_DIR`. `s3` writes one S3-compatible bucket. |
+| `ANUMAT_S3_ENDPOINT` | none | Custom S3 endpoint. Set it for Supabase Storage and for Google Cloud Storage. Omit it for Amazon S3. |
+| `ANUMAT_S3_REGION` | none | Region. Required when `ANUMAT_STORAGE` is `s3`. Supabase often uses `us-east-1`. Google Cloud Storage uses `auto`. |
+| `ANUMAT_S3_BUCKET` | none | Bucket name. Required when `ANUMAT_STORAGE` is `s3`. |
+| `ANUMAT_S3_ACCESS_KEY_ID` | none | Access key. Required when `ANUMAT_STORAGE` is `s3`. |
+| `ANUMAT_S3_SECRET_ACCESS_KEY` | none | Secret key. Required when `ANUMAT_STORAGE` is `s3`. |
 | `ANUMAT_LLM_MODE` | `live` | `live` uses the model router. `replay` uses the scripted fixture model and does not read a provider key. |
 | `ANUMAT_STRONG_MODEL` | `anthropic/claude-sonnet-4-5` | Model for extract and review. A Mastra router id, `provider/model`. Google: `google/gemini-2.5-pro`. Grok: `xai/grok-4.3`. |
 | `ANUMAT_CHEAP_MODEL` | `anthropic/claude-haiku-4-5` | Model for triage and diff. Google: `google/gemini-2.5-flash`. Grok: `xai/grok-build-0.1`. |
@@ -191,6 +196,37 @@ The router accepts any provider id it already ships, including Anthropic, OpenAI
 | `FIRECRAWL_API_KEY` | none | Enables Firecrawl Parse for PDFs that need OCR. |
 | `FIRECRAWL_API_URL` | `https://api.firecrawl.dev` | Firecrawl endpoint, for a self-hosted Firecrawl. |
 | `ANUMAT_EVAL_LIVE` | unset | Set to `1` so `pnpm eval` scores the configured models. Otherwise the evals replay the fixtures. |
+
+A custom endpoint uses path-style requests. The client sends a checksum only when the operation requires one. Supabase Storage and the Google Cloud Storage interoperability endpoint accept that request.
+
+Local disk:
+
+```bash
+ANUMAT_STORAGE=local
+ANUMAT_DATA_DIR=./data/policies
+```
+
+Supabase Storage:
+
+```bash
+ANUMAT_STORAGE=s3
+ANUMAT_S3_ENDPOINT=https://abcdefghijklmnopqrst.supabase.co/storage/v1/s3
+ANUMAT_S3_REGION=us-east-1
+ANUMAT_S3_BUCKET=policies
+ANUMAT_S3_ACCESS_KEY_ID=your-access-key-id
+ANUMAT_S3_SECRET_ACCESS_KEY=your-secret-access-key
+```
+
+Google Cloud Storage, S3 interoperability:
+
+```bash
+ANUMAT_STORAGE=s3
+ANUMAT_S3_ENDPOINT=https://storage.googleapis.com
+ANUMAT_S3_REGION=auto
+ANUMAT_S3_BUCKET=anumat-policies
+ANUMAT_S3_ACCESS_KEY_ID=your-hmac-access-id
+ANUMAT_S3_SECRET_ACCESS_KEY=your-hmac-secret
+```
 
 ## Seed sources
 
@@ -208,6 +244,6 @@ Aetna publishes its clinical policy bulletins as HTML pages, so the `http_pdf` a
 
 - India. There is no `in` market, payer, source, IRDAI form, or cashless flow.
 - Claim submission, clearinghouse connections, or portal prior-auth submission.
-- Source adapters other than `http_pdf`, and a working S3 client.
+- Source adapters other than `http_pdf`.
 - A queue. A check runs inside the request, and `pnpm watch` runs sources one at a time. Two checks of the same source at once can repeat model calls, but they cannot create duplicate artifacts or versions.
 - OpenAPI output, key rotation, and roles. Every key can approve.

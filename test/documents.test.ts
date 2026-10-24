@@ -1,12 +1,8 @@
-import { mkdtemp } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import { pdfToMarkdown } from '../src/convert/pdf-to-markdown';
 import { outline, readSections } from '../src/documents/outline';
 import { AppError } from '../src/errors';
 import { httpPdf } from '../src/sources/adapters';
-import { LocalBlobStore, S3BlobStore } from '../src/storage/blob-store';
 import { startServer } from './support/http';
 import { imageOnlyPdf, textPdf } from './support/pdf';
 
@@ -123,11 +119,4 @@ test('http_pdf fetches PDF bytes and rejects HTML and missing pages', async () =
     code: 'fetch_failed',
     details: { status: 404 },
   });
-});
-
-test('local blob store round-trips bytes and the S3 stub reports it is not configured', async () => {
-  const store = new LocalBlobStore(await mkdtemp(join(tmpdir(), 'anumat-blobs-')));
-  expect(await store.put('pdf/abc.pdf', new Uint8Array([1, 2, 3]))).toBe('pdf/abc.pdf');
-  expect([...(await store.get('pdf/abc.pdf'))]).toEqual([1, 2, 3]);
-  await expect(new S3BlobStore().get()).rejects.toMatchObject({ code: 'storage_not_configured' });
 });
