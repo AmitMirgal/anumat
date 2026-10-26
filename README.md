@@ -250,4 +250,4 @@ Aetna publishes its clinical policy bulletins as HTML pages, so the `http_pdf` a
 
 ## License
 
-Anumat is open source under Apache 2.0. Code in `ee/` is under the Anumat Enterprise Edition License. See LICENSE.md.
+Anumat is open source under Apache 2.0. Code in `ee/` is under the Anumat Enterprise Edition License. See LICENSE.md. `decideUse` in `ee/license-key.ts` is the production-use check. The Apache 2.0 engine does not call it.
