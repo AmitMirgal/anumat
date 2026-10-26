@@ -1,5 +1,5 @@
-import { request as httpRequest, type IncomingMessage } from 'node:http';
-import { request as httpsRequest } from 'node:https';
+import { Agent as HttpAgent, request as httpRequest, type IncomingMessage } from 'node:http';
+import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
 import { AppError } from '../errors';
 import type { AdapterType } from '../generated/prisma/client';
 
@@ -17,7 +17,11 @@ const MAX_REDIRECTS = 5;
 const FAMILIES = [4, 6] as const;
 type Family = (typeof FAMILIES)[number];
 
-const REQUEST_HEADERS = { accept: 'application/pdf', 'user-agent': 'AnumatPolicyWatcher/0.1' };
+const REQUEST_HEADERS = {
+  accept: 'application/pdf',
+  'user-agent': 'AnumatPolicyWatcher/0.1',
+  connection: 'close',
+};
 
 function describe(error: unknown): string {
   if (error instanceof AppError) return error.message;
@@ -39,27 +43,42 @@ function chooseFailure(sourceUrl: string, errors: unknown[]): AppError {
   });
 }
 
-function requestOnce(url: URL, family: Family, signal: AbortSignal): Promise<IncomingMessage> {
+function requestOnce(url: URL, family: Family, signal: AbortSignal): Promise<{ res: IncomingMessage; done: () => void }> {
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
     return Promise.reject(new AppError('fetch_failed', `${url} uses ${url.protocol}`, { url: url.toString() }));
   }
-  const send = url.protocol === 'https:' ? httpsRequest : httpRequest;
+  const secure = url.protocol === 'https:';
+  const send = secure ? httpsRequest : httpRequest;
+  const agent = secure ? new HttpsAgent({ keepAlive: false, family }) : new HttpAgent({ keepAlive: false, family });
+  const done = () => agent.destroy();
   return new Promise((resolve, reject) => {
     let settled = false;
     const fail = (error: unknown) => {
       if (settled) return;
       settled = true;
+      done();
       reject(error);
     };
-    const req = send(url, { family, method: 'GET', headers: REQUEST_HEADERS, signal }, (res) => {
+    const req = send(url, { family, agent, method: 'GET', headers: REQUEST_HEADERS, signal }, (res) => {
       if (settled) {
         res.resume();
+        done();
         return;
       }
       settled = true;
-      resolve(res);
+      resolve({ res, done });
     });
-    req.on('error', fail);
+    req.on('error', (error) => {
+      if (signal.aborted) {
+        fail(
+          new AppError('fetch_failed', `${url} produced no headers before the ${FETCH_TIMEOUT_MS / 1000}s timeout`, {
+            url: url.toString(),
+          }),
+        );
+        return;
+      }
+      fail(error);
+    });
     req.end();
   });
 }
@@ -80,9 +99,17 @@ function readBody(res: IncomingMessage, signal: AbortSignal, sourceUrl: string):
       settled = true;
       resolve(bytes);
     };
-    const onAbort = () => fail(signal.reason instanceof Error ? signal.reason : new Error('The operation was aborted'));
+    const onAbort = () =>
+      fail(
+        new AppError(
+          'fetch_failed',
+          `${sourceUrl} sent headers and then ${total} body bytes before the ${FETCH_TIMEOUT_MS / 1000}s timeout`,
+          { url: sourceUrl, body_bytes: total },
+        ),
+      );
     if (signal.aborted) return onAbort();
     signal.addEventListener('abort', onAbort, { once: true });
+    const declared = Number(res.headers['content-length'] ?? 0);
     res.on('data', (chunk: Buffer) => {
       total += chunk.length;
       if (total > MAX_BYTES) {
@@ -90,6 +117,7 @@ function readBody(res: IncomingMessage, signal: AbortSignal, sourceUrl: string):
         return;
       }
       chunks.push(chunk);
+      if (declared > 0 && total >= declared) succeed(new Uint8Array(Buffer.concat(chunks)));
     });
     res.on('end', () => succeed(new Uint8Array(Buffer.concat(chunks))));
     res.on('error', fail);
@@ -99,32 +127,36 @@ function readBody(res: IncomingMessage, signal: AbortSignal, sourceUrl: string):
 async function fetchFamily(start: URL, family: Family, signal: AbortSignal): Promise<FetchedArtifact> {
   let current = start;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
-    const res = await requestOnce(current, family, signal);
-    const status = res.statusCode ?? 0;
-    const location = res.headers.location;
-    if (status >= 300 && status < 400 && location && hop < MAX_REDIRECTS) {
-      res.resume();
-      current = new URL(location, current);
-      continue;
+    const { res, done } = await requestOnce(current, family, signal);
+    try {
+      const status = res.statusCode ?? 0;
+      const location = res.headers.location;
+      if (status >= 300 && status < 400 && location && hop < MAX_REDIRECTS) {
+        res.resume();
+        current = new URL(location, current);
+        continue;
+      }
+      if (status < 200 || status >= 300) {
+        res.resume();
+        throw new AppError('fetch_failed', `${current} returned HTTP ${status}`, { url: current.toString(), status });
+      }
+      const declared = Number(res.headers['content-length'] ?? 0);
+      if (declared > MAX_BYTES) {
+        res.resume();
+        throw new AppError('fetch_failed', `${current} is larger than ${MAX_BYTES} bytes`, { url: current.toString() });
+      }
+      const bytes = await readBody(res, signal, current.toString());
+      const contentType = res.headers['content-type'];
+      if (new TextDecoder().decode(bytes.subarray(0, PDF_MAGIC.length)) !== PDF_MAGIC) {
+        throw new AppError('not_a_pdf', `${current} did not return a PDF`, {
+          url: current.toString(),
+          content_type: typeof contentType === 'string' ? contentType : null,
+        });
+      }
+      return { bytes, mime: 'application/pdf' };
+    } finally {
+      done();
     }
-    if (status < 200 || status >= 300) {
-      res.resume();
-      throw new AppError('fetch_failed', `${current} returned HTTP ${status}`, { url: current.toString(), status });
-    }
-    const declared = Number(res.headers['content-length'] ?? 0);
-    if (declared > MAX_BYTES) {
-      res.resume();
-      throw new AppError('fetch_failed', `${current} is larger than ${MAX_BYTES} bytes`, { url: current.toString() });
-    }
-    const bytes = await readBody(res, signal, current.toString());
-    const contentType = res.headers['content-type'];
-    if (new TextDecoder().decode(bytes.subarray(0, PDF_MAGIC.length)) !== PDF_MAGIC) {
-      throw new AppError('not_a_pdf', `${current} did not return a PDF`, {
-        url: current.toString(),
-        content_type: typeof contentType === 'string' ? contentType : null,
-      });
-    }
-    return { bytes, mime: 'application/pdf' };
   }
   throw new AppError('fetch_failed', `${start} redirected too many times`, { url: start.toString() });
 }
