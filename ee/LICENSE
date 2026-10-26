@@ -1,0 +1,115 @@
+DRAFT: to be reviewed by a lawyer before use.
+
+Anumat Enterprise Edition License v1.0
+
+Copyright 2026 [LEGAL ENTITY NAME]
+
+1. Scope
+
+This license applies to source code in any ee/ directory of Anumat. That code is the Enterprise Edition.
+
+You accept this license by copying, modifying, or running that code. If you do not accept it, do not do those things.
+
+Anyone may read the source.
+
+Code outside any ee/ directory stays under the Apache License 2.0. This license does not change that grant.
+
+A signed commercial agreement with [LEGAL ENTITY NAME] controls where it conflicts with this license. A purchase order does not replace the signed agreement. An email does not replace the signed agreement.
+
+[LEGAL ENTITY NAME] may publish a newer version of this license for a later release of the Enterprise Edition. A newer version does not change the terms that apply to a copy you already have, except where the signed agreement says otherwise.
+
+2. Definitions
+
+Development and testing means running the Enterprise Edition to write, debug, or verify software. It includes a local machine, a continuous integration job, and a staging system that does not serve a live business operation.
+
+Production use means running the Enterprise Edition to serve a real customer, a real payer workflow, or any other live business operation. A staging system that serves live data is production use.
+
+An enterprise feature is a behavior that ships in an ee/ directory. The names in use today are an audit trail, single sign-on and roles, multi-step review, a connector to an outside system, a managed rule feed, and an install on your own machines. [LEGAL ENTITY NAME] may add a name. A license key identifies a feature by the name printed on the key.
+
+A license key is a record issued by [LEGAL ENTITY NAME]. The record names its identifier, its purpose, its expiry instant, and the enterprise features it covers.
+
+The agreement is the signed commercial agreement between you and [LEGAL ENTITY NAME]. Every exhibit that the agreement incorporates is part of the agreement.
+
+3. Grant
+
+[LEGAL ENTITY NAME] grants you a limited, non-exclusive, non-transferable right to modify the Enterprise Edition and to run it for development and testing.
+
+Production use is allowed only when both of these are true. You have a current signed agreement. You hold a valid license key that covers that production use.
+
+You do not receive title to the Enterprise Edition. A modification you make to the Enterprise Edition belongs to [LEGAL ENTITY NAME]. You assign that modification to [LEGAL ENTITY NAME]. You agree to sign a further document that [LEGAL ENTITY NAME] reasonably needs to record the assignment. If a law stops the assignment, you grant [LEGAL ENTITY NAME] a perpetual, irrevocable, worldwide, royalty-free license to use, modify, and distribute that modification under this license and under the agreement.
+
+[LEGAL ENTITY NAME] reserves every right that this license does not grant.
+
+You may not redistribute the Enterprise Edition.
+
+You may not sell, rent, lease, or sublicense the Enterprise Edition.
+
+You may not offer the Enterprise Edition as a hosted service to a person who is not your employee or your contractor.
+
+You may not remove or alter a copyright notice, a license notice, or a license-key check.
+
+You may not remove, disable, or bypass a license-key check. The ban covers a check at build, a check at deploy, and a check at runtime.
+
+4. License keys
+
+[LEGAL ENTITY NAME] issues each license key. One key lists the features it covers, the purpose it allows, and the instant it expires.
+
+You may use a key only for the purpose named on it. A key whose purpose is development does not allow production use. A key whose purpose is testing does not allow production use.
+
+A key is not valid after its expiry instant. A value with no readable expiry instant is not a license key.
+
+You may not transfer a key. You keep the key confidential. You may share it only with an employee or a contractor who needs it to run the Enterprise Edition for you.
+
+The Enterprise Edition may check the key at build, at deploy, and at runtime. You do not acquire a right by interrupting a check.
+
+[LEGAL ENTITY NAME] may change a key, replace a key, or revoke a key. After notice of revocation, you stop production use of each feature that the key covered. You stop even when a check is not running. Continued use is not a waiver by [LEGAL ENTITY NAME].
+
+The agreement sets what you are entitled to buy. The key does not. A key with no signed agreement is unlicensed. An agreement with no current key still entitles you to receive a replacement key for each feature the agreement names. Until that key is issued, production use is not allowed.
+
+5. Enterprise features
+
+The modules in any ee/ directory are the Enterprise Edition. [LEGAL ENTITY NAME] may add, rename, or remove a module in a later release.
+
+A later change to that set does not remove a feature from a paid term the agreement already covers. During that term you keep each feature named in the agreement. A later release may implement a named feature in a different module. The name on the agreement, and the name on the key, is what you are entitled to use.
+
+6. Third-party components
+
+The Enterprise Edition may include a component that another author licenses separately. That component stays under its own license. This license does not change a third-party license. A notice packaged with the component states that component's terms. Where this license and a third-party license both apply to the same component, the third-party license governs that component.
+
+7. Term and end
+
+This license starts when you first copy, modify, or run the Enterprise Edition. It continues until it ends under this section.
+
+This license ends immediately if you break it and the break cannot be cured. If the break can be cured, this license ends when 30 days pass after [LEGAL ENTITY NAME] notifies you, unless you cure the break in those 30 days.
+
+When this license ends, you stop using the Enterprise Edition and you delete your copies. You may keep a copy that a law or a signed record-keeping duty requires you to keep. You may keep one copy of a modification solely to prove what you delivered to [LEGAL ENTITY NAME].
+
+The end of this license does not end the agreement. The end of the agreement does not by itself end the development and testing grant in section 3. Production use ends when the agreement ends, when the key expires, or when the key is revoked, whichever comes first.
+
+Sections 3, 4, 6, 8, 9, and 10 still apply after this license ends.
+
+8. Warranty
+
+The Enterprise Edition is provided as is and as available. To the maximum extent the law allows, [LEGAL ENTITY NAME] disclaims every warranty, express or implied, including merchantability, fitness for a particular purpose, and non-infringement. [LEGAL ENTITY NAME] does not warrant that the Enterprise Edition will run without interruption or without error.
+
+A written warranty in the agreement stands. This section does not erase that warranty.
+
+9. Liability
+
+To the maximum extent the law allows, [LEGAL ENTITY NAME] is not liable for indirect, incidental, special, consequential, or punitive damages, or for lost profits, lost data, or lost business, even if advised that those damages were possible.
+
+To the maximum extent the law allows, the total liability of [LEGAL ENTITY NAME] under this license is the amount you paid for the Enterprise Edition in the 12 months before the claim. If you paid nothing, the total liability is zero.
+
+This limit does not apply to liability that a law forbids limiting. This section does not replace a liability cap written in the agreement. The cap in the agreement applies where the agreement says it applies.
+
+10. Law, venue, and the rest of the contract
+
+The law of [JURISDICTION] governs this license, without that jurisdiction's conflict-of-law rules. The courts of [JURISDICTION] are the exclusive venue for a dispute about this license. You consent to that venue and to that court's jurisdiction over you. A venue clause in the agreement still governs a dispute about the agreement.
+
+You may not assign this license without the prior written consent of [LEGAL ENTITY NAME]. [LEGAL ENTITY NAME] may assign this license to a successor of the Enterprise Edition business. Any other attempted assignment has no effect.
+
+If a court holds that one part of this license is unenforceable, the rest stays in effect. A failure to enforce a part is not a waiver.
+
+This license is the entire agreement about the Enterprise Edition, together with the agreement when you have one. It replaces earlier oral terms and earlier written terms about that subject. A change to this license needs a writing signed by [LEGAL ENTITY NAME], except a newer version published under section 1.
+
+A notice under this license is in writing. Delivery to the address in the agreement is notice. If there is no agreement, delivery to the contact published with the Enterprise Edition is notice.

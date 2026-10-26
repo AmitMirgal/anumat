@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "US prior-authorization policy engine: watches payer policy PDFs, extracts versioned rules, serves approved versions over HTTP.",
+  "license": "SEE LICENSE IN LICENSE.md",
   "type": "module",
   "packageManager": "pnpm@12.15.0",
   "engines": {

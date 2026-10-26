@@ -247,3 +247,7 @@ Aetna publishes its clinical policy bulletins as HTML pages, so the `http_pdf` a
 - Source adapters other than `http_pdf`.
 - A queue. A check runs inside the request, and `pnpm watch` runs sources one at a time. Two checks of the same source at once can repeat model calls, but they cannot create duplicate artifacts or versions.
 - OpenAPI output, key rotation, and roles. Every key can approve.
+
+## License
+
+Anumat is open source under Apache 2.0. Code in `ee/` is under the Anumat Enterprise Edition License. See LICENSE.md.
