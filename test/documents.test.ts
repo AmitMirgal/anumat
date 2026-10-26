@@ -132,6 +132,7 @@ test('http_pdf returns the PDF when another address family accepts and then send
   await new Promise<void>((resolve) => good.listen(0, '127.0.0.1', resolve));
   const { port } = good.address() as AddressInfo;
   const stall = createTcpServer((socket) => {
+    socket.on('error', () => undefined);
     socket.on('data', () => {
       socket.write(
         'HTTP/1.1 200 OK\r\nContent-Type: application/pdf\r\nContent-Length: 947613\r\nConnection: keep-alive\r\n\r\n',
