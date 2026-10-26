@@ -1,3 +1,5 @@
+import { createServer as createHttpServer } from 'node:http';
+import { createServer as createTcpServer, type AddressInfo } from 'node:net';
 import { afterAll, beforeAll, expect, test } from 'vitest';
 import { pdfToMarkdown } from '../src/convert/pdf-to-markdown';
 import { outline, readSections } from '../src/documents/outline';
@@ -120,3 +122,34 @@ test('http_pdf fetches PDF bytes and rejects HTML and missing pages', async () =
     details: { status: 404 },
   });
 });
+
+test('http_pdf returns the PDF when another address family accepts and then sends nothing', async () => {
+  const pdf = Buffer.from('%PDF-1.1\n');
+  const good = createHttpServer((_req, res) => {
+    res.setHeader('content-type', 'application/pdf');
+    res.end(pdf);
+  });
+  await new Promise<void>((resolve) => good.listen(0, '127.0.0.1', resolve));
+  const { port } = good.address() as AddressInfo;
+  const stall = createTcpServer((socket) => {
+    socket.on('data', () => {
+      socket.write(
+        'HTTP/1.1 200 OK\r\nContent-Type: application/pdf\r\nContent-Length: 947613\r\nConnection: keep-alive\r\n\r\n',
+      );
+    });
+  });
+  await new Promise<void>((resolve, reject) => {
+    stall.once('error', reject);
+    stall.listen(port, '::1', () => resolve());
+  });
+  try {
+    const fetched = await httpPdf.fetchArtifact({ sourceUrl: `http://localhost:${port}/policy.pdf` });
+    expect(fetched.mime).toBe('application/pdf');
+    expect(new TextDecoder().decode(fetched.bytes)).toBe('%PDF-1.1\n');
+  } finally {
+    await Promise.all([
+      new Promise<void>((resolve) => good.close(() => resolve())),
+      new Promise<void>((resolve) => stall.close(() => resolve())),
+    ]);
+  }
+}, 4_000);
