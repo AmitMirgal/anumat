@@ -123,6 +123,37 @@ test('http_pdf fetches PDF bytes and rejects HTML and missing pages', async () =
   });
 });
 
+test('http_pdf downloads the PDF when the server sends the body only for Connection: close', async () => {
+  const pdf = Buffer.from('%PDF-1.1\n');
+  const server = createHttpServer((req, res) => {
+    req.on('error', () => undefined);
+    res.on('error', () => undefined);
+    if (req.headers.connection === 'close') {
+      res.writeHead(200, {
+        'content-type': 'application/pdf',
+        'content-length': String(pdf.length),
+        connection: 'close',
+      });
+      res.end(pdf);
+      return;
+    }
+    res.writeHead(200, {
+      'content-type': 'application/pdf',
+      'content-length': String(pdf.length),
+      connection: 'keep-alive',
+    });
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  try {
+    const fetched = await httpPdf.fetchArtifact({ sourceUrl: `http://127.0.0.1:${port}/policy.pdf` });
+    expect(fetched.mime).toBe('application/pdf');
+    expect(new TextDecoder().decode(fetched.bytes)).toBe('%PDF-1.1\n');
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+}, 4_000);
+
 test('http_pdf returns the PDF when another address family accepts and then sends nothing', async () => {
   const pdf = Buffer.from('%PDF-1.1\n');
   const good = createHttpServer((_req, res) => {
