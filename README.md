@@ -93,7 +93,7 @@ Without the API key for the configured provider, a check still fetches, stores, 
 | `packages/tsconfig` | `@anumat/tsconfig` | Shared TypeScript presets | Internal |
 | `packages/sdk-js` | `@anumat/js` | Typed tRPC client for npm | Public |
 | `packages/sdk-python` | `anumat-py` | Python client for PyPI, a uv workspace member | Public |
-| `ee/` |  | Enterprise license and the license-key check. Product code, when it exists, lives in an `ee/` directory next to its feature | Separate license |
+| `apps/api/src/ee/` |  | Enterprise license note and the license-key check for the API. No other enterprise features yet | Separate license |
 
 ## Dependency direction
 
@@ -142,13 +142,9 @@ curl -s http://127.0.0.1:4471/v1/policies/uhc.bariatric-surgery -H "authorizatio
 
 ## Free and enterprise
 
-Anything inside a directory named `ee/`, anywhere in this repository, is under the Anumat Enterprise Edition License in `ee/LICENSE`. Everything else in this repository is Apache 2.0. Third-party code keeps its own license.
+Anything inside a directory named `ee/`, anywhere in this repository, is under the Anumat Enterprise Edition License in [LICENSE-EE.md](LICENSE-EE.md). Today that directory is `apps/api/src/ee/`. Everything else in this repository is under the Apache License 2.0 in [LICENSE.md](LICENSE.md). Third-party code keeps its own license.
 
-The root `ee/` directory holds that license and the license-key check. It has no product features. Enterprise code may sit in an `ee/` directory inside any app or package, next to the feature it belongs to. Free code never imports from any `ee/` directory. Enterprise code may import free code.
-
-Future enterprise features plug in through the core interfaces `AuditSink`, `AuthProvider`, `ReviewPolicy`, `RuleFeedSource`, and `Connector`.
-
-The license texts are `LICENSE.md` and `ee/LICENSE`.
+`apps/api/src/ee/` holds the enterprise license note and the license-key check. It has no other enterprise features yet. Enterprise code plugs in through `createApp({ plugins })` and the interfaces in `packages/core/src/plugins.ts`. Free code never imports from any `ee/` directory. Enterprise code may import free code.
 
 ## Commands
 
@@ -348,4 +344,4 @@ Aetna publishes its clinical policy bulletins as HTML pages, so the `http_pdf` a
 
 ## License
 
-See `LICENSE.md` and `ee/LICENSE`.
+See `LICENSE.md` and `LICENSE-EE.md`.
