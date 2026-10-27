@@ -166,6 +166,19 @@ Anything inside a directory named `ee/`, anywhere in this repository, is under t
 
 `pnpm --filter @anumat/engine context-report` reports how many characters of each converted document the agent reads.
 
+## Releasing
+
+Bump `@anumat/js`, `anumat-py`, or both on a branch. Merge that branch to `main`. Publish from `main`.
+
+1. For `@anumat/js`, run `pnpm changeset`. Then run `pnpm changeset version`.
+2. For `anumat-py`, run `pnpm version:py`.
+3. Open a pull request.
+4. Squash-merge the pull request.
+5. Run `git checkout main && git pull`.
+6. Run `pnpm release:js` or `pnpm release:py`.
+
+`npm login` stores the npm token in `~/.npmrc`. Store `PYPI_TOKEN` in `~/.zshrc`. Keep both tokens out of the repo and out of `.env`.
+
 ## Contributing
 
 Do not add PHI or real patient data, including test fixtures. Public policy PDFs and synthetic examples only.

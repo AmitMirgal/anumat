@@ -21,7 +21,10 @@
     "eval": "pnpm --filter @anumat/engine eval",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
-    "publish-packages": "turbo run build lint test && changeset version && changeset publish"
+    "changeset": "changeset",
+    "release:js": "bash scripts/release.sh js",
+    "release:py": "bash scripts/release.sh py",
+    "version:py": "cd packages/sdk-python && uv version --bump patch && cd ../.. && uv lock"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
