@@ -2,6 +2,10 @@ node_modules/
 dist/
 coverage/
 src/generated/
+**/src/generated/
+.turbo
+apps/api/openapi.json
+packages/sdk-python/src/anumat/_generated/
 .env
 .env.*
 !.env.example

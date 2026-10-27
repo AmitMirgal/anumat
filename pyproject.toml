@@ -1,0 +1,11 @@
+[project]
+name = "anumat-workspace"
+version = "0.0.0"
+description = "uv workspace root for Anumat Python packages"
+requires-python = ">=3.10"
+
+[tool.uv.workspace]
+members = ["packages/sdk-python"]
+
+[tool.turbo]
+name = "anumat-python"

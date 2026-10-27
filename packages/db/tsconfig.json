@@ -1,0 +1,4 @@
+{
+  "extends": "@anumat/tsconfig/library.json",
+  "include": ["src", "prisma.config.ts"]
+}

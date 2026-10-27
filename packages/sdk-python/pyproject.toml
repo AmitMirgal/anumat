@@ -1,0 +1,40 @@
+[project]
+name = "anumat"
+version = "0.1.0"
+description = "Python client for the Anumat API"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dependencies = ["attrs>=24", "httpx>=0.27"]
+
+[project.urls]
+Repository = "https://github.com/AmitMirgal/anumat"
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "anumat"
+module-root = "src"
+
+[dependency-groups]
+dev = [
+  "openapi-python-client>=0.24",
+  "pyright>=1.1.390",
+  "pytest>=8.3",
+  "ruff>=0.8",
+]
+
+[tool.ruff]
+extend-exclude = ["src/anumat/_generated"]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.pyright]
+include = ["src", "tests"]
+exclude = ["src/anumat/_generated"]
+pythonVersion = "3.10"
+typeCheckingMode = "basic"

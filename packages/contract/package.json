@@ -1,0 +1,25 @@
+{
+  "name": "@anumat/contract",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anumat/core": "workspace:*",
+    "@trpc/server": "11.19.0",
+    "trpc-to-openapi": "3.3.3",
+    "zod": "^4.6.5",
+    "zod-openapi": "^5.4.4"
+  },
+  "devDependencies": {
+    "@anumat/tsconfig": "workspace:*",
+    "@types/node": "^24.0.0",
+    "typescript": "~5.9.3"
+  }
+}

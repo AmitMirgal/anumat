@@ -1,19 +1,5 @@
 {
-  "compilerOptions": {
-    "target": "ES2024",
-    "lib": ["ES2024"],
-    "module": "preserve",
-    "moduleResolution": "bundler",
-    "types": ["node"],
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    "noFallthroughCasesInSwitch": true,
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "noEmit": true
-  },
-  "include": ["src", "scripts", "test", "evals", "ee", "prisma.config.ts", "vitest.config.ts", "vitest.eval.config.ts"]
+  "extends": "./packages/tsconfig/base.json",
+  "files": [],
+  "include": []
 }

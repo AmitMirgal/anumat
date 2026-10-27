@@ -1,51 +1,30 @@
 {
-  "name": "anumat",
-  "version": "0.1.0",
+  "name": "anumat-workspace",
+  "version": "0.0.0",
   "private": true,
-  "description": "US prior-authorization policy engine: watches payer policy PDFs, extracts versioned rules, serves approved versions over HTTP.",
   "license": "SEE LICENSE IN LICENSE.md",
-  "type": "module",
   "packageManager": "pnpm@12.15.0",
   "engines": {
     "node": ">=24"
   },
   "scripts": {
-    "dev": "tsx watch --env-file-if-exists=.env src/main.ts",
-    "start": "tsx --env-file-if-exists=.env src/main.ts",
-    "postinstall": "prisma generate",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate deploy",
-    "db:seed": "tsx --env-file-if-exists=.env scripts/seed.ts",
-    "watch": "tsx --env-file-if-exists=.env src/jobs/watch.ts",
-    "demo": "tsx --env-file-if-exists=.env scripts/demo.ts",
-    "test": "vitest run",
-    "eval": "vitest run --config vitest.eval.config.ts",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@aws-sdk/client-s3": "^3.1156.0",
-    "@firecrawl/anydoc": "^0.2.4",
-    "@hono/node-server": "^2.1.1",
-    "@mastra/core": "^1.71.0",
-    "@prisma/adapter-pg": "^7.4.0",
-    "@prisma/client": "^7.4.0",
-    "hono": "^4.13.10",
-    "pg": "^8.16.3",
-    "pino": "^10.3.1",
-    "zod": "^4.6.5"
+    "dev": "turbo run dev --filter=@anumat/api",
+    "start": "pnpm --filter @anumat/api start",
+    "postinstall": "pnpm --filter @anumat/db db:generate",
+    "build": "turbo run build",
+    "db:generate": "pnpm --filter @anumat/db db:generate",
+    "db:migrate": "pnpm --filter @anumat/db db:migrate",
+    "db:seed": "pnpm --filter @anumat/engine db:seed",
+    "watch": "pnpm --filter @anumat/engine watch",
+    "demo": "pnpm --filter @anumat/api demo",
+    "test": "turbo run test",
+    "eval": "pnpm --filter @anumat/engine eval",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "publish-packages": "turbo run build lint test && changeset version && changeset publish"
   },
   "devDependencies": {
-    "@mastra/evals": "^1.10.3",
-    "@types/node": "^24.0.0",
-    "@types/pg": "^8.15.5",
-    "prisma": "^7.4.0",
-    "tsx": "^4.23.15",
-    "typescript": "~5.9.3",
-    "vitest": "^4.1.11"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
+    "@changesets/cli": "^2.29.8",
+    "turbo": "^2.6.1"
   }
 }
