@@ -7,7 +7,7 @@ import time
 import httpx
 import pytest
 
-from anumat import AnumatClient
+from anumat_py import AnumatClient
 
 API_KEY = "test-key-0123456789abcdef"
 

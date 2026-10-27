@@ -1,5 +1,7 @@
 # Enterprise Edition
 
+The root `ee/` directory holds the enterprise license. Enterprise code may sit in an `ee/` directory inside any app or package. Free code never imports from any `ee/` directory. Enterprise code may import free code.
+
 Code in this folder is the Anumat Enterprise Edition. `ee/LICENSE` is its license. Apache 2.0 does not apply here.
 
 `readLicenseKey` turns an untrusted value into a key record, or returns `null` when the value is not a key. `decideUse` allows `development` and `testing` with no key. `production` is allowed only when `agreementSigned` is true and the key is unexpired, has purpose `production`, and lists `feature`. Both functions are in `ee/license-key.ts`.

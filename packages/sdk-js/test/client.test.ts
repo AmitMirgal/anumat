@@ -1,7 +1,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createServer } from 'node:net';
 import { expect, test } from 'vitest';
-import { createAnumatClient } from '@anumat/sdk';
+import { createAnumatClient } from '@anumat/js';
 
 const API_KEY = 'test-key-0123456789abcdef';
 

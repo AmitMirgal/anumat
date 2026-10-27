@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from anumat._generated.api.default.payers_list import asyncio as payers_list_async
-from anumat._generated.api.default.payers_list import sync as payers_list
-from anumat._generated.client import AuthenticatedClient
-from anumat._generated.models.payers_list_response_200 import PayersListResponse200
-from anumat._generated.types import UNSET
+from anumat_py._generated.api.default.payers_list import asyncio as payers_list_async
+from anumat_py._generated.api.default.payers_list import sync as payers_list
+from anumat_py._generated.client import AuthenticatedClient
+from anumat_py._generated.models.payers_list_response_200 import PayersListResponse200
+from anumat_py._generated.types import UNSET
 
 
 class AnumatClient:

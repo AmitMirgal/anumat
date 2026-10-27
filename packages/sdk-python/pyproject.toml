@@ -1,5 +1,5 @@
 [project]
-name = "anumat"
+name = "anumat-py"
 version = "0.1.0"
 description = "Python client for the Anumat API"
 readme = "README.md"
@@ -15,7 +15,7 @@ requires = ["uv_build>=0.13.6,<0.14"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = "anumat"
+module-name = "anumat_py"
 module-root = "src"
 
 [dependency-groups]
@@ -27,7 +27,7 @@ dev = [
 ]
 
 [tool.ruff]
-extend-exclude = ["src/anumat/_generated"]
+extend-exclude = ["src/anumat_py/_generated"]
 line-length = 100
 
 [tool.pytest.ini_options]
@@ -35,6 +35,6 @@ testpaths = ["tests"]
 
 [tool.pyright]
 include = ["src", "tests"]
-exclude = ["src/anumat/_generated"]
+exclude = ["src/anumat_py/_generated"]
 pythonVersion = "3.10"
 typeCheckingMode = "basic"
