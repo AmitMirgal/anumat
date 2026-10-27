@@ -29,18 +29,18 @@
       "dependsOn": ["@anumat/engine#build", "@anumat/contract#build", "@anumat/db#build"],
       "outputs": ["openapi.json"]
     },
-    "@anumat/sdk#build": {
+    "@anumat/js#build": {
       "dependsOn": ["@anumat/contract#build", "@anumat/api#build"],
       "outputs": ["dist/**"]
     },
-    "anumat#generate": {
-      "command": ["uv", "run", "--frozen", "--package", "anumat", "python", "generate_client.py"],
+    "anumat-py#generate": {
+      "command": ["uv", "run", "--frozen", "--package", "anumat-py", "python", "generate_client.py"],
       "dependsOn": ["@anumat/api#build"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/api/openapi.json", "generate_client.py"],
-      "outputs": ["src/anumat/_generated/**"]
+      "outputs": ["src/anumat_py/_generated/**"]
     },
-    "anumat#build": {
-      "dependsOn": ["anumat#generate", "@anumat/api#build"]
+    "anumat-py#build": {
+      "dependsOn": ["anumat-py#generate", "@anumat/api#build"]
     },
     "dev": {
       "cache": false,
@@ -52,12 +52,12 @@
     "@anumat/db#typecheck": {
       "dependsOn": ["build"]
     },
-    "@anumat/sdk#typecheck": {
+    "@anumat/js#typecheck": {
       "dependsOn": ["^build", "build"]
     },
-    "anumat#typecheck": {
-      "command": ["uv", "run", "--frozen", "--package", "anumat", "pyright"],
-      "dependsOn": ["anumat#generate"]
+    "anumat-py#typecheck": {
+      "command": ["uv", "run", "--frozen", "--package", "anumat-py", "pyright"],
+      "dependsOn": ["anumat-py#generate"]
     },
     "lint": {},
     "db:generate": {
@@ -71,12 +71,12 @@
       "dependsOn": ["^build", "@anumat/engine#test"],
       "outputs": []
     },
-    "@anumat/sdk#test": {
+    "@anumat/js#test": {
       "dependsOn": ["build", "@anumat/api#test"],
       "outputs": []
     },
-    "anumat#test": {
-      "dependsOn": ["anumat#generate", "@anumat/sdk#test"],
+    "anumat-py#test": {
+      "dependsOn": ["anumat-py#generate", "@anumat/js#test"],
       "outputs": []
     }
   }

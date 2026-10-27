@@ -1,5 +1,5 @@
 {
-  "name": "@anumat/sdk",
+  "name": "@anumat/js",
   "version": "0.1.0",
   "description": "Typed TypeScript client for the Anumat API.",
   "license": "Apache-2.0",

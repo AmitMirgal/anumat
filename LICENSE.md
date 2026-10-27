@@ -1,4 +1,4 @@
-Code in any `ee/` directory is licensed under the Anumat Enterprise Edition License (see ee/LICENSE). All other code is licensed under the Apache License 2.0 below.
+Anything inside a directory named `ee/`, anywhere in this repository, is under the Anumat Enterprise Edition License in `ee/LICENSE`. Everything else is under the Apache License 2.0 below. Third-party code keeps its own license.
 
 Copyright 2026 [LEGAL ENTITY NAME]
 

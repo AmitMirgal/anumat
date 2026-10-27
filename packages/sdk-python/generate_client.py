@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = ROOT / "apps" / "api" / "openapi.json"
-OUT = Path(__file__).resolve().parent / "src" / "anumat" / "_generated"
+OUT = Path(__file__).resolve().parent / "src" / "anumat_py" / "_generated"
 
 
 def main() -> None:

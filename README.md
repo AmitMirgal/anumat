@@ -4,18 +4,18 @@ Anumat takes insurance policy documents and returns structured coverage rules. I
 
 This repository is the US market. India is a seam for a later pack, not a second set of rules inside the core. Anumat is a separate product from Pramaan.
 
-The code outside `ee/` is Apache 2.0. Install a client without cloning the repo, or run the API yourself.
+Code in a directory named `ee/` uses the enterprise license. The rest of this repository is Apache 2.0. Third-party code keeps its own license. Install a client without cloning the repo, or run the API yourself.
 
 ## Install a client
 
 TypeScript, from npm:
 
 ```bash
-npm i @anumat/sdk
+npm install @anumat/js
 ```
 
 ```typescript
-import { createAnumatClient } from '@anumat/sdk';
+import { createAnumatClient } from '@anumat/js';
 
 const anumat = createAnumatClient({
   baseUrl: 'http://127.0.0.1:4471',
@@ -27,17 +27,17 @@ const page = await anumat.payers.list.query({ limit: 20 });
 Python, from PyPI:
 
 ```bash
-pip install anumat
+pip install anumat-py
 ```
 
 ```python
-from anumat import AnumatClient
+from anumat_py import AnumatClient
 
 client = AnumatClient("http://127.0.0.1:4471", "your-api-key")
 page = client.list_payers()
 ```
 
-Both names were free on the public registries when this layout was added. Nothing in this restructure published them.
+This repository does not publish either package.
 
 ## Run it yourself
 
@@ -91,9 +91,9 @@ Without the API key for the configured provider, a check still fetches, stores, 
 | `packages/engine` | `@anumat/engine` | Fetch, convert, extract, diff, jobs, agent, storage, catalog, versions | Internal |
 | `packages/contract` | `@anumat/contract` | tRPC router and shared Zod schemas | Internal |
 | `packages/tsconfig` | `@anumat/tsconfig` | Shared TypeScript presets | Internal |
-| `packages/sdk-js` | `@anumat/sdk` | Typed tRPC client for npm | Public |
-| `packages/sdk-python` | `anumat` | Python client for PyPI, a uv workspace member | Public |
-| `ee/` |  | Enterprise license and the license-key check. Empty of product code | Separate license |
+| `packages/sdk-js` | `@anumat/js` | Typed tRPC client for npm | Public |
+| `packages/sdk-python` | `anumat-py` | Python client for PyPI, a uv workspace member | Public |
+| `ee/` |  | Enterprise license and the license-key check. Product code, when it exists, lives in an `ee/` directory next to its feature | Separate license |
 
 ## Dependency direction
 
@@ -103,10 +103,10 @@ core  <-  contract
 apps/api  ->  engine, contract, db, core
 sdk-js  ->  contract (types only, bundled at build)
 sdk-python  ->  apps/api openapi.json (build order only)
-ee/  ->  any free package. Never the other way.
+any ee/ directory  ->  free code. Never the other way.
 ```
 
-Packages do not import `apps/`. Nothing outside `ee/` imports `ee/`.
+Packages do not import `apps/`. Free code never imports from a directory named `ee/`.
 
 ## API
 
@@ -142,7 +142,11 @@ curl -s http://127.0.0.1:4471/v1/policies/uhc.bariatric-surgery -H "authorizatio
 
 ## Free and enterprise
 
-All code outside `ee/` is Apache 2.0 and free to use. `ee/` has its own license and is empty of product features today. Future enterprise features plug in through the core interfaces `AuditSink`, `AuthProvider`, `ReviewPolicy`, `RuleFeedSource`, and `Connector`. Free code never imports `ee/`.
+Anything inside a directory named `ee/`, anywhere in this repository, is under the Anumat Enterprise Edition License in `ee/LICENSE`. Everything else in this repository is Apache 2.0. Third-party code keeps its own license.
+
+The root `ee/` directory holds that license and the license-key check. It has no product features. Enterprise code may sit in an `ee/` directory inside any app or package, next to the feature it belongs to. Free code never imports from any `ee/` directory. Enterprise code may import free code.
+
+Future enterprise features plug in through the core interfaces `AuditSink`, `AuthProvider`, `ReviewPolicy`, `RuleFeedSource`, and `Connector`.
 
 The license texts are `LICENSE.md` and `ee/LICENSE`.
 
@@ -160,7 +164,7 @@ The license texts are `LICENSE.md` and `ee/LICENSE`.
 | `pnpm turbo test` | Runs unit and integration tests. `pnpm test` does the same. |
 | `pnpm turbo typecheck` | Type-checks every package. |
 | `pnpm turbo lint` | Lints the Python package with Ruff. |
-| `pnpm eval` | Runs the Mastra evals offline. It exits 1 on a schema-validity regression. |
+| `pnpm eval` | Runs the engine evals offline. It exits 1 on a schema-validity regression. |
 | `pnpm demo` | Registers a payer and the live UHC Bariatric Surgery PDF, then checks, diffs, approves, and reads it over HTTP. |
 | `pnpm turbo test --filter=@anumat/markets` | Runs one package. Replace the filter with any package name. |
 
@@ -185,7 +189,7 @@ flowchart TD
   adapter -->|"PDF bytes, SHA-256"| blobs[("BlobStore, local directory or S3-compatible bucket")]
   check --> convert["anydoc, or Firecrawl Parse when pages need OCR"]
   convert --> triage
-  subgraph agent["Mastra AgentController, one session per job"]
+  subgraph agent["AgentController, one session per job"]
     triage["triage mode, cheap model"] --> extract["extract mode, strong model"]
     diffmode["diff mode, cheap model"]
     reviewmode["review mode, strong model"]
@@ -213,7 +217,7 @@ flowchart TD
 
 1. A check fetches the PDF, stores it at `pdf/<sha256>.pdf`, and locks the source row. It inserts an artifact only when the SHA-256 differs from the latest artifact for that source. The same PDF never creates a new artifact, document, or version.
 2. anydoc converts the PDF locally. When pages need OCR, Firecrawl Parse converts it if `FIRECRAWL_API_KEY` is set. Without the key, that document fails with `ocr_not_configured` and nothing else is affected.
-3. Triage reads the document outline and picks the rule sections. Extract reads those sections by id and calls `save_extraction`. Mastra validates the tool input against the market schema, so invalid output goes back to the model with field-level errors.
+3. Triage reads the document outline and picks the rule sections. Extract reads those sections by id and calls `save_extraction`. The agent validates the tool input against the market schema, so invalid output goes back to the model with field-level errors.
 4. `proposeVersion` parses the extraction with the market schema again before it writes anything. It supersedes any open proposal for the policy, stores the new version as `proposed`, and stores the change set against the latest approved version.
 5. With a live model, the diff mode writes a reviewer summary and the review mode records findings on the diff. Both steps are best effort.
 6. A person approves or rejects the proposal. Approval assigns the next version number and requires that the proposal's base is still the latest approved version. The free `ReviewPolicy` allows that single approval.
@@ -246,7 +250,7 @@ The report replays a scripted model that reads the sections the triage heuristic
 
 ## Evals
 
-`pnpm eval` runs `packages/engine/evals/*.eval.ts` with `@mastra/evals/vitest`. It needs no network, database, or API key. The target is a one-step Mastra workflow that runs the production triage and extract job on each fixture in `packages/engine/evals/fixtures/`. Offline, the job replays the hand-written `candidate.json` through the real agent tools and is scored against the hand-written gold `expected.json`. See `packages/engine/evals/fixtures/README.md` for where each fixture came from.
+`pnpm eval` runs `packages/engine/evals/*.eval.ts`. It needs no network, database, or API key. The target is a one-step workflow that runs the production triage and extract job on each fixture in `packages/engine/evals/fixtures/`. Offline, the job replays the hand-written `candidate.json` through the real agent tools and is scored against the hand-written gold `expected.json`. See `packages/engine/evals/fixtures/README.md` for where each fixture came from.
 
 | Scorer | Kind | Pass mark |
 | --- | --- | --- |
@@ -279,7 +283,7 @@ To score the configured models instead of the replay, set `ANUMAT_EVAL_LIVE=1` a
 | `ANUMAT_S3_ACCESS_KEY_ID` | none | Access key. Required when `ANUMAT_STORAGE` is `s3`. |
 | `ANUMAT_S3_SECRET_ACCESS_KEY` | none | Secret key. Required when `ANUMAT_STORAGE` is `s3`. |
 | `ANUMAT_LLM_MODE` | `live` | `live` uses the model router. `replay` uses the scripted fixture model and does not read a provider key. |
-| `ANUMAT_STRONG_MODEL` | `anthropic/claude-sonnet-4-5` | Model for extract and review. A Mastra router id, `provider/model`. Google: `google/gemini-2.5-pro`. Grok: `xai/grok-4.3`. |
+| `ANUMAT_STRONG_MODEL` | `anthropic/claude-sonnet-4-5` | Model for extract and review. A model router id, `provider/model`. Google: `google/gemini-2.5-pro`. Grok: `xai/grok-4.3`. |
 | `ANUMAT_CHEAP_MODEL` | `anthropic/claude-haiku-4-5` | Model for triage and diff. Google: `google/gemini-2.5-flash`. Grok: `xai/grok-build-0.1`. |
 | `ANTHROPIC_API_KEY` | none | Key for `anthropic/*`. |
 | `OPENAI_API_KEY` | none | Key for `openai/*`. |
@@ -289,7 +293,7 @@ To score the configured models instead of the replay, set `ANUMAT_EVAL_LIVE=1` a
 | `FIRECRAWL_API_URL` | `https://api.firecrawl.dev` | Firecrawl endpoint, for a self-hosted Firecrawl. |
 | `ANUMAT_EVAL_LIVE` | unset | Set to `1` so `pnpm eval` scores the configured models. Otherwise the evals replay the fixtures. |
 
-The router accepts any provider id it already ships, including Anthropic, OpenAI, Google, and xAI. Mastra has no `serum` provider. A Serum model would be the string `serum/<model>`, and Anumat does not add that provider.
+The router accepts any provider id it already ships, including Anthropic, OpenAI, Google, and xAI. There is no `serum` provider. A Serum model would be the string `serum/<model>`, and Anumat does not add that provider.
 
 A custom endpoint uses path-style requests. The client sends a checksum only when the operation requires one. Supabase Storage and the Google Cloud Storage interoperability endpoint accept that request.
 
