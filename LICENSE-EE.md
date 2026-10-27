@@ -6,7 +6,7 @@ Copyright 2026 [LEGAL ENTITY NAME]
 
 1. Scope
 
-This license applies to source code in any ee/ directory of Anumat. That code is the Enterprise Edition.
+This license applies to anything inside a directory named ee/, anywhere in this repository. Today that directory is apps/api/src/ee/. That code is the Enterprise Edition.
 
 You accept this license by copying, modifying, or running that code. If you do not accept it, do not do those things.
 

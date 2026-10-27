@@ -9,7 +9,7 @@ for (const path of ['.env', '../../.env']) {
 
 export default defineConfig({
   test: {
-    include: ['test/**/*.test.ts', '../../ee/**/*.test.ts'],
+    include: ['test/**/*.test.ts', 'src/ee/**/*.test.ts'],
     env: { LOG_LEVEL: 'silent' },
     fileParallelism: false,
     testTimeout: 30_000,
