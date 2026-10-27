@@ -142,7 +142,7 @@ curl -s http://127.0.0.1:4471/v1/policies/uhc.bariatric-surgery -H "authorizatio
 
 ## Free and enterprise
 
-Anything inside a directory named `ee/`, anywhere in this repository, is under the Anumat Enterprise Edition License in [LICENSE-EE.md](LICENSE-EE.md). Today that directory is `apps/api/src/ee/`. Everything else in this repository is under the Apache License 2.0 in [LICENSE.md](LICENSE.md). Third-party code keeps its own license.
+Anything inside a directory named `ee/`, anywhere in this repository, is under the Anumat Enterprise Edition License in [apps/api/src/ee/LICENSE.md](apps/api/src/ee/LICENSE.md). Today that directory is `apps/api/src/ee/`. Everything else in this repository is under the Apache License 2.0 in [LICENSE.md](LICENSE.md). Third-party code keeps its own license.
 
 `apps/api/src/ee/` holds the enterprise license note and the license-key check. It has no other enterprise features yet. Enterprise code plugs in through `createApp({ plugins })` and the interfaces in `packages/core/src/plugins.ts`. Free code never imports from any `ee/` directory. Enterprise code may import free code.
 
@@ -344,4 +344,4 @@ Aetna publishes its clinical policy bulletins as HTML pages, so the `http_pdf` a
 
 ## License
 
-See `LICENSE.md` and `LICENSE-EE.md`.
+See `LICENSE.md` and `apps/api/src/ee/LICENSE.md`.
