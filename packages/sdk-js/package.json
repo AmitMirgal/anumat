@@ -1,0 +1,45 @@
+{
+  "name": "@anumat/sdk",
+  "version": "0.1.0",
+  "description": "Typed TypeScript client for the Anumat API.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AmitMirgal/anumat.git",
+    "directory": "packages/sdk-js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup && node scripts/rewrite-dts.mjs",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@trpc/client": "11.19.0",
+    "@trpc/server": "11.19.0"
+  },
+  "devDependencies": {
+    "@anumat/contract": "workspace:*",
+    "@anumat/tsconfig": "workspace:*",
+    "@types/node": "^24.0.0",
+    "tsup": "^8.5.1",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

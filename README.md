@@ -1,12 +1,47 @@
 # Anumat
 
-Anumat is an HTTP API for US prior-authorization rules. It watches public payer medical policy PDFs and converts each new version to markdown. A Mastra agent extracts the prior-auth rules into a versioned schema. Anumat diffs every extraction against the last approved version and serves a version only after a person approves it.
+Anumat takes insurance policy documents and returns structured coverage rules. It tracks each change, waits for a person to approve it, and serves the approved rules from a versioned API. It does not check individual patients.
 
-This repository is US Layer A. It ships the US market only. India plugs in later through the market seams described under [Architecture](#architecture). Anumat is a separate product from Pramaan, its India sibling.
+This repository is the US market. India is a seam for a later pack, not a second set of rules inside the core. Anumat is a separate product from Pramaan.
 
-## Run it locally
+The code outside `ee/` is Apache 2.0. Install a client without cloning the repo, or run the API yourself.
 
-You need Node 24 (see `.nvmrc`), pnpm 10, and PostgreSQL 16.
+## Install a client
+
+TypeScript, from npm:
+
+```bash
+npm i @anumat/sdk
+```
+
+```typescript
+import { createAnumatClient } from '@anumat/sdk';
+
+const anumat = createAnumatClient({
+  baseUrl: 'http://127.0.0.1:4471',
+  apiKey: 'your-api-key',
+});
+const page = await anumat.payers.list.query({ limit: 20 });
+```
+
+Python, from PyPI:
+
+```bash
+pip install anumat
+```
+
+```python
+from anumat import AnumatClient
+
+client = AnumatClient("http://127.0.0.1:4471", "your-api-key")
+page = client.list_payers()
+```
+
+Both names were free on the public registries when this layout was added. Nothing in this restructure published them.
+
+## Run it yourself
+
+You need Node 24 (see `.nvmrc`, install it with nvm), pnpm 12 (enable it with Corepack), uv, and PostgreSQL 16.
 
 1. Start Postgres with a role `anumat` (password `anumat`) and two databases, `anumat` and `anumat_test`. With Docker:
 
@@ -22,15 +57,22 @@ You need Node 24 (see `.nvmrc`), pnpm 10, and PostgreSQL 16.
    cp .env.example .env
    ```
 
-3. Install dependencies, apply the migrations, and start the server.
+3. Install, generate the Prisma client, and start the API.
 
    ```bash
    pnpm install
-   pnpm db:migrate
-   pnpm dev
+   pnpm turbo db:generate
+   pnpm turbo dev
    ```
 
-   The API listens on `http://127.0.0.1:4471`. `curl http://127.0.0.1:4471/health` returns `{"status":"ok"}`.
+   `pnpm dev` starts the same API. It listens on `http://127.0.0.1:4471`.
+
+   | URL | What it is |
+   | --- | --- |
+   | `http://127.0.0.1:4471/trpc` | tRPC endpoint for the TypeScript client |
+   | `http://127.0.0.1:4471/api/v1` | REST API generated from the same router |
+   | `http://127.0.0.1:4471/api/v1/openapi.json` | OpenAPI document |
+   | `http://127.0.0.1:4471/health` | Liveness. No auth. |
 
 4. To register the three verified US policy sources, run `pnpm db:seed`.
 
@@ -38,27 +80,105 @@ You need Node 24 (see `.nvmrc`), pnpm 10, and PostgreSQL 16.
 
 Without the API key for the configured provider, a check still fetches, stores, and converts the PDF. The run then stops with `llm_not_configured`, which names that provider's variable. Google models read `GOOGLE_API_KEY` or `GOOGLE_GENERATIVE_AI_API_KEY`. Grok models read `XAI_API_KEY`. An Anthropic key is required only when a configured model id starts with `anthropic/`. `ANUMAT_LLM_MODE=replay` does not call a provider.
 
+## Repository map
+
+| Path | Package | What belongs there | Publish |
+| --- | --- | --- | --- |
+| `apps/api` | `@anumat/api` | Hono app, `/v1` routes, tRPC mount, API-key auth, `createApp` | Internal |
+| `packages/core` | `@anumat/core` | Errors, pagination, change shape, market id, plug-in interfaces | Internal |
+| `packages/markets` | `@anumat/markets` | Registry, US schema, US diff, US seeds. `in/` is a README | Internal |
+| `packages/db` | `@anumat/db` | Prisma schema, migrations, generated client | Internal |
+| `packages/engine` | `@anumat/engine` | Fetch, convert, extract, diff, jobs, agent, storage, catalog, versions | Internal |
+| `packages/contract` | `@anumat/contract` | tRPC router and shared Zod schemas | Internal |
+| `packages/tsconfig` | `@anumat/tsconfig` | Shared TypeScript presets | Internal |
+| `packages/sdk-js` | `@anumat/sdk` | Typed tRPC client for npm | Public |
+| `packages/sdk-python` | `anumat` | Python client for PyPI, a uv workspace member | Public |
+| `ee/` |  | Enterprise license and the license-key check. Empty of product code | Separate license |
+
+## Dependency direction
+
+```
+core  <-  markets  <-  engine  ->  db
+core  <-  contract
+apps/api  ->  engine, contract, db, core
+sdk-js  ->  contract (types only, bundled at build)
+sdk-python  ->  apps/api openapi.json (build order only)
+ee/  ->  any free package. Never the other way.
+```
+
+Packages do not import `apps/`. Nothing outside `ee/` imports `ee/`.
+
+## API
+
+tRPC is at `/trpc`. The TypeScript client uses it, so the server and the client share the router type.
+
+REST and OpenAPI are at `/api/v1`. Other languages, including the Python client, use that. Both come from the same tRPC router. `GET /api/v1/openapi.json` serves the document.
+
+The older `/v1` routes are still there, with the same paths and JSON. Every `/v1` and `/api/v1` route needs `Authorization: Bearer <key>`, with a key from `ANUMAT_API_KEYS`. The key's name is recorded as the approver. JSON uses snake_case. `/v1` errors return `{ "error": { "code", "message", "details", "request_id" } }`, and every `/v1` response carries an `X-Request-Id` header. List routes take `limit` (1 to 100, default 20) and `cursor`, and return `{ items, next_cursor }`. A per-key limit of `RATE_LIMIT_PER_MINUTE` returns 429 with `Retry-After`. The limit lives in memory, per process.
+
+| Method and path | Purpose |
+| --- | --- |
+| `GET /health` | Liveness. No auth. |
+| `GET /ready` | Readiness. Checks Postgres and reports LLM mode and OCR key presence. No auth. |
+| `POST /v1/payers`, `GET /v1/payers` | Register and list payers. The body is `{ name, slug, market: "us" }`. |
+| `POST /v1/sources`, `GET /v1/sources`, `GET /v1/sources/:id` | Register and read policy sources. The body is `{ payer_id, title, source_url, policy_slug?, check_interval_hours?, enabled? }`. The policy key is `<payer slug>.<policy slug>`. |
+| `POST /v1/sources/:id/check` | Runs one check now and returns the watch run, the version, and the diff. |
+| `GET /v1/policies/:policyKey` | Latest approved version, with its rules. |
+| `GET /v1/policies/:policyKey/versions` | Approved versions, newest first. |
+| `GET /v1/policies/:policyKey/versions/:version` | One approved version by number. |
+| `GET /v1/versions` | Review queue. Filters are `status` and `policy_key`. |
+| `GET /v1/versions/:id` | One version in any status, with its `diff_id`. |
+| `POST /v1/versions/:id/approve` | Publishes a proposed version. |
+| `POST /v1/versions/:id/reject` | Rejects a proposed version. The body is `{ reason }`. |
+| `GET /v1/diffs/:id` | Change set, reviewer summary, and review findings. |
+
+The REST paths under `/api/v1` match those `/v1` paths. tRPC procedure names are the nested names in `@anumat/contract`, such as `payers.list` and `versions.approve`.
+
+```bash
+KEY=your-key
+curl -s -X POST http://127.0.0.1:4471/v1/sources/$SOURCE_ID/check -H "authorization: Bearer $KEY"
+curl -s http://127.0.0.1:4471/v1/policies/uhc.bariatric-surgery -H "authorization: Bearer $KEY"
+```
+
+## Free and enterprise
+
+All code outside `ee/` is Apache 2.0 and free to use. `ee/` has its own license and is empty of product features today. Future enterprise features plug in through the core interfaces `AuditSink`, `AuthProvider`, `ReviewPolicy`, `RuleFeedSource`, and `Connector`. Free code never imports `ee/`.
+
+The license texts are `LICENSE.md` and `ee/LICENSE`.
+
 ## Commands
 
 | Command | What it does |
 | --- | --- |
-| `pnpm dev` | Starts the API on port 4471 and restarts it when a file changes. |
+| `pnpm turbo build` | Builds packages in dependency order, then writes `openapi.json` and the clients. |
+| `pnpm turbo dev` | Starts the API on port 4471 and restarts it when a file changes. `pnpm dev` does the same. |
 | `pnpm start` | Starts the API without file watching. |
-| `pnpm db:migrate` | Applies `prisma/migrations` to `DATABASE_URL`. |
-| `pnpm db:generate` | Generates the Prisma Client from `prisma/schema.prisma`. |
+| `pnpm turbo db:generate` | Generates the Prisma client. `pnpm db:generate` does the same. |
+| `pnpm db:migrate` | Applies `packages/db/prisma/migrations` to `DATABASE_URL`. |
 | `pnpm db:seed` | Registers UnitedHealthcare, Cigna, and three policy PDFs. It skips rows that already exist. |
-| `pnpm watch` | Checks every enabled source whose `check_interval_hours` has passed, then exits. Run it from cron, for example `*/30 * * * * cd /path/to/anumat && pnpm watch`. |
-| `pnpm test` | Runs the unit and integration tests against `TEST_DATABASE_URL`. |
+| `pnpm watch` | Checks every enabled source whose `check_interval_hours` has passed, then exits. |
+| `pnpm turbo test` | Runs unit and integration tests. `pnpm test` does the same. |
+| `pnpm turbo typecheck` | Type-checks every package. |
+| `pnpm turbo lint` | Lints the Python package with Ruff. |
 | `pnpm eval` | Runs the Mastra evals offline. It exits 1 on a schema-validity regression. |
 | `pnpm demo` | Registers a payer and the live UHC Bariatric Surgery PDF, then checks, diffs, approves, and reads it over HTTP. |
-| `pnpm typecheck` | Type-checks the project with `tsc --noEmit`. |
-| `pnpm exec tsx scripts/context-report.ts` | Reports how many characters of each converted document the agent reads. |
+| `pnpm turbo test --filter=@anumat/markets` | Runs one package. Replace the filter with any package name. |
+
+`pnpm --filter @anumat/engine context-report` reports how many characters of each converted document the agent reads.
+
+## Contributing
+
+Do not add PHI or real patient data, including test fixtures. Public policy PDFs and synthetic examples only.
+
+`packages/core` stays market-neutral. US rules stay in `packages/markets`. `packages/markets/src/in` stays a README until an India pack is a real decision.
+
+Imports flow one way, as in the diagram above. A package that needs a type from a neighbor imports that package. It does not reach back.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-  client["API client or reviewer"] -->|Bearer API key| api["Hono API /v1"]
+  client["API client or reviewer"] -->|Bearer API key| api["Hono API"]
   cron["pnpm watch from cron"] --> check
   api -->|"POST /v1/sources/:id/check"| check["checkSource"]
   check --> adapter["http_pdf source adapter"]
@@ -77,29 +197,29 @@ flowchart TD
   api -->|"POST /v1/versions/:id/approve"| approve["approveVersion"]
   approve --> db
   api -->|"GET /v1/policies/:policyKey"| db
-  subgraph markets["Market registry, the plugin seam"]
-    us["us market with extractSchemas.us, the US diff, and US seeds"]
-    india["in market, README only, not implemented"]
+  subgraph markets["Market registry"]
+    us["us market"]
+    india["in market, README only"]
   end
-  propose -.->|"markets[source.market]"| markets
+  propose -.->|"marketFor(source.market)"| markets
   extract -.->|"save_extraction input schema"| markets
 ```
 
-### The market plugin seam
+### The market registry
 
-`market` is a column on payers, policy sources, and policy versions, and a literal in each extraction. Composite foreign keys keep those copies equal. `src/markets/registry.ts` maps each market to its `schemaId`, its Zod extract schema (`extractSchemas.us`), and its pure diff function. The pipeline stages (watch, convert, extract, diff, approve, publish) look the market up in that registry and never import `src/markets/us` directly. Source adapters sit behind `fetchArtifact(source)`, and only `http_pdf` exists. Codes are `{ system, code, display? }`, and the US schema checks the format of CPT, HCPCS, ICD-10-CM, and ICD-10-PCS codes. `src/markets/in/README.md` lists the steps to add India. No India code, payer, source, or form exists.
+`market` is a column on payers, policy sources, and policy versions, and a literal in each extraction. Composite foreign keys keep those copies equal. `packages/markets/src/registry.ts` maps each built-in market to its `schemaId`, its Zod extract schema, and its pure diff function. `registerMarket` lets a later pack add a market without editing this package. The pipeline looks the market up with `marketFor` and does not import `packages/markets/src/us` directly. Source adapters sit behind `fetchArtifact(source)`, and only `http_pdf` exists. Codes are `{ system, code, display? }`, and the US schema checks the format of CPT, HCPCS, ICD-10-CM, and ICD-10-PCS codes. `packages/markets/src/in/README.md` lists the steps that were written for an India market. No India code, payer, source, or form exists. The Prisma `Market` enum is still only `us`.
 
 ### How a policy moves through Anumat
 
 1. A check fetches the PDF, stores it at `pdf/<sha256>.pdf`, and locks the source row. It inserts an artifact only when the SHA-256 differs from the latest artifact for that source. The same PDF never creates a new artifact, document, or version.
 2. anydoc converts the PDF locally. When pages need OCR, Firecrawl Parse converts it if `FIRECRAWL_API_KEY` is set. Without the key, that document fails with `ocr_not_configured` and nothing else is affected.
-3. Triage reads the document outline and picks the rule sections. Extract reads those sections by id and calls `save_extraction`. Mastra validates the tool input against `extractSchemas.us`, so invalid output goes back to the model with field-level errors.
+3. Triage reads the document outline and picks the rule sections. Extract reads those sections by id and calls `save_extraction`. Mastra validates the tool input against the market schema, so invalid output goes back to the model with field-level errors.
 4. `proposeVersion` parses the extraction with the market schema again before it writes anything. It supersedes any open proposal for the policy, stores the new version as `proposed`, and stores the change set against the latest approved version.
 5. With a live model, the diff mode writes a reviewer summary and the review mode records findings on the diff. Both steps are best effort.
-6. A person approves or rejects the proposal. Approval assigns the next version number and requires that the proposal's base is still the latest approved version.
+6. A person approves or rejects the proposal. Approval assigns the next version number and requires that the proposal's base is still the latest approved version. The free `ReviewPolicy` allows that single approval.
 7. `GET /v1/policies/:policyKey` serves approved versions only.
 
-Every step converges when it runs again. A check after a failure resumes from the stored artifact or document. `prisma/schema.prisma` defines the tables, relations, foreign-key indexes, and the partial unique index for one open proposal per policy. Unique columns still enforce one version per document and one diff per version. The init migration also adds the checks and immutability triggers Prisma cannot represent: required fields for each status, format checks, and triggers that reject any change to an approved version or a stored change set. After a schema change, create the migration with `pnpm exec prisma migrate dev --name <name>`, then run `pnpm db:generate`.
+Every step converges when it runs again. A check after a failure resumes from the stored artifact or document. `packages/db/prisma/schema.prisma` defines the tables, relations, foreign-key indexes, and the partial unique index for one open proposal per policy. Unique columns still enforce one version per document and one diff per version. The init migration also adds the checks and immutability triggers Prisma cannot represent. After a schema change, create the migration from `packages/db` with `pnpm --filter @anumat/db exec prisma migrate dev --name <name>`, then run `pnpm db:generate`.
 
 ### Agent modes and token use
 
@@ -112,7 +232,7 @@ One `AgentController` per market runs four modes on a shared agent. Each job run
 | `diff` | `ANUMAT_CHEAP_MODEL` | `get_approved_version`, `save_diff` | Summarizes the computed change set for the reviewer. |
 | `review` | `ANUMAT_STRONG_MODEL` | `get_policy_document`, `save_diff` | Checks each change against the source sections and records findings. |
 
-Documents never appear in prompts or tool definitions. The markdown stays in the BlobStore. `get_policy_document` returns an outline three heading levels deep, then whole sections by id, up to 40,000 characters per call. Instructions and tool schemas are fixed per mode, so the prompt prefix caches. Only the task message and tool results vary. On the three live seed PDFs, `scripts/context-report.ts` measured what the triage and extract steps receive.
+Documents never appear in prompts or tool definitions. The markdown stays in the BlobStore. `get_policy_document` returns an outline three heading levels deep, then whole sections by id, up to 40,000 characters per call. Instructions and tool schemas are fixed per mode, so the prompt prefix caches. Only the task message and tool results vary. On the three live seed PDFs, `packages/engine/scripts/context-report.ts` measured what the triage and extract steps receive.
 
 | Document | Characters | Sent to the model |
 | --- | --- | --- |
@@ -126,46 +246,20 @@ The report replays a scripted model that reads the sections the triage heuristic
 
 ## Evals
 
-`pnpm eval` runs `evals/*.eval.ts` with `@mastra/evals/vitest`. It needs no network, database, or API key. The target is a one-step Mastra workflow that runs the production triage and extract job on each fixture in `evals/fixtures/`. Offline, the job replays the hand-written `candidate.json` through the real agent tools and is scored against the hand-written gold `expected.json`. See `evals/fixtures/README.md` for where each fixture came from.
+`pnpm eval` runs `packages/engine/evals/*.eval.ts` with `@mastra/evals/vitest`. It needs no network, database, or API key. The target is a one-step Mastra workflow that runs the production triage and extract job on each fixture in `packages/engine/evals/fixtures/`. Offline, the job replays the hand-written `candidate.json` through the real agent tools and is scored against the hand-written gold `expected.json`. See `packages/engine/evals/fixtures/README.md` for where each fixture came from.
 
 | Scorer | Kind | Pass mark |
 | --- | --- | --- |
-| `schema-validity` | Gate. The saved extraction passes `extractSchemas.us`. | 1.0 for every case |
+| `schema-validity` | Gate. The saved extraction passes the US schema. | 1.0 for every case |
 | `required-field-completeness` | Share of the fields the gold fills that the extraction also fills. | 0.9 |
 | `code-overlap` | F1 of codes matched on system and code. | 0.85 |
 | `criteria-similarity` | Token-overlap F1 between extracted and gold criteria. | 0.75 |
 | `criteria-judge` | LLM judge of criteria meaning. It returns `notScorable` when the judge model has no key. | 0.7 |
-| `diff-matches-gold` | Gate. The US diff reproduces `evals/fixtures/diffs/*/expected-changes.json`. | 1.0 |
+| `diff-matches-gold` | Gate. The US diff reproduces `packages/engine/evals/fixtures/diffs/*/expected-changes.json`. | 1.0 |
 
 A second case replays an extraction that breaks the US schema and expects the gate to fail. A schema change that rejects the candidates fails the main case. A schema change that accepts the broken extraction fails the second case. Either way `pnpm eval` exits 1.
 
 To score the configured models instead of the replay, set `ANUMAT_EVAL_LIVE=1` and the provider key, then run `pnpm eval`.
-
-## API
-
-Every `/v1` route needs `Authorization: Bearer <key>`, with a key from `ANUMAT_API_KEYS`. The key's name is recorded as the approver. JSON uses snake_case. Errors return `{ "error": { "code", "message", "details", "request_id" } }`, and every response carries an `X-Request-Id` header. List routes take `limit` (1 to 100, default 20) and `cursor`, and return `{ items, next_cursor }`. A per-key limit of `RATE_LIMIT_PER_MINUTE` returns 429 with `Retry-After`. The limit lives in memory, per process.
-
-| Method and path | Purpose |
-| --- | --- |
-| `GET /health` | Liveness. No auth. |
-| `GET /ready` | Readiness. Checks Postgres and reports LLM mode and OCR key presence. No auth. |
-| `POST /v1/payers`, `GET /v1/payers` | Register and list payers. The body is `{ name, slug, market: "us" }`. |
-| `POST /v1/sources`, `GET /v1/sources`, `GET /v1/sources/:id` | Register and read policy sources. The body is `{ payer_id, title, source_url, policy_slug?, check_interval_hours?, enabled? }`. The policy key is `<payer slug>.<policy slug>`. |
-| `POST /v1/sources/:id/check` | Runs one check now and returns the watch run, the version, and the diff. |
-| `GET /v1/policies/:policyKey` | Latest approved version, with its rules. |
-| `GET /v1/policies/:policyKey/versions` | Approved versions, newest first. |
-| `GET /v1/policies/:policyKey/versions/:version` | One approved version by number. |
-| `GET /v1/versions` | Review queue. Filters are `status` and `policy_key`. |
-| `GET /v1/versions/:id` | One version in any status, with its `diff_id`. |
-| `POST /v1/versions/:id/approve` | Publishes a proposed version. |
-| `POST /v1/versions/:id/reject` | Rejects a proposed version. The body is `{ reason }`. |
-| `GET /v1/diffs/:id` | Change set, reviewer summary, and review findings. |
-
-```bash
-KEY=your-key
-curl -s -X POST http://127.0.0.1:4471/v1/sources/$SOURCE_ID/check -H "authorization: Bearer $KEY"
-curl -s http://127.0.0.1:4471/v1/policies/uhc.bariatric-surgery -H "authorization: Bearer $KEY"
-```
 
 ## Configuration
 
@@ -191,11 +285,11 @@ curl -s http://127.0.0.1:4471/v1/policies/uhc.bariatric-surgery -H "authorizatio
 | `OPENAI_API_KEY` | none | Key for `openai/*`. |
 | `GOOGLE_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY` | none | Either key works for `google/*`. |
 | `XAI_API_KEY` | none | Key for `xai/*` (Grok). |
-
-The router accepts any provider id it already ships, including Anthropic, OpenAI, Google, and xAI. Mastra has no `serum` provider. A Serum model would be the string `serum/<model>`, and Anumat does not add that provider.
 | `FIRECRAWL_API_KEY` | none | Enables Firecrawl Parse for PDFs that need OCR. |
 | `FIRECRAWL_API_URL` | `https://api.firecrawl.dev` | Firecrawl endpoint, for a self-hosted Firecrawl. |
 | `ANUMAT_EVAL_LIVE` | unset | Set to `1` so `pnpm eval` scores the configured models. Otherwise the evals replay the fixtures. |
+
+The router accepts any provider id it already ships, including Anthropic, OpenAI, Google, and xAI. Mastra has no `serum` provider. A Serum model would be the string `serum/<model>`, and Anumat does not add that provider.
 
 A custom endpoint uses path-style requests. The client sends a checksum only when the operation requires one. Supabase Storage and the Google Cloud Storage interoperability endpoint accept that request.
 
@@ -242,12 +336,12 @@ Aetna publishes its clinical policy bulletins as HTML pages, so the `http_pdf` a
 
 ## What this MVP does not do
 
-- India. There is no `in` market, payer, source, IRDAI form, or cashless flow.
+- India. There is no `in` market implementation, payer, source, IRDAI form, or cashless flow.
 - Claim submission, clearinghouse connections, or portal prior-auth submission.
 - Source adapters other than `http_pdf`.
 - A queue. A check runs inside the request, and `pnpm watch` runs sources one at a time. Two checks of the same source at once can repeat model calls, but they cannot create duplicate artifacts or versions.
-- OpenAPI output, key rotation, and roles. Every key can approve.
+- Key rotation and roles. Every key can approve.
 
 ## License
 
-Anumat is open source under Apache 2.0. Code in `ee/` is under the Anumat Enterprise Edition License. See LICENSE.md. `decideUse` in `ee/license-key.ts` is the production-use check. The Apache 2.0 engine does not call it.
+See `LICENSE.md` and `ee/LICENSE`.

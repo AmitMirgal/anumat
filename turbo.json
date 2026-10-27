@@ -1,0 +1,83 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "futureFlags": {
+    "experimentalPythonWorkspaces": true,
+    "experimentalTaskCommand": true
+  },
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "openapi.json", "src/generated/**"]
+    },
+    "@anumat/db#build": {
+      "dependsOn": ["@anumat/core#build"],
+      "outputs": ["src/generated/**"]
+    },
+    "@anumat/markets#build": {
+      "dependsOn": ["@anumat/core#build"],
+      "outputs": []
+    },
+    "@anumat/contract#build": {
+      "dependsOn": ["@anumat/core#build"],
+      "outputs": []
+    },
+    "@anumat/engine#build": {
+      "dependsOn": ["@anumat/core#build", "@anumat/markets#build", "@anumat/db#build"],
+      "outputs": []
+    },
+    "@anumat/api#build": {
+      "dependsOn": ["@anumat/engine#build", "@anumat/contract#build", "@anumat/db#build"],
+      "outputs": ["openapi.json"]
+    },
+    "@anumat/sdk#build": {
+      "dependsOn": ["@anumat/contract#build", "@anumat/api#build"],
+      "outputs": ["dist/**"]
+    },
+    "anumat#generate": {
+      "command": ["uv", "run", "--frozen", "--package", "anumat", "python", "generate_client.py"],
+      "dependsOn": ["@anumat/api#build"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/api/openapi.json", "generate_client.py"],
+      "outputs": ["src/anumat/_generated/**"]
+    },
+    "anumat#build": {
+      "dependsOn": ["anumat#generate", "@anumat/api#build"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "@anumat/db#typecheck": {
+      "dependsOn": ["build"]
+    },
+    "@anumat/sdk#typecheck": {
+      "dependsOn": ["^build", "build"]
+    },
+    "anumat#typecheck": {
+      "command": ["uv", "run", "--frozen", "--package", "anumat", "pyright"],
+      "dependsOn": ["anumat#generate"]
+    },
+    "lint": {},
+    "db:generate": {
+      "cache": false
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "@anumat/api#test": {
+      "dependsOn": ["^build", "@anumat/engine#test"],
+      "outputs": []
+    },
+    "@anumat/sdk#test": {
+      "dependsOn": ["build", "@anumat/api#test"],
+      "outputs": []
+    },
+    "anumat#test": {
+      "dependsOn": ["anumat#generate", "@anumat/sdk#test"],
+      "outputs": []
+    }
+  }
+}

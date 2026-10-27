@@ -1,0 +1,21 @@
+{
+  "name": "@anumat/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@anumat/tsconfig": "workspace:*",
+    "@types/node": "^24.0.0",
+    "typescript": "~5.9.3"
+  }
+}
