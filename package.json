@@ -24,6 +24,7 @@
     "changeset": "changeset",
     "release:js": "bash scripts/release.sh js",
     "release:py": "bash scripts/release.sh py",
+    "release:server": "bash scripts/release-server.sh",
     "version:py": "cd packages/sdk-python && uv version --bump patch && cd ../.. && uv lock",
     "selfhost:init": "bash scripts/selfhost-init.sh",
     "selfhost:up": "docker compose up -d --build",

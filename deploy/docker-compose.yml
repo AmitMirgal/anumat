@@ -1,0 +1,61 @@
+name: anumat
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: anumat
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: anumat
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anumat -d anumat"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  migrate:
+    image: ghcr.io/amitmirgal/anumat:${ANUMAT_VERSION:-latest}
+    command: ["pnpm", "--filter", "@anumat/db", "db:migrate"]
+    environment:
+      DATABASE_URL: postgres://anumat:${POSTGRES_PASSWORD}@db:5432/anumat
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: ghcr.io/amitmirgal/anumat:${ANUMAT_VERSION:-latest}
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://anumat:${POSTGRES_PASSWORD}@db:5432/anumat
+      HOST: 0.0.0.0
+      PORT: "4471"
+      ANUMAT_STORAGE: local
+      ANUMAT_DATA_DIR: /data/policies
+    volumes:
+      - policies:/data/policies
+    ports:
+      - "127.0.0.1:4471:4471"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4471/ready').then((res) => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  policies:

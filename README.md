@@ -80,21 +80,42 @@ You need Node 24 (see `.nvmrc`, install it with nvm), pnpm 12 (enable it with Co
 
 Without the API key for the configured provider, a check still fetches, stores, and converts the PDF. The run then stops with `llm_not_configured`, which names that provider's variable. Google models read `GOOGLE_API_KEY` or `GOOGLE_GENERATIVE_AI_API_KEY`. Grok models read `XAI_API_KEY`. An Anthropic key is required only when a configured model id starts with `anthropic/`. `ANUMAT_LLM_MODE=replay` does not call a provider.
 
-## Self-host with Docker
+## Self-host (one command)
 
-Install Docker, then clone the repo and start the API.
+Docker is the only install requirement.
 
 ```bash
-git clone https://github.com/AmitMirgal/anumat && cd anumat
-pnpm selfhost:init      # creates .env and prints your API key
-pnpm selfhost:up        # starts Postgres, runs migrations, starts the API on http://127.0.0.1:4471
+curl -fsSL https://raw.githubusercontent.com/AmitMirgal/anumat/main/install.sh | sh
 ```
 
-`pnpm selfhost:init` copies `.env.example` to `.env` when `.env` is absent. It replaces the placeholder `ANUMAT_API_KEYS` value with a new key. It adds `POSTGRES_PASSWORD` when that variable is absent or empty. It leaves a key or a password that is already set. The script prints the API key. Keep that key private.
+To read the script before you run it, save it, review it, then run it.
 
-If you do not have pnpm, run `bash scripts/selfhost-init.sh`, then run `docker compose up -d --build`.
+```bash
+curl -fsSL https://raw.githubusercontent.com/AmitMirgal/anumat/main/install.sh -o install.sh
+less install.sh
+sh install.sh
+```
 
-Add an LLM key in `.env`, for example `ANTHROPIC_API_KEY`, and add `FIRECRAWL_API_KEY`. Without the LLM key, a check records `llm_not_configured`.
+The installer does this work.
+
+- It creates `~/anumat`.
+- It generates an API key and a database password in `~/anumat/.env`.
+- It pulls the image.
+- It starts Postgres and the API at http://127.0.0.1:4471.
+- It prints the API key once.
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `ANUMAT_DIR` | `$HOME/anumat` | Directory for Compose and `.env` |
+| `ANUMAT_VERSION` | `latest` | Image tag to run |
+| `ANUMAT_REF` | `main` | Git ref for the installer and the Compose file |
+
+Set an LLM key in `~/anumat/.env`, for example `ANTHROPIC_API_KEY`. Then reload the API from that directory.
+
+```bash
+cd ~/anumat
+docker compose up -d
+```
 
 Install `@anumat/js` and call the API with the printed key.
 
@@ -105,16 +126,43 @@ const anumat = createAnumatClient({
   baseUrl: 'http://127.0.0.1:4471',
   apiKey: 'your-api-key',
 });
-const page = await anumat.payers.list.query({ limit: 20 });
 ```
 
-To update a running checkout, run `git pull && pnpm selfhost:up`.
+To upgrade, run the installer again. A second run keeps the existing API key and database password.
 
-To stop the API and Postgres, run `pnpm selfhost:down`.
+To follow the API logs, run `docker compose logs -f api` in `~/anumat`.
+
+To stop Postgres and the API, run `docker compose down` in `~/anumat`.
+
+To uninstall and delete the database and the policy files, run `docker compose down -v` in `~/anumat`.
+
+The API listens on `127.0.0.1`. To expose it beyond localhost, put an HTTPS reverse proxy in front of it.
+
+### Run from source (contributors)
+
+Clone the repository and build the image from that checkout.
+
+```bash
+git clone https://github.com/AmitMirgal/anumat && cd anumat
+pnpm selfhost:init
+pnpm selfhost:up
+```
+
+`pnpm selfhost:init` copies `.env.example` to `.env` when `.env` is absent. It replaces the placeholder API key. It adds `POSTGRES_PASSWORD` when that value is absent or empty. It leaves a key or a password that is already set. The script prints the API key. Keep that key private.
+
+Without pnpm, run `bash scripts/selfhost-init.sh`, then run `docker compose up -d --build`.
+
+Add an LLM key in `.env`, for example `ANTHROPIC_API_KEY`, and add `FIRECRAWL_API_KEY`. Without the LLM key, a check records `llm_not_configured`.
+
+To update a checkout, run `git pull && pnpm selfhost:up`.
+
+To stop the stack, run `pnpm selfhost:down`.
 
 `docker compose down -v` deletes the Postgres data and the policy files.
 
-The API port binds to `127.0.0.1`. To serve the API beyond localhost, put a reverse proxy with HTTPS in front of it.
+### Publish the server image
+
+From `main`, run `pnpm release:server`. The script reads the version in `apps/api/package.json`, asks you to type that version, and pushes the tag `server@` plus that version. The tag push publishes `ghcr.io/amitmirgal/anumat`. After the first push, set that GHCR package to Public once.
 
 ## Repository map
 
@@ -202,6 +250,7 @@ Anything inside a directory named `ee/`, anywhere in this repository, is under t
 | `pnpm selfhost:up` | Starts Postgres, runs migrations, and starts the API. |
 | `pnpm selfhost:down` | Stops the API and Postgres. |
 | `pnpm selfhost:logs` | Follows the API logs. |
+| `pnpm release:server` | Tags `server@` plus the version in `apps/api/package.json` and pushes that tag. |
 | `pnpm turbo test --filter=@anumat/markets` | Runs one package. Replace the filter with any package name. |
 
 `pnpm --filter @anumat/engine context-report` reports how many characters of each converted document the agent reads.
