@@ -1,5 +1,9 @@
 FROM node:24-slim
 
+LABEL org.opencontainers.image.source="https://github.com/AmitMirgal/anumat"
+LABEL org.opencontainers.image.title="Anumat"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
+
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
 RUN apt-get update \
