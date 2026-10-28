@@ -24,7 +24,11 @@
     "changeset": "changeset",
     "release:js": "bash scripts/release.sh js",
     "release:py": "bash scripts/release.sh py",
-    "version:py": "cd packages/sdk-python && uv version --bump patch && cd ../.. && uv lock"
+    "version:py": "cd packages/sdk-python && uv version --bump patch && cd ../.. && uv lock",
+    "selfhost:init": "bash scripts/selfhost-init.sh",
+    "selfhost:up": "docker compose up -d --build",
+    "selfhost:down": "docker compose down",
+    "selfhost:logs": "docker compose logs -f api"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
