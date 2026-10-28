@@ -14,3 +14,4 @@ packages/sdk-python/src/anumat_py/_generated/
 data/
 *.log
 .DS_Store
+.audit/

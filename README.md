@@ -80,6 +80,42 @@ You need Node 24 (see `.nvmrc`, install it with nvm), pnpm 12 (enable it with Co
 
 Without the API key for the configured provider, a check still fetches, stores, and converts the PDF. The run then stops with `llm_not_configured`, which names that provider's variable. Google models read `GOOGLE_API_KEY` or `GOOGLE_GENERATIVE_AI_API_KEY`. Grok models read `XAI_API_KEY`. An Anthropic key is required only when a configured model id starts with `anthropic/`. `ANUMAT_LLM_MODE=replay` does not call a provider.
 
+## Self-host with Docker
+
+Install Docker, then clone the repo and start the API.
+
+```bash
+git clone https://github.com/AmitMirgal/anumat && cd anumat
+pnpm selfhost:init      # creates .env and prints your API key
+pnpm selfhost:up        # starts Postgres, runs migrations, starts the API on http://127.0.0.1:4471
+```
+
+`pnpm selfhost:init` copies `.env.example` to `.env` when `.env` is absent. It replaces the placeholder `ANUMAT_API_KEYS` value with a new key. It adds `POSTGRES_PASSWORD` when that variable is absent or empty. It leaves a key or a password that is already set. The script prints the API key. Keep that key private.
+
+If you do not have pnpm, run `bash scripts/selfhost-init.sh`, then run `docker compose up -d --build`.
+
+Add an LLM key in `.env`, for example `ANTHROPIC_API_KEY`, and add `FIRECRAWL_API_KEY`. Without the LLM key, a check records `llm_not_configured`.
+
+Install `@anumat/js` and call the API with the printed key.
+
+```typescript
+import { createAnumatClient } from '@anumat/js';
+
+const anumat = createAnumatClient({
+  baseUrl: 'http://127.0.0.1:4471',
+  apiKey: 'your-api-key',
+});
+const page = await anumat.payers.list.query({ limit: 20 });
+```
+
+To update a running checkout, run `git pull && pnpm selfhost:up`.
+
+To stop the API and Postgres, run `pnpm selfhost:down`.
+
+`docker compose down -v` deletes the Postgres data and the policy files.
+
+The API port binds to `127.0.0.1`. To serve the API beyond localhost, put a reverse proxy with HTTPS in front of it.
+
 ## Repository map
 
 | Path | Package | What belongs there | Publish |
@@ -162,6 +198,10 @@ Anything inside a directory named `ee/`, anywhere in this repository, is under t
 | `pnpm turbo lint` | Lints the Python package with Ruff. |
 | `pnpm eval` | Runs the engine evals offline. It exits 1 on a schema-validity regression. |
 | `pnpm demo` | Registers a payer and the live UHC Bariatric Surgery PDF, then checks, diffs, approves, and reads it over HTTP. |
+| `pnpm selfhost:init` | Creates `.env` when it is missing, replaces a placeholder API key, adds a missing Postgres password, and prints the API key. |
+| `pnpm selfhost:up` | Starts Postgres, runs migrations, and starts the API. |
+| `pnpm selfhost:down` | Stops the API and Postgres. |
+| `pnpm selfhost:logs` | Follows the API logs. |
 | `pnpm turbo test --filter=@anumat/markets` | Runs one package. Replace the filter with any package name. |
 
 `pnpm --filter @anumat/engine context-report` reports how many characters of each converted document the agent reads.
