@@ -10,6 +10,8 @@ import type { Config } from './config';
 import { type AdapterType, adapters, type SourceAdapter } from './sources/adapters';
 import { type BlobStore, createBlobStore } from './storage/blob-store';
 
+const ownedContexts = new WeakSet<AppContext>();
+
 export const FIXTURES_DIR = join(dirname(fileURLToPath(import.meta.url)), '../evals/fixtures');
 
 export type AppContext = {
@@ -30,15 +32,16 @@ export function modelSource(config: Config): ModelSource {
 export async function createContext(
   config: Config,
   overrides: {
+    db?: Db;
     models?: ModelSource;
     adapters?: Record<AdapterType, SourceAdapter>;
     plugins?: Partial<EnginePlugins>;
   } = {},
 ): Promise<AppContext> {
-  const db = connect(config.databaseUrl);
+  const db = overrides.db ?? connect(config.databaseUrl);
   const blobs = createBlobStore(config.storage);
   const models = overrides.models ?? modelSource(config);
-  return {
+  const context: AppContext = {
     config,
     db,
     blobs,
@@ -46,8 +49,10 @@ export async function createContext(
     agents: { us: await createPolicyAgent({ market: 'us', models, sources: databaseSources(db, blobs) }) },
     plugins: resolveEnginePlugins(overrides.plugins),
   };
+  if (overrides.db === undefined) ownedContexts.add(context);
+  return context;
 }
 
 export async function closeContext(ctx: AppContext): Promise<void> {
-  await ctx.db.$disconnect();
+  if (ownedContexts.has(ctx)) await ctx.db.$disconnect();
 }

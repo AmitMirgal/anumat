@@ -20,6 +20,7 @@ const apiKeys = z.string().transform((raw, ctx) => {
   return keys;
 });
 
+export const DEFAULT_DATA_DIR = './data/policies';
 export const DEFAULT_MODELS = { strong: 'anthropic/claude-sonnet-4-5', cheap: 'anthropic/claude-haiku-4-5' };
 
 // Mastra router ids, provider/model. Defaults stay Anthropic so an existing .env keeps working.
@@ -45,7 +46,7 @@ const EnvSchema = z
     HOST: z.string().default('127.0.0.1'),
     PORT: z.coerce.number().int().min(1).max(65535).default(4471),
     ANUMAT_API_KEYS: apiKeys,
-    ANUMAT_DATA_DIR: z.string().default('./data/policies'),
+    ANUMAT_DATA_DIR: z.string().default(DEFAULT_DATA_DIR),
     ANUMAT_STORAGE: z.enum(['local', 's3']).default('local'),
     ANUMAT_S3_ENDPOINT: z.url().optional(),
     ANUMAT_S3_REGION: s3Setting.optional(),

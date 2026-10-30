@@ -23,6 +23,7 @@ export {
   type StorageConfig,
 } from './config';
 export { closeContext, createContext, FIXTURES_DIR, modelSource, type AppContext } from './context';
+export { createEngine, type CreateEngineOptions, type EngineFirecrawl, type EngineLlm, type EngineStorage } from './engine';
 export { pdfToMarkdown, type Converter } from './convert/pdf-to-markdown';
 export { outline, readSections } from './documents/outline';
 export { log } from './log';
