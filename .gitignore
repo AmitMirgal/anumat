@@ -1,5 +1,7 @@
 node_modules/
 dist/
+packages/engine/migrations/
+packages/engine/package.json.pack-backup
 __pycache__/
 *.pyc
 coverage/
