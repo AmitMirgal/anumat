@@ -5,7 +5,7 @@ description = "uv workspace root for Anumat Python packages"
 requires-python = ">=3.10"
 
 [tool.uv.workspace]
-members = ["packages/sdk-python"]
+members = ["packages/sdk-python", "packages/engine-py"]
 
 [tool.turbo]
 name = "anumat-python"

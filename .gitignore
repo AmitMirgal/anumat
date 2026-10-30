@@ -10,6 +10,7 @@ src/generated/
 .turbo
 apps/api/openapi.json
 packages/sdk-python/src/anumat_py/_generated/
+packages/engine-py/src/anumat_engine/bin/
 .env
 .env.*
 !.env.example
