@@ -266,6 +266,8 @@ Bump `@anumat/js`, `anumat-py`, or both on a branch. Merge that branch to `main`
 5. Run `git checkout main && git pull`.
 6. Run `pnpm release:js` or `pnpm release:py`.
 
+`pnpm release:engine` publishes `@anumat/engine` from a clean `main` that matches GitHub. It builds, runs the tests, prints the `npm pack --dry-run` file list, and waits until you type the version.
+
 `npm login` stores the npm token in `~/.npmrc`. Store `PYPI_TOKEN` in `~/.zshrc`. Keep both tokens out of the repo and out of `.env`.
 
 ## Contributing
