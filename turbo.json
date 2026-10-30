@@ -80,7 +80,7 @@
       "outputs": []
     },
     "anumat-engine#test": {
-      "command": ["uv", "run", "--directory", "packages/engine-py", "--frozen", "--package", "anumat-engine", "--group", "dev", "pytest"],
+      "command": ["uv", "run", "--frozen", "--package", "anumat-engine", "--group", "dev", "pytest"],
       "dependsOn": [],
       "outputs": []
     }
