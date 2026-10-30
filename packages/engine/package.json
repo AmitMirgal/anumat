@@ -1,14 +1,58 @@
 {
   "name": "@anumat/engine",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "description": "Check payer policy documents and store proposed versions.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AmitMirgal/anumat.git",
+    "directory": "packages/engine"
+  },
+  "engines": {
+    "node": ">=24"
+  },
   "type": "module",
+  "bin": {
+    "anumat": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "migrations",
+    "LICENSE",
+    "NOTICE",
+    "README.md"
+  ],
   "exports": {
     ".": "./src/index.ts",
     "./testing": "./src/testing/index.ts"
   },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js",
+        "require": "./dist/index.cjs"
+      }
+    },
+    "dependencies": {
+      "@aws-sdk/client-s3": "^3.1156.0",
+      "@firecrawl/anydoc": "^0.2.4",
+      "@mastra/core": "^1.71.0",
+      "@prisma/adapter-pg": "^7.4.0",
+      "@prisma/client": "^7.4.0",
+      "pg": "^8.16.3",
+      "pino": "^10.3.1",
+      "zod": "^4.6.5"
+    }
+  },
   "scripts": {
-    "build": "tsc --noEmit",
+    "prepack": "node scripts/prepare-pack.mjs",
+    "postpack": "node scripts/restore-pack.mjs",
+    "build": "node scripts/check-boundary.mjs && node scripts/copy-migrations.mjs && rm -rf dist && tsup && node scripts/bundle-dts.mjs && node scripts/check-bundle.mjs && chmod +x dist/cli.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "eval": "vitest run --config vitest.eval.config.ts",
@@ -23,6 +67,9 @@
     "@aws-sdk/client-s3": "^3.1156.0",
     "@firecrawl/anydoc": "^0.2.4",
     "@mastra/core": "^1.71.0",
+    "@prisma/adapter-pg": "^7.4.0",
+    "@prisma/client": "^7.4.0",
+    "pg": "^8.16.3",
     "pino": "^10.3.1",
     "zod": "^4.6.5"
   },
@@ -30,6 +77,10 @@
     "@anumat/tsconfig": "workspace:*",
     "@mastra/evals": "^1.10.3",
     "@types/node": "^24.0.0",
+    "@types/pg": "^8.15.5",
+    "rollup": "^4.53.2",
+    "rollup-plugin-dts": "^6.2.3",
+    "tsup": "^8.5.1",
     "tsx": "^4.23.15",
     "typescript": "~5.9.3",
     "vitest": "^4.1.11"

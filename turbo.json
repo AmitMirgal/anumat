@@ -23,7 +23,7 @@
     },
     "@anumat/engine#build": {
       "dependsOn": ["@anumat/core#build", "@anumat/markets#build", "@anumat/db#build"],
-      "outputs": []
+      "outputs": ["dist/**", "migrations/**"]
     },
     "@anumat/api#build": {
       "dependsOn": ["@anumat/engine#build", "@anumat/contract#build", "@anumat/db#build"],

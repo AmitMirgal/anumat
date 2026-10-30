@@ -1,4 +1,4 @@
 {
   "extends": "@anumat/tsconfig/library.json",
-  "include": ["src", "test", "scripts", "evals", "vitest.config.ts", "vitest.eval.config.ts"]
+  "include": ["src", "test", "scripts", "evals", "vitest.config.ts", "vitest.eval.config.ts", "tsup.config.ts"]
 }
