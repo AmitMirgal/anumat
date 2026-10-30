@@ -14,7 +14,7 @@ if npm view "$name@$version" version >/dev/null 2>&1; then
   exit 1
 fi
 
-pnpm turbo run build test
+pnpm turbo run build test --filter=@anumat/engine
 
 pack_json=$(cd packages/engine && npm pack --dry-run --json)
 printf '%s\n' "$pack_json" | node scripts/check-engine-tarball.mjs
