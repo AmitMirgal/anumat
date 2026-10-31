@@ -13,7 +13,7 @@ if curl -sf "https://pypi.org/pypi/$name/$version/json" >/dev/null; then
   exit 1
 fi
 
-pnpm turbo run build test
+pnpm turbo run test --filter=anumat-engine
 
 echo "$name $version"
 echo "Wheels:"
