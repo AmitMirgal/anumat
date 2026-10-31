@@ -250,6 +250,10 @@ Anything inside a directory named `ee/`, anywhere in this repository, is under t
 | `pnpm selfhost:up` | Starts Postgres, runs migrations, and starts the API. |
 | `pnpm selfhost:down` | Stops the API and Postgres. |
 | `pnpm selfhost:logs` | Follows the API logs. |
+| `pnpm release:engine` | Publishes `@anumat/engine` to npm. |
+| `pnpm release:engine-py` | Publishes `anumat-engine` to PyPI. |
+| `pnpm release:anumat` | Publishes `@anumat/js` to npm. |
+| `pnpm release:anumat-py` | Publishes `anumat-py` to PyPI. |
 | `pnpm release:server` | Tags `server@` plus the version in `apps/api/package.json` and pushes that tag. |
 | `pnpm turbo test --filter=@anumat/markets` | Runs one package. Replace the filter with any package name. |
 
@@ -264,11 +268,15 @@ Bump `@anumat/js` or `@anumat/engine` with changesets. Bump `anumat-py` with `pn
 3. Open a pull request.
 4. Squash-merge the pull request.
 5. Run `git checkout main && git pull`.
-6. Run `pnpm release:js`, `pnpm release:py`, or `pnpm release:engine`.
+6. Run `pnpm release:anumat`, `pnpm release:anumat-py`, `pnpm release:engine`, or `pnpm release:engine-py`.
+
+`pnpm release:anumat` publishes `@anumat/js` from a clean `main` that matches GitHub. It builds, runs the tests, prints the npm dry run, and waits until you type the version.
+
+`pnpm release:anumat-py` publishes `anumat-py` from a clean `main` that matches GitHub. It builds the wheel, checks that the wheel imports, and publishes with `uv publish`. `PYPI_TOKEN` comes from the environment.
 
 `pnpm release:engine` publishes `@anumat/engine` from a clean `main` that matches GitHub. It builds, runs the tests, prints the `npm pack --dry-run` file list, and waits until you type the version. Bump `@anumat/engine` with changesets first, the same way as `@anumat/js`.
 
-`pnpm release:anumat` publishes `anumat-engine` from a clean `main` that matches GitHub. It sets the Python package version to the `@anumat/engine` version, runs the package tests, and builds one wheel for each platform with Bun. It publishes those wheels with `uv publish`. `PYPI_TOKEN` comes from the environment. The script commits the version bump, creates the local tag `anumat-py@<version>`, and prints `git push origin main && git push origin anumat-py@<version>`. It does not push.
+`pnpm release:engine-py` publishes `anumat-engine` from a clean `main` that matches GitHub. It sets the Python package version to the `@anumat/engine` version, runs the package tests, and builds one wheel for each platform with Bun. It publishes those wheels with `uv publish`. `PYPI_TOKEN` comes from the environment. The script commits the version bump, creates the local tag `anumat-py@<version>`, and prints `git push origin main && git push origin anumat-py@<version>`. It does not push.
 
 `npm login` stores the npm token in `~/.npmrc`. Store `PYPI_TOKEN` in `~/.zshrc`. Keep both tokens out of the repo and out of `.env`.
 

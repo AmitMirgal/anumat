@@ -2,7 +2,7 @@
 set -euo pipefail
 
 target="${1:-}"
-[[ "$target" == js || "$target" == py ]] || { echo "Use: pnpm release:js or pnpm release:py"; exit 1; }
+[[ "$target" == js || "$target" == py ]] || { echo "Use: pnpm release:anumat or pnpm release:anumat-py"; exit 1; }
 
 [[ "$(git branch --show-current)" == main ]] || { echo "Switch to main first."; exit 1; }
 git diff --quiet && git diff --cached --quiet || { echo "Commit or stash your changes first."; exit 1; }
