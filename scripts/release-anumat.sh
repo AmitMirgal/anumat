@@ -6,24 +6,60 @@ git diff --quiet && git diff --cached --quiet || { echo "Commit or stash your ch
 git fetch -q origin main
 [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] || { echo "main is not in sync with GitHub. Pull first."; exit 1; }
 
-name="@anumat/engine"
-version=$(node -p "require('./packages/engine/package.json').version")
-npm whoami >/dev/null || { echo "Run npm login first."; exit 1; }
-if npm view "$name@$version" version >/dev/null 2>&1; then
-  echo "$name $version is already on npm. Bump the version first."
+name="anumat-engine"
+: "${PYPI_TOKEN:?PYPI_TOKEN is not set. Add it to ~/.zshrc}"
+
+engine_version=$(node -p "require('./packages/engine/package.json').version")
+if curl -sf "https://pypi.org/pypi/$name/$engine_version/json" >/dev/null; then
+  echo "$name $engine_version is already on PyPI. Bump @anumat/engine first."
   exit 1
 fi
 
-pnpm turbo run build test --filter=@anumat/engine
+pnpm turbo run test --filter=anumat-engine
 
-pack_json=$(cd packages/engine && npm pack --dry-run --json)
-printf '%s\n' "$pack_json" | node scripts/check-engine-tarball.mjs
+current=$(uv version --short --directory packages/engine-py)
+if [[ "$current" != "$engine_version" ]]; then
+  uv version "$engine_version" --directory packages/engine-py --frozen
+  ENGINE_VERSION="$engine_version" python3 - <<'PY'
+import os
+from pathlib import Path
+
+path = Path("uv.lock")
+text = path.read_text()
+needle = 'name = "anumat-engine"\nversion = "'
+start = text.find(needle)
+if start < 0:
+    raise SystemExit("uv.lock is missing anumat-engine")
+ver_at = start + len(needle)
+end = text.find('"', ver_at)
+path.write_text(text[:ver_at] + os.environ["ENGINE_VERSION"] + text[end:])
+PY
+fi
+version=$(uv version --short --directory packages/engine-py)
+
+root=$(pwd)
+rm -rf dist
+while IFS= read -r row; do
+  target=$(jq -r '.target' <<<"$row")
+  platform=$(jq -r '.platform' <<<"$row")
+  binary=$(jq -r '.binary' <<<"$row")
+  bash packages/engine-py/scripts/build-wheel.sh "$target" "$platform" "$binary" "$root/dist"
+done < <(jq -c '.[]' packages/engine-py/platforms.json)
+
+echo "$name $version"
+echo "Wheels:"
+ls dist
 
 read -r -p "Publish $name $version for real? Type $version to confirm: " answer
 [[ "$answer" == "$version" ]] || { echo "Cancelled. Nothing was published."; exit 1; }
 
-pnpm --filter @anumat/engine publish --access public
+uv publish --token "$PYPI_TOKEN" dist/*
 
-git tag "$name@$version"
-git push origin "$name@$version"
-echo "Published $name $version and tagged it."
+git add packages/engine-py/pyproject.toml uv.lock
+if ! git diff --cached --quiet; then
+  git commit -m "chore(anumat-py): release anumat-engine $version"
+fi
+
+git tag "anumat-py@$version"
+echo "Created local tag anumat-py@$version."
+echo "git push origin main && git push origin anumat-py@$version"
