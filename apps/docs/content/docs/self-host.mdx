@@ -1,0 +1,81 @@
+---
+title: Self-host
+description: Install the API with Docker, or build it from this repository.
+---
+
+Docker is the only install requirement for the published image. The API listens on `http://127.0.0.1:4471`.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AmitMirgal/anumat/main/install.sh | sh
+```
+
+To read the script before you run it, save it, review it, then run it.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AmitMirgal/anumat/main/install.sh -o install.sh
+less install.sh
+sh install.sh
+```
+
+The installer creates `~/anumat`, writes an API key and a database password to `~/anumat/.env`, downloads `deploy/docker-compose.yml`, and starts Postgres and the API. It prints the API key once. A second run keeps the existing API key and database password.
+
+The Compose file runs `ghcr.io/amitmirgal/anumat`. The image tag is `ANUMAT_VERSION`, and the default is `latest`.
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `ANUMAT_DIR` | `$HOME/anumat` | Directory for Compose and `.env` |
+| `ANUMAT_VERSION` | `latest` | Image tag to run |
+| `ANUMAT_REF` | `main` | Git ref for the installer and the Compose file |
+| `ANUMAT_SRC` | unset | Local repository path. Copy files from it and skip the image pull |
+
+Set an LLM key in `~/anumat/.env`, for example `ANTHROPIC_API_KEY`. Then reload the API from that directory.
+
+```bash
+cd ~/anumat
+docker compose up -d
+```
+
+`docker compose logs -f api` follows the API logs. `docker compose down` stops Postgres and the API. `docker compose down -v` deletes the database and the policy files.
+
+To build from a checkout instead of the registry image, run `pnpm selfhost:init` and then `pnpm selfhost:up`. Without pnpm, run `bash scripts/selfhost-init.sh` and then `docker compose up -d --build`. That path uses the Compose file in the repository root, which builds the local image `anumat-api`.
+
+The server clients call that API. They do not embed the engine.
+
+<Tabs groupId="lang" persist items={['TypeScript', 'Python']}>
+  <Tab value="TypeScript">
+
+```bash
+npm install @anumat/js
+```
+
+```ts
+import { createAnumatClient } from '@anumat/js';
+
+const anumat = createAnumatClient({
+  baseUrl: 'http://127.0.0.1:4471',
+  apiKey: 'your-api-key',
+});
+```
+
+`baseUrl` is the server origin. The client calls `{baseUrl}/trpc` and sends `Authorization: Bearer <apiKey>`.
+
+  </Tab>
+  <Tab value="Python">
+
+```bash
+pip install anumat-py
+```
+
+```python
+from anumat_py import AnumatClient
+
+client = AnumatClient("http://127.0.0.1:4471", "your-api-key")
+page = client.list_payers()
+```
+
+`base_url` is the server origin, without `/api/v1`. The client calls `{base_url}/api/v1` and sends `Authorization: Bearer <api_key>`. `list_payers` is synchronous. `list_payers_async` is the same call on an async client.
+
+  </Tab>
+</Tabs>
+
+The Compose service sets `HOST` to `0.0.0.0` inside the container and publishes `127.0.0.1:4471`. `ANUMAT_STORAGE` is `local` and `ANUMAT_DATA_DIR` is `/data/policies`. Other server variables are in the repository README configuration table. TODO. This page does not repeat every variable until each one is checked against the installer `.env` writer.

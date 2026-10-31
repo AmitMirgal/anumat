@@ -1,0 +1,29 @@
+---
+title: Migrations
+description: Apply the SQL migrations shipped with the embedded engine.
+---
+
+The command records migrations in `_prisma_migrations`. A second run leaves an up-to-date database unchanged. Pass the database URL with `--db`. The command does not read `DATABASE_URL` from the environment.
+
+<Tabs groupId="lang" persist items={['TypeScript', 'Python']}>
+  <Tab value="TypeScript">
+
+`anumat migrate` applies the SQL migrations shipped with `@anumat/engine`. A database already updated with `prisma migrate deploy` stays as it is.
+
+```bash
+npx anumat migrate --db postgres://USER:PASSWORD@HOST:5432/DATABASE
+```
+
+  </Tab>
+  <Tab value="Python">
+
+`anumat-engine migrate` applies the SQL migrations bundled in the binary.
+
+```bash
+anumat-engine migrate --db postgres://USER:PASSWORD@HOST:5432/DATABASE
+```
+
+`--db=<url>` is also accepted. Any other argument prints `Usage: anumat-engine migrate --db <url>` and exits 1.
+
+  </Tab>
+</Tabs>

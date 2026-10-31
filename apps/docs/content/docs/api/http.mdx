@@ -1,0 +1,10 @@
+---
+title: HTTP
+description: The server OpenAPI document is produced by the API build.
+---
+
+TODO. This site does not render HTTP operations yet.
+
+`fumadocs-openapi` needs an OpenAPI document in the repository. There is no `openapi.json` in git. `@anumat/api` writes `apps/api/openapi.json` when it builds, and that file is gitignored. A running API serves the same document at `http://127.0.0.1:4471/api/v1/openapi.json`.
+
+The TypeScript client calls `{baseUrl}/trpc`. The Python client calls `{base_url}/api/v1`. Both send `Authorization: Bearer` and the API key. `/health` on the server does not require auth. The embedded engine's `/health` and `/rpc` are a different process. They are not this HTTP API.

@@ -1,0 +1,56 @@
+---
+title: Configuration
+description: Storage and model options for the embedded engine.
+---
+
+Omit `llm` until a check needs a model. Model ids are `provider/model`. The package README names `anthropic/claude-sonnet-4-5` and `anthropic/claude-haiku-4-5` as the pair to pass when a check should call a model.
+
+For local files, the default directory is `./data/policies`.
+
+<Tabs groupId="lang" persist items={['TypeScript', 'Python']}>
+  <Tab value="TypeScript">
+
+`createEngine` does not read these fields from the environment.
+
+```ts
+import { createEngine } from '@anumat/engine';
+
+const engine = await createEngine({
+  databaseUrl: 'postgres://USER:PASSWORD@HOST:5432/DATABASE',
+  storage: { kind: 'local', dataDir: 'data/policies' },
+  llm: {
+    strong: 'anthropic/claude-sonnet-4-5',
+    cheap: 'anthropic/claude-haiku-4-5',
+  },
+});
+```
+
+For object storage, pass `storage` as `{ kind: 's3', region, bucket, accessKeyId, secretAccessKey }`. Pass `endpoint` for a custom S3-compatible URL.
+
+Pass `firecrawl` as `{ apiKey, apiUrl }` when a scanned PDF needs hosted OCR. Text PDFs do not need it. `apiKey` and `apiUrl` are both optional on the type.
+
+  </Tab>
+  <Tab value="Python">
+
+`create_engine` does not read these fields from the environment.
+
+```python
+from anumat_engine import create_engine
+
+engine = create_engine(
+    "postgres://USER:PASSWORD@HOST:5432/DATABASE",
+    storage={"kind": "local", "data_dir": "data/policies"},
+    llm={
+        "strong": "anthropic/claude-sonnet-4-5",
+        "cheap": "anthropic/claude-haiku-4-5",
+    },
+)
+engine.close()
+```
+
+For object storage, pass `storage` with `kind` set to `s3` and `region`, `bucket`, `access_key_id`, and `secret_access_key`. `endpoint` is optional.
+
+`llm` requires both `strong` and `cheap` strings. Python has no `firecrawl` argument. A scanned PDF that needs hosted OCR has no equivalent in `create_engine`.
+
+  </Tab>
+</Tabs>

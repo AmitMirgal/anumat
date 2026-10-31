@@ -1,0 +1,31 @@
+---
+title: How the Python package works
+description: anumat-engine starts a compiled binary as a local process.
+---
+
+<Tabs groupId="lang" persist items={['TypeScript', 'Python']}>
+  <Tab value="TypeScript">
+
+`@anumat/engine` does not ship a compiled binary. `createEngine` runs in the Node.js process that imports it. The binary, the platform wheel, and `ANUMAT_ENGINE_BINARY` belong to `anumat-engine` only.
+
+  </Tab>
+  <Tab value="Python">
+
+`anumat-engine` installs one binary for the wheel's platform. `create_engine` starts that binary as a child process with the `serve` command. It writes one JSON config line to the process stdin. It reads one ready line from stdout. That line carries the port and the bearer token. The client then calls `http://127.0.0.1:<port>`. It checks `GET /health` before it returns, and later calls `POST /rpc`.
+
+`close()` stops the process. A `with` block calls `close()`. The process also stops when the parent process exits.
+
+The binary file is `anumat-engine` on macOS and Linux, and `anumat-engine.exe` on Windows. It lives inside the installed package. Set `ANUMAT_ENGINE_BINARY` to a file path to use a different binary. The path must be a file, or `create_engine` raises `EngineError`.
+
+Wheels are built for these platforms.
+
+| System | Wheel platform tag |
+| --- | --- |
+| macOS arm64 | `macosx_11_0_arm64` |
+| macOS x64 | `macosx_11_0_x86_64` |
+| Linux x64 | `manylinux_2_17_x86_64` |
+| Linux arm64 | `manylinux_2_17_aarch64` |
+| Windows x64 | `win_amd64` |
+
+  </Tab>
+</Tabs>

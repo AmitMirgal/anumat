@@ -1,0 +1,70 @@
+---
+title: Quickstart
+description: Install the embedded engine, create it, and run one check.
+---
+
+The embedded engine does not start the Anumat server. Apply migrations before the first check. The database URL in the examples is a placeholder.
+
+`registerPayer` rejects a slug that already exists. `checkSource` fetches the PDF. Pass `llm` when that check must call a model. The seed policy below is the public UnitedHealthcare Bariatric Surgery PDF.
+
+<Tabs groupId="lang" persist items={['TypeScript', 'Python']}>
+  <Tab value="TypeScript">
+
+Install the package. It requires Node.js 24 or newer.
+
+```bash
+npm install @anumat/engine
+```
+
+```ts
+import { checkSource, closeContext, createEngine, registerPayer, registerSource } from '@anumat/engine';
+
+const engine = await createEngine({
+  databaseUrl: 'postgres://USER:PASSWORD@HOST:5432/DATABASE',
+});
+
+const payer = await registerPayer(engine.db, {
+  name: 'UnitedHealthcare',
+  slug: 'unitedhealthcare',
+  market: 'us',
+});
+
+const source = await registerSource(engine.db, {
+  payerId: payer.id,
+  title: 'Bariatric Surgery',
+  sourceUrl:
+    'https://www.uhcprovider.com/content/dam/provider/docs/public/policies/comm-medical-drug/bariatric-surgery.pdf',
+});
+
+const result = await checkSource(engine, source.id);
+await closeContext(engine);
+```
+
+`createEngine` returns the engine context. `closeContext` disconnects a database client that `createEngine` opened.
+
+  </Tab>
+  <Tab value="Python">
+
+```bash
+pip install anumat-engine
+```
+
+Python 3.10 or newer is required. Each wheel contains the binary for one platform.
+
+```python
+from anumat_engine import create_engine
+
+with create_engine("postgres://USER:PASSWORD@HOST:5432/DATABASE") as engine:
+    payer = engine.register_payer(name="UnitedHealthcare", slug="unitedhealthcare", market="us")
+    source = engine.register_source(
+        payer_id=payer["id"],
+        title="Bariatric Surgery",
+        source_url="https://www.uhcprovider.com/content/dam/provider/docs/public/policies/comm-medical-drug/bariatric-surgery.pdf",
+    )
+    result = engine.check_source(source_id=source["id"])
+```
+
+`create_engine` returns after the engine health check succeeds. The `with` block calls `close()`.
+
+  </Tab>
+</Tabs>

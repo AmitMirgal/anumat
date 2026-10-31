@@ -1,0 +1,42 @@
+---
+title: TypeScript
+description: Types exported by @anumat/engine and the @anumat/js client options.
+---
+
+The tables below are generated from the TypeScript source by fumadocs-typescript. `CreateEngineOptions` is exported from `@anumat/engine`. `createAnumatClient` is the only export from `@anumat/js`.
+
+`@anumat/engine` also exports these names from `packages/engine/src/index.ts`.
+
+`createPolicyAgent`, `fixtureExtractions`, `replayModels`, `findPayerBySlug`, `findSourceByPolicyKey`, `getPayer`, `getSource`, `listPayers`, `listSources`, `registerPayer`, `registerSource`, `slugify`, `DEFAULT_MODELS`, `loadConfig`, `MODEL_EXAMPLES`, `closeContext`, `createContext`, `FIXTURES_DIR`, `modelSource`, `createEngine`, `pdfToMarkdown`, `outline`, `readSections`, `log`, `checkDueSources`, `checkSource`, `dueSources`, `adapters`, `httpPdf`, `createBlobStore`, `approveVersion`, `diffForVersion`, `getDiff`, `getPublishedPolicy`, `getPublishedVersion`, `getVersion`, `listPublishedVersions`, `listVersions`, `proposeVersion`, `rejectVersion`, `saveDiffNotes`.
+
+TODO. Parameter tables for those functions are not generated yet. The generator on this page covers `CreateEngineOptions` and `createAnumatClient` only.
+
+## CreateEngineOptions
+
+<AutoTypeTable path="packages/engine/src/engine.ts" name="CreateEngineOptions" />
+
+## EngineStorage
+
+<AutoTypeTable path="packages/engine/src/engine.ts" name="EngineStorage" />
+
+## EngineLlm
+
+<AutoTypeTable path="packages/engine/src/engine.ts" name="EngineLlm" />
+
+## EngineFirecrawl
+
+<AutoTypeTable path="packages/engine/src/engine.ts" name="EngineFirecrawl" />
+
+## createAnumatClient
+
+`createAnumatClient` takes one inline object. It is not a named export. The table is that object, written so fumadocs-typescript can render it.
+
+<AutoTypeTable
+  name="Options"
+  type={`export type Options = {
+  baseUrl: string;
+  apiKey: string;
+}`}
+/>
+
+`baseUrl` is the server origin. The client calls that origin plus `/trpc`. `apiKey` is sent as a bearer token. Both are required. The Python client takes the same two values as positional arguments. See the Python API page.

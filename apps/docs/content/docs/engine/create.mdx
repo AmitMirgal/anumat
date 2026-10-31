@@ -1,0 +1,40 @@
+---
+title: Create
+description: Open an embedded engine and close it.
+---
+
+Pass the database URL to the constructor. Neither constructor reads `storage` or `llm` from the environment.
+
+<Tabs groupId="lang" persist items={['TypeScript', 'Python']}>
+  <Tab value="TypeScript">
+
+```ts
+import { closeContext, createEngine } from '@anumat/engine';
+
+const engine = await createEngine({
+  databaseUrl: 'postgres://USER:PASSWORD@HOST:5432/DATABASE',
+});
+
+await closeContext(engine);
+```
+
+Pass `databaseUrl` or `db`, and only one of them. `databaseUrl` opens a client. `db` reuses a client you already opened. `closeContext` disconnects a client that `createEngine` opened. It leaves a passed `db` open.
+
+`storage`, `llm`, and `firecrawl` are optional.
+
+  </Tab>
+  <Tab value="Python">
+
+```python
+from anumat_engine import create_engine
+
+with create_engine("postgres://USER:PASSWORD@HOST:5432/DATABASE") as engine:
+    page = engine.list_payers()
+```
+
+`create_engine` starts the engine and returns after the engine health check succeeds. `engine.close()` stops the process. A `with` block calls `close()`. The process also stops when the parent process exits.
+
+`storage` and `llm` are optional. Python `create_engine` does not accept a `db` client or a `firecrawl` argument. Those exist on `createEngine` only.
+
+  </Tab>
+</Tabs>

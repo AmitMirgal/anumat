@@ -236,6 +236,7 @@ Anything inside a directory named `ee/`, anywhere in this repository, is under t
 | --- | --- |
 | `pnpm turbo build` | Builds packages in dependency order, then writes `openapi.json` and the clients. |
 | `pnpm turbo dev` | Starts the API on port 4471 and restarts it when a file changes. `pnpm dev` does the same. |
+| `pnpm dev:docs` | Starts the documentation site. |
 | `pnpm start` | Starts the API without file watching. |
 | `pnpm turbo db:generate` | Generates the Prisma client. `pnpm db:generate` does the same. |
 | `pnpm db:migrate` | Applies `packages/db/prisma/migrations` to `DATABASE_URL`. |

@@ -1,0 +1,44 @@
+---
+title: Python
+description: Public functions on anumat-engine and anumat-py.
+---
+
+`fumadocs-python` can generate a page per module from docstrings. The public methods in `anumat_engine` and `anumat_py` have no docstrings, so that generator would emit empty pages. This page is hand-written from the type hints in the source.
+
+`anumat_engine` exports `Engine`, `EngineError`, `create_engine`, and `slugify`.
+
+`create_engine(database_url, storage=None, llm=None)` returns an `Engine`. `slugify(value)` takes a string and returns a string. `EngineError` has `code` and `details`. `code` defaults to `"internal"`.
+
+`Engine` methods take keyword arguments. Return values are JSON objects unless noted.
+
+| Method | Arguments |
+| --- | --- |
+| `close` | none |
+| `register_payer` | `name`, `slug`, `market` |
+| `get_payer` | `id` |
+| `find_payer_by_slug` | `slug`. Returns an object or `None` |
+| `list_payers` | `limit` default 20, `cursor` default `None` |
+| `register_source` | `payer_id`, `title`, `source_url`, optional `policy_slug`, `market`, `check_interval_hours`, `enabled` |
+| `get_source` | `id` |
+| `find_source_by_policy_key` | `policy_key`. Returns an object or `None` |
+| `list_sources` | `limit` default 20, `cursor` default `None` |
+| `check_source` | `source_id` |
+| `due_sources` | none. Returns a list |
+| `check_due_sources` | none. Returns a list |
+| `propose_version` | `source_id`, `document_id`, `extraction`, `extracted_by` |
+| `approve_version` | `version_id`, `approved_by` |
+| `reject_version` | `version_id`, `rejected_by`, `reason` |
+| `get_published_policy` | `policy_key` |
+| `get_published_version` | `policy_key`, `version` |
+| `list_published_versions` | `policy_key`, `limit` default 20, `cursor` default `None` |
+| `get_version` | `id` |
+| `list_versions` | `limit` default 20, `cursor` default `None`, optional `status`, optional `policy_key` |
+| `get_diff` | `id` |
+| `diff_for_version` | `version_id` |
+| `save_diff_notes` | `diff_id`, `summary`, `review` |
+
+`market` is `"us"`. `status` is `"proposed"`, `"approved"`, `"rejected"`, or `"superseded"`.
+
+The TypeScript names are the camelCase exports from `@anumat/engine`. `engine.list_payers()` calls `listPayers`. Python `create_engine` has no `db` or `firecrawl` argument.
+
+`anumat_py.AnumatClient` takes `base_url` and `api_key`. The methods written on that class are `list_payers`, `list_payers_async`, and the `generated` property. `list_payers(limit=20, cursor=None)` returns a dict. Other REST calls go through `client.generated`, which is produced from the OpenAPI document. TODO. Those generated methods are not listed here because `apps/api/openapi.json` is not in the repository until the API build writes it.
