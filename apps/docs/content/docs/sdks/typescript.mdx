@@ -1,0 +1,47 @@
+---
+title: TypeScript
+description: Call a running Anumat server with @anumat/js.
+---
+
+`@anumat/js` is the typed client for a server. It is not the embedded engine. The server is a separate process.
+
+<Tabs groupId="lang" persist items={['TypeScript', 'Python']}>
+  <Tab value="TypeScript">
+
+```bash
+npm install @anumat/js
+```
+
+```ts
+import { createAnumatClient } from '@anumat/js';
+
+const anumat = createAnumatClient({
+  baseUrl: 'http://127.0.0.1:4471',
+  apiKey: 'your-api-key',
+});
+
+const page = await anumat.payers.list.query({ limit: 20 });
+```
+
+`createAnumatClient` takes `baseUrl` and `apiKey`. It calls `{baseUrl}/trpc` and sends `Authorization: Bearer <apiKey>`. The client is the tRPC `AppRouter` from `@anumat/contract`. `payers.list.query` is the call shown in the package README.
+
+  </Tab>
+  <Tab value="Python">
+
+The Python server client is `anumat-py`, not `@anumat/js`.
+
+```bash
+pip install anumat-py
+```
+
+```python
+from anumat_py import AnumatClient
+
+client = AnumatClient("http://127.0.0.1:4471", "your-api-key")
+page = client.list_payers(limit=20)
+```
+
+`list_payers` calls the REST API. It is not a tRPC query. The same call with a cursor is `list_payers(limit=20, cursor="...")`.
+
+  </Tab>
+</Tabs>

@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "turbo run dev --filter=@anumat/api",
+    "dev:docs": "turbo run dev --filter=@anumat/docs",
     "start": "pnpm --filter @anumat/api start",
     "postinstall": "pnpm --filter @anumat/db db:generate",
     "build": "turbo run build",

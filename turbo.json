@@ -29,6 +29,10 @@
       "dependsOn": ["@anumat/engine#build", "@anumat/contract#build", "@anumat/db#build"],
       "outputs": ["openapi.json"]
     },
+    "@anumat/docs#build": {
+      "dependsOn": [],
+      "outputs": [".next/**"]
+    },
     "@anumat/js#build": {
       "dependsOn": ["@anumat/contract#build", "@anumat/api#build"],
       "outputs": ["dist/**"]

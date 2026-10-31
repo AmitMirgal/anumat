@@ -1,0 +1,49 @@
+---
+title: Python
+description: Call a running Anumat server with anumat-py.
+---
+
+`anumat-py` is the Python client for a server. It is not `anumat-engine`. The server is a separate process.
+
+<Tabs groupId="lang" persist items={['TypeScript', 'Python']}>
+  <Tab value="TypeScript">
+
+The TypeScript server client is `@anumat/js`.
+
+```bash
+npm install @anumat/js
+```
+
+```ts
+import { createAnumatClient } from '@anumat/js';
+
+const anumat = createAnumatClient({
+  baseUrl: 'http://127.0.0.1:4471',
+  apiKey: 'your-api-key',
+});
+
+const page = await anumat.payers.list.query({ limit: 20 });
+```
+
+  </Tab>
+  <Tab value="Python">
+
+```bash
+pip install anumat-py
+```
+
+```python
+from anumat_py import AnumatClient
+
+client = AnumatClient("http://127.0.0.1:4471", "your-api-key")
+page = client.list_payers()
+```
+
+`AnumatClient` takes the server origin and the API key. `base_url` has no `/api/v1` suffix. The client sends `Authorization: Bearer <api_key>` to `{base_url}/api/v1`.
+
+`list_payers` is synchronous and defaults `limit` to 20. `cursor` is optional. `list_payers_async` is the same call on an async client.
+
+`client.generated` is the client produced from `apps/api/openapi.json`. Regenerate it with `pnpm turbo generate --filter=anumat-py` after the API build. The hand-written methods on `AnumatClient` are `list_payers` and `list_payers_async` only.
+
+  </Tab>
+</Tabs>

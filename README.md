@@ -236,6 +236,7 @@ Anything inside a directory named `ee/`, anywhere in this repository, is under t
 | --- | --- |
 | `pnpm turbo build` | Builds packages in dependency order, then writes `openapi.json` and the clients. |
 | `pnpm turbo dev` | Starts the API on port 4471 and restarts it when a file changes. `pnpm dev` does the same. |
+| `pnpm dev:docs` | Starts the documentation site. |
 | `pnpm start` | Starts the API without file watching. |
 | `pnpm turbo db:generate` | Generates the Prisma client. `pnpm db:generate` does the same. |
 | `pnpm db:migrate` | Applies `packages/db/prisma/migrations` to `DATABASE_URL`. |
@@ -276,7 +277,12 @@ Bump `@anumat/js` or `@anumat/engine` with changesets. Bump `anumat-py` with `pn
 
 `pnpm release:engine` publishes `@anumat/engine` from a clean `main` that matches GitHub. It builds, runs the tests, prints the `npm pack --dry-run` file list, and waits until you type the version. Bump `@anumat/engine` with changesets first, the same way as `@anumat/js`.
 
-`pnpm release:engine-py` publishes `anumat-engine` from a clean `main` that matches GitHub. It sets the Python package version to the `@anumat/engine` version, runs the package tests, and builds one wheel for each platform with Bun. It publishes those wheels with `uv publish`. `PYPI_TOKEN` comes from the environment. The script commits the version bump, creates the local tag `anumat-py@<version>`, and prints `git push origin main && git push origin anumat-py@<version>`. It does not push.
+`pnpm release:engine-py` publishes `anumat-engine` from a clean `main` that matches GitHub. It sets the Python package version to the `@anumat/engine` version, runs the package tests, and builds one wheel for each platform with Bun. It publishes those wheels with `uv publish`. `PYPI_TOKEN` comes from the environment. The script commits the version bump, creates the local tag `anumat-py@<version>`, and prints these two lines. It does not push.
+
+```bash
+git push origin main && git push origin tag anumat-py@<version>
+git push origin main --follow-tags
+```
 
 `npm login` stores the npm token in `~/.npmrc`. Store `PYPI_TOKEN` in `~/.zshrc`. Keep both tokens out of the repo and out of `.env`.
 

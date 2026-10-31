@@ -1,0 +1,10 @@
+---
+title: Introduction
+description: Anumat reads insurance policy documents and serves approved coverage rules.
+---
+
+Anumat takes insurance policy documents and returns structured coverage rules. It tracks each change, waits for a person to approve it, and serves the approved rules from a versioned API. It does not check individual patients.
+
+This repository is the US market. The license for the open core is Apache 2.0. Code in a directory named `ee/` uses a separate license.
+
+JavaScript and Python are both supported. `@anumat/engine` and `anumat-engine` run the engine in your process, with no Anumat server. `@anumat/js` and `anumat-py` call a server you run yourself.

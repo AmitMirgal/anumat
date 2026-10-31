@@ -1,0 +1,27 @@
+---
+title: Install
+description: Install the embedded engine for Node.js or Python.
+---
+
+This package runs on your machine. It does not install the Anumat server.
+
+<Tabs groupId="lang" persist items={['TypeScript', 'Python']}>
+  <Tab value="TypeScript">
+
+```bash
+npm install @anumat/engine
+```
+
+`@anumat/engine` requires Node.js 24 or newer. The published package includes `dist` and `migrations`.
+
+  </Tab>
+  <Tab value="Python">
+
+```bash
+pip install anumat-engine
+```
+
+`anumat-engine` requires Python 3.10 or newer. Each wheel contains the binary for one platform. The platforms are macOS arm64, macOS x64, Linux x64, Linux arm64, and Windows x64.
+
+  </Tab>
+</Tabs>
