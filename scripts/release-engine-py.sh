@@ -60,6 +60,8 @@ if ! git diff --cached --quiet; then
   git commit -m "chore(anumat-py): release anumat-engine $version"
 fi
 
-git tag "anumat-py@$version"
-echo "Created local tag anumat-py@$version."
-echo "git push origin main && git push origin anumat-py@$version"
+tag="anumat-py@$version"
+git tag "$tag"
+echo "Created local tag $tag."
+echo "git push origin main && git push origin tag $tag"
+echo "git push origin main --follow-tags"
