@@ -1,6 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# uv --clear refuses a leftover directory that is not a virtualenv. --force
+# may only be aimed at this exact smoke path, never the repo or home.
+reset_py_smoke_venv() {
+  local venv=/tmp/anutest
+  if [[ "$venv" != /tmp/anutest ]]; then
+    echo "refusing to reset $venv" >&2
+    exit 1
+  fi
+  if [[ -L "$venv" ]]; then
+    echo "refusing to replace symlink $venv" >&2
+    exit 1
+  fi
+  python3 - "$venv" <<'PY'
+import os
+import sys
+
+requested = sys.argv[1]
+if requested != "/tmp/anutest":
+    raise SystemExit(f"refusing to reset {requested}")
+venv = os.path.realpath(requested)
+repo = os.path.realpath(os.getcwd())
+home = os.path.realpath(os.path.expanduser("~"))
+tmp = os.path.realpath("/tmp")
+parent, name = os.path.split(venv)
+if name != "anutest" or os.path.realpath(parent) != tmp:
+    raise SystemExit(f"refusing to reset {requested} (resolved to {venv})")
+if venv in {repo, home, "/"} or repo.startswith(venv + os.sep) or home.startswith(venv + os.sep):
+    raise SystemExit(f"refusing to reset {venv}")
+PY
+  uv venv "$venv" --clear --force -q
+}
+
 target="${1:-}"
 [[ "$target" == js || "$target" == py ]] || { echo "Use: pnpm release:anumat or pnpm release:anumat-py"; exit 1; }
 
@@ -38,7 +70,7 @@ else
   fi
   uv build --package anumat-py
   python3 scripts/strip-sdist-orig.py dist
-  uv venv /tmp/anutest --clear -q
+  reset_py_smoke_venv
   uv pip install -q --python /tmp/anutest dist/anumat_py-*.whl
   /tmp/anutest/bin/python -c "import anumat_py; print('Wheel installs and imports fine')"
   ls dist

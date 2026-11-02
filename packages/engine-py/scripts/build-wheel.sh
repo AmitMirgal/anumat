@@ -75,15 +75,48 @@ for needle in needles:
 if b"amitmirgal" in data.lower():
     raise SystemExit("binary contains a local username")
 PY
+# bun --compile on darwin can leave an ad-hoc signature the kernel rejects.
+# macOS then SIGKILLs the process (Killed: 9, exit 137) before any JavaScript
+# runs. Re-sign a Mach-O binary on the build host so --help is a real startup
+# check. A cross-compiled binary still cannot be executed here; that is not a
+# SyntaxError, so the embedded entry module is checked instead.
+if [[ "$(uname -s)" == "Darwin" ]] && command -v codesign >/dev/null 2>&1; then
+  magic=$(od -An -t x1 -N 4 "$stage/$binary_name" 2>/dev/null | tr -d ' \n' | tr 'A-F' 'a-f' || true)
+  case "$magic" in
+    cffaedfe|feedfacf|cefaedfe|feedface|cafebabe)
+      codesign --remove-signature "$stage/$binary_name" >/dev/null 2>&1 || true
+      if ! codesign --force --sign - "$stage/$binary_name" >/dev/null 2>&1; then
+        echo "ad-hoc codesign failed; --help may be SIGKILLed" >&2
+      fi
+      ;;
+  esac
+fi
 startup=$(mktemp)
-"$stage/$binary_name" --help >"$startup" 2>&1 || true
-cat "$startup"
-if ! grep -q "Usage: anumat-engine" "$startup"; then
-  echo "compiled sidecar did not start" >&2
+set +e
+"$stage/$binary_name" --help >"$startup" 2>&1
+status=$?
+set -e
+if grep -q "Usage: anumat-engine" "$startup" && ! grep -Eq "SyntaxError|Unexpected EOF" "$startup"; then
+  cat "$startup"
+  rm -f "$startup"
+elif [[ "$status" -eq 137 || "$status" -eq 126 || "$status" -eq 127 ]]; then
+  if [[ "$status" -eq 137 ]]; then
+    reason="SIGKILL (Killed: 9). The OS stopped the unsigned compiled binary before JavaScript ran"
+  else
+    reason="the host cannot execute this binary (exit ${status})"
+  fi
+  echo "compiled sidecar was not executed: ${reason}. Checking the embedded entry module for a SyntaxError." >&2
+  if [[ -s "$startup" ]]; then
+    cat "$startup" >&2
+  fi
+  rm -f "$startup"
+  "$PYTHON" "$root/packages/engine-py/scripts/check-sidecar-syntax.py" "$stage/$binary_name"
+else
+  echo "compiled sidecar did not start (exit ${status})" >&2
+  cat "$startup" >&2
   rm -f "$startup"
   exit 1
 fi
-rm -f "$startup"
 
 sha_file="$root/packages/engine/.sidecar/migration.sha256"
 if [[ ! -f "$sha_file" ]]; then
