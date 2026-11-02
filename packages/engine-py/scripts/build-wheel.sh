@@ -31,51 +31,59 @@ fi
 chmod +x "$stage/$binary_name" || true
 if command -v python3 >/dev/null 2>&1; then
   PYTHON=python3
-else
+elif command -v python >/dev/null 2>&1; then
   PYTHON=python
+else
+  echo "python is required to check the sidecar binary" >&2
+  exit 1
 fi
-"$PYTHON" - "$stage/$binary_name" <<'PY'
+"$PYTHON" - "$stage/$binary_name" "$root" <<'PY'
+import subprocess
 import sys
 from pathlib import Path
 
 path = Path(sys.argv[1])
-data = bytearray(path.read_bytes())
+root = sys.argv[2]
+data = path.read_bytes()
+needles = [root.encode()]
 
-def blank(needle: bytes) -> None:
-    start = 0
-    while True:
-        idx = data.find(needle, start)
-        if idx < 0:
-            return
-        end = idx
-        while end < len(data) and 32 <= data[end] < 127:
-            end += 1
-        for offset in range(idx, end):
-            data[offset] = ord("x")
-        start = end
 
-for needle in (b"/home/", b"/Users/", b"C:\\Users", b"C:/Users"):
-    blank(needle)
-username = b"amitmirgal"
-lower = bytes(data).lower()
-start = 0
-while True:
-    idx = lower.find(username, start)
-    if idx < 0:
-        break
-    for offset in range(idx, idx + len(username)):
-        data[offset] = ord("x")
-    lower = bytes(data).lower()
-    start = idx + len(username)
-path.write_bytes(data)
-raw = bytes(data)
-lower = raw.lower()
-for needle in (b"/home/", b"/Users/", b"C:\\Users", b"C:/Users"):
-    if needle in raw:
-        raise SystemExit(f"binary contains {needle!r}")
-if username in lower:
+def cygpath(flag: str) -> str:
+    try:
+        completed = subprocess.run(
+            ["cygpath", flag, root],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        return ""
+    if completed.returncode != 0:
+        return ""
+    return completed.stdout.strip()
+
+
+for flag in ("-w", "-m"):
+    form = cygpath(flag)
+    if not form:
+        continue
+    needles.append(form.encode())
+    needles.append(form.replace("\\", "\\\\").encode())
+for needle in needles:
+    if needle and needle in data:
+        raise SystemExit(f"binary contains the repo root path {needle!r}")
+if b"amitmirgal" in data.lower():
     raise SystemExit("binary contains a local username")
 PY
+startup=$(mktemp)
+"$stage/$binary_name" --help >"$startup" 2>&1 || true
+cat "$startup"
+if ! grep -q "Usage: anumat-engine" "$startup"; then
+  echo "compiled sidecar did not start" >&2
+  rm -f "$startup"
+  exit 1
+fi
+rm -f "$startup"
 
 export ANUMAT_ENGINE_PLATFORM="$platform"
 mkdir -p "$out"

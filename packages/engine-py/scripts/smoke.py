@@ -66,12 +66,14 @@ def _migrate(database_url: str) -> str:
             break
     completed = subprocess.run(
         [command, "migrate", "--db", database_url],
-        check=True,
+        check=False,
         capture_output=True,
         text=True,
     )
     sys.stdout.write(completed.stdout)
     sys.stderr.write(completed.stderr)
+    if completed.returncode != 0:
+        raise SystemExit(f"{completed.returncode}\n{completed.stderr}")
     return completed.stdout
 
 
@@ -79,15 +81,22 @@ def _expect_checksum(database_url: str, expected: str) -> None:
     psql = shutil.which("psql")
     if psql is None:
         raise SystemExit("psql is required to check the migration checksum")
-    recorded = subprocess.check_output(
+    completed = subprocess.run(
         [
             psql,
             database_url,
             "-tAc",
             "SELECT checksum FROM _prisma_migrations WHERE migration_name = '20260929061425_init'",
         ],
+        check=False,
+        capture_output=True,
         text=True,
-    ).strip()
+    )
+    sys.stdout.write(completed.stdout)
+    sys.stderr.write(completed.stderr)
+    if completed.returncode != 0:
+        raise SystemExit(f"{completed.returncode}\n{completed.stderr}")
+    recorded = completed.stdout.strip()
     if recorded != expected:
         raise SystemExit(f"checksum {recorded} != {expected}")
 
