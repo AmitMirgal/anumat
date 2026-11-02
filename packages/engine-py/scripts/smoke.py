@@ -84,9 +84,11 @@ def _expect_checksum(database_url: str, expected: str) -> None:
     completed = subprocess.run(
         [
             psql,
-            database_url,
-            "-tAc",
+            "--tuples-only",
+            "--no-align",
+            "--command",
             "SELECT checksum FROM _prisma_migrations WHERE migration_name = '20260929061425_init'",
+            database_url,
         ],
         check=False,
         capture_output=True,
