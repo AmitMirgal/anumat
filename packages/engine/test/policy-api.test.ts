@@ -12,7 +12,7 @@ const methods = JSON.parse(readFileSync(new URL('../policy-cases.json', import.m
   invalid: { javascript: PolicyMethod; python: string; input: unknown; code: string }[];
 };
 
-const slugs = JSON.parse(readFileSync(new URL('../slug-vectors.json', import.meta.url), 'utf8')) as {
+const slugs = JSON.parse(readFileSync(new URL('./slugify-fixtures.json', import.meta.url), 'utf8')) as {
   input: string;
   slug: string;
 }[];

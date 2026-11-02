@@ -18,6 +18,8 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 module-name = "anumat_py"
 module-root = "src"
+# uv 0.13 writes pyproject.toml.orig after source-exclude. scripts/strip-sdist-orig.py removes it.
+source-exclude = ["pyproject.toml.orig"]
 
 [dependency-groups]
 dev = [

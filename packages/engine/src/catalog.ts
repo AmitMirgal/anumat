@@ -6,9 +6,22 @@ import { type Page, type PageRequest, decodeCursor, stringCursor, toPage } from 
 
 export type { Payer, PolicySource };
 
+const slugChars: Record<string, string> = {
+  ß: 'ss',
+  ẞ: 'ss',
+  Æ: 'ae',
+  æ: 'ae',
+  Ø: 'o',
+  ø: 'o',
+  Å: 'a',
+  å: 'a',
+};
+
 export const slugify = (value: string) =>
   value
+    .replace(/[ßẞÆæØøÅå]/g, (char) => slugChars[char] ?? char)
     .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');

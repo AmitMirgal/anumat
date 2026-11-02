@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { AppError } from '@anumat/core';
 import { afterAll, beforeAll, expect, test } from 'vitest';
-import { closeContext } from '../src/context';
-import { createEngine, type Engine } from '../src/engine';
+import { closeContext, type AppContext } from '../src/context';
+import { createEngine } from '../src/engine';
 import * as api from '../src/publish';
 import { seedDocument, testDb } from '../src/testing/db';
 
@@ -25,7 +25,7 @@ const cases = JSON.parse(readFileSync(new URL('./fixtures/policy_cases.json', im
 const expectedCodes = Object.fromEntries(cases.filter((item) => item.expect).map((item) => [item.id, item.expect]));
 
 let t: Awaited<ReturnType<typeof testDb>>;
-let engine: Engine;
+let engine: AppContext;
 
 beforeAll(async () => {
   t = await testDb();

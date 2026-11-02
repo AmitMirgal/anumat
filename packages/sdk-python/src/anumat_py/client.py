@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import json
+from collections.abc import Awaitable, Callable
 from typing import Any, Literal
 from urllib.parse import urlparse
 from uuid import UUID
+
+import httpx
 
 from anumat_py._generated.api.default.approve_version import (
     asyncio_detailed as approve_version_async,
@@ -43,6 +47,8 @@ from anumat_py._generated.api.default.list_versions import sync_detailed as list
 from anumat_py._generated.api.default.reject_version import asyncio_detailed as reject_version_async
 from anumat_py._generated.api.default.reject_version import sync_detailed as reject_version
 from anumat_py._generated.client import AuthenticatedClient
+from anumat_py._generated.models.approve_version_body import ApproveVersionBody
+from anumat_py._generated.models.check_source_body import CheckSourceBody
 from anumat_py._generated.models.create_payer_body import CreatePayerBody
 from anumat_py._generated.models.create_payer_body_market import CreatePayerBodyMarket
 from anumat_py._generated.models.create_source_body import CreateSourceBody
@@ -69,22 +75,20 @@ class AnumatClient:
         return self._generated
 
     def create_payer(self, *, name: str, slug: str, market: str) -> JsonObject:
-        return _body(create_payer(client=self._generated, body=_payer_body(name, slug, market)))
+        return _call(lambda: create_payer(client=self._generated, body=_payer_body(name, slug, market)))
 
     async def create_payer_async(self, *, name: str, slug: str, market: str) -> JsonObject:
-        response = await create_payer_async(
-            client=self._generated, body=_payer_body(name, slug, market)
+        return await _call_async(
+            lambda: create_payer_async(client=self._generated, body=_payer_body(name, slug, market))
         )
-        return _body(response)
 
     def list_payers(self, *, limit: int = 20, cursor: str | None = None) -> JsonObject:
-        return _body(list_payers(client=self._generated, limit=limit, cursor=_optional(cursor)))
+        return _call(lambda: list_payers(client=self._generated, limit=limit, cursor=_optional(cursor)))
 
     async def list_payers_async(self, *, limit: int = 20, cursor: str | None = None) -> JsonObject:
-        response = await list_payers_async(
-            client=self._generated, limit=limit, cursor=_optional(cursor)
+        return await _call_async(
+            lambda: list_payers_async(client=self._generated, limit=limit, cursor=_optional(cursor))
         )
-        return _body(response)
 
     def create_source(
         self,
@@ -98,8 +102,8 @@ class AnumatClient:
         check_interval_hours: int | None = None,
         enabled: bool | None = None,
     ) -> JsonObject:
-        return _body(
-            create_source(
+        return _call(
+            lambda: create_source(
                 client=self._generated,
                 body=_source_body(
                     payer_id,
@@ -126,53 +130,57 @@ class AnumatClient:
         check_interval_hours: int | None = None,
         enabled: bool | None = None,
     ) -> JsonObject:
-        response = await create_source_async(
-            client=self._generated,
-            body=_source_body(
-                payer_id,
-                title,
-                source_url,
-                policy_slug,
-                market,
-                adapter_type,
-                check_interval_hours,
-                enabled,
-            ),
+        return await _call_async(
+            lambda: create_source_async(
+                client=self._generated,
+                body=_source_body(
+                    payer_id,
+                    title,
+                    source_url,
+                    policy_slug,
+                    market,
+                    adapter_type,
+                    check_interval_hours,
+                    enabled,
+                ),
+            )
         )
-        return _body(response)
 
     def list_sources(self, *, limit: int = 20, cursor: str | None = None) -> JsonObject:
-        return _body(list_sources(client=self._generated, limit=limit, cursor=_optional(cursor)))
+        return _call(lambda: list_sources(client=self._generated, limit=limit, cursor=_optional(cursor)))
 
     async def list_sources_async(self, *, limit: int = 20, cursor: str | None = None) -> JsonObject:
-        response = await list_sources_async(
-            client=self._generated, limit=limit, cursor=_optional(cursor)
+        return await _call_async(
+            lambda: list_sources_async(client=self._generated, limit=limit, cursor=_optional(cursor))
         )
-        return _body(response)
 
     def get_source(self, source_id: str) -> JsonObject:
-        return _body(get_source(_uuid(source_id), client=self._generated))
+        return _call(lambda: get_source(_uuid(source_id), client=self._generated))
 
     async def get_source_async(self, source_id: str) -> JsonObject:
-        return _body(await get_source_async(_uuid(source_id), client=self._generated))
+        return await _call_async(lambda: get_source_async(_uuid(source_id), client=self._generated))
 
     def check_source(self, source_id: str) -> JsonObject:
-        return _body(check_source(_uuid(source_id), client=self._generated))
+        return _call(
+            lambda: check_source(_uuid(source_id), client=self._generated, body=CheckSourceBody())
+        )
 
     async def check_source_async(self, source_id: str) -> JsonObject:
-        return _body(await check_source_async(_uuid(source_id), client=self._generated))
+        return await _call_async(
+            lambda: check_source_async(_uuid(source_id), client=self._generated, body=CheckSourceBody())
+        )
 
     def get_policy(self, policy_key: str) -> JsonObject:
-        return _body(get_policy(policy_key, client=self._generated))
+        return _call(lambda: get_policy(policy_key, client=self._generated))
 
     async def get_policy_async(self, policy_key: str) -> JsonObject:
-        return _body(await get_policy_async(policy_key, client=self._generated))
+        return await _call_async(lambda: get_policy_async(policy_key, client=self._generated))
 
     def list_policy_versions(
         self, policy_key: str, *, limit: int = 20, cursor: str | None = None
     ) -> JsonObject:
-        return _body(
-            list_policy_versions(
+        return _call(
+            lambda: list_policy_versions(
                 policy_key, client=self._generated, limit=limit, cursor=_optional(cursor)
             )
         )
@@ -180,16 +188,19 @@ class AnumatClient:
     async def list_policy_versions_async(
         self, policy_key: str, *, limit: int = 20, cursor: str | None = None
     ) -> JsonObject:
-        response = await list_policy_versions_async(
-            policy_key, client=self._generated, limit=limit, cursor=_optional(cursor)
+        return await _call_async(
+            lambda: list_policy_versions_async(
+                policy_key, client=self._generated, limit=limit, cursor=_optional(cursor)
+            )
         )
-        return _body(response)
 
     def get_policy_version(self, policy_key: str, version: int) -> JsonObject:
-        return _body(get_policy_version(policy_key, version, client=self._generated))
+        return _call(lambda: get_policy_version(policy_key, version, client=self._generated))
 
     async def get_policy_version_async(self, policy_key: str, version: int) -> JsonObject:
-        return _body(await get_policy_version_async(policy_key, version, client=self._generated))
+        return await _call_async(
+            lambda: get_policy_version_async(policy_key, version, client=self._generated)
+        )
 
     def list_versions(
         self,
@@ -199,8 +210,8 @@ class AnumatClient:
         status: VersionStatus | None = None,
         policy_key: str | None = None,
     ) -> JsonObject:
-        return _body(
-            list_versions(
+        return _call(
+            lambda: list_versions(
                 client=self._generated,
                 limit=limit,
                 cursor=_optional(cursor),
@@ -217,45 +228,55 @@ class AnumatClient:
         status: VersionStatus | None = None,
         policy_key: str | None = None,
     ) -> JsonObject:
-        response = await list_versions_async(
-            client=self._generated,
-            limit=limit,
-            cursor=_optional(cursor),
-            status=_status(status),
-            policy_key=_optional(policy_key),
+        return await _call_async(
+            lambda: list_versions_async(
+                client=self._generated,
+                limit=limit,
+                cursor=_optional(cursor),
+                status=_status(status),
+                policy_key=_optional(policy_key),
+            )
         )
-        return _body(response)
 
     def get_version(self, version_id: str) -> JsonObject:
-        return _body(get_version(_uuid(version_id), client=self._generated))
+        return _call(lambda: get_version(_uuid(version_id), client=self._generated))
 
     async def get_version_async(self, version_id: str) -> JsonObject:
-        return _body(await get_version_async(_uuid(version_id), client=self._generated))
+        return await _call_async(lambda: get_version_async(_uuid(version_id), client=self._generated))
 
     def approve_version(self, version_id: str) -> JsonObject:
-        return _body(approve_version(_uuid(version_id), client=self._generated))
+        return _call(
+            lambda: approve_version(
+                _uuid(version_id), client=self._generated, body=ApproveVersionBody()
+            )
+        )
 
     async def approve_version_async(self, version_id: str) -> JsonObject:
-        return _body(await approve_version_async(_uuid(version_id), client=self._generated))
+        return await _call_async(
+            lambda: approve_version_async(
+                _uuid(version_id), client=self._generated, body=ApproveVersionBody()
+            )
+        )
 
     def reject_version(self, version_id: str, *, reason: str) -> JsonObject:
-        return _body(
-            reject_version(
+        return _call(
+            lambda: reject_version(
                 _uuid(version_id), client=self._generated, body=RejectVersionBody(reason=reason)
             )
         )
 
     async def reject_version_async(self, version_id: str, *, reason: str) -> JsonObject:
-        response = await reject_version_async(
-            _uuid(version_id), client=self._generated, body=RejectVersionBody(reason=reason)
+        return await _call_async(
+            lambda: reject_version_async(
+                _uuid(version_id), client=self._generated, body=RejectVersionBody(reason=reason)
+            )
         )
-        return _body(response)
 
     def get_diff(self, diff_id: str) -> JsonObject:
-        return _body(get_diff(_uuid(diff_id), client=self._generated))
+        return _call(lambda: get_diff(_uuid(diff_id), client=self._generated))
 
     async def get_diff_async(self, diff_id: str) -> JsonObject:
-        return _body(await get_diff_async(_uuid(diff_id), client=self._generated))
+        return await _call_async(lambda: get_diff_async(_uuid(diff_id), client=self._generated))
 
 
 def _base_url(base_url: str) -> str:
@@ -271,7 +292,9 @@ def _api_key(api_key: str) -> str:
     return api_key
 
 
-def _uuid(value: str) -> UUID:
+def _uuid(value: object) -> UUID:
+    if not isinstance(value, str):
+        raise AnumatError("id must be a UUID", code="validation_failed")
     try:
         return UUID(value)
     except ValueError as error:
@@ -332,14 +355,91 @@ def _status(status: str | None) -> ListVersionsStatus | Unset:
         raise AnumatError("status must be a version status", code="validation_failed") from error
 
 
+def _call(run: Callable[[], Any]) -> JsonObject:
+    try:
+        return _body(run())
+    except httpx.TransportError as error:
+        raise AnumatError(str(error), code="network_error") from error
+
+
+async def _call_async(run: Callable[[], Awaitable[Any]]) -> JsonObject:
+    try:
+        return _body(await run())
+    except httpx.TransportError as error:
+        raise AnumatError(str(error), code="network_error") from error
+
+
 def _body(response: Any) -> JsonObject:
     status = int(response.status_code)
     parsed = response.parsed
     if status >= 400 or parsed is None or not hasattr(parsed, "to_dict"):
-        message = getattr(parsed, "message", None) or f"Anumat returned HTTP {status}"
-        code = getattr(parsed, "code", None)
-        raise AnumatError(str(message), status=status, code=None if code is None else str(code))
+        message, code = _error_message_and_code(response, status)
+        raise AnumatError(message, status=status, code=code)
     body = parsed.to_dict()
     if not isinstance(body, dict):
         raise AnumatError("expected a JSON object", status=status)
     return body
+
+
+def _error_message_and_code(response: Any, status: int) -> tuple[str, str | None]:
+    payloads: list[Any] = []
+    parsed = getattr(response, "parsed", None)
+    if parsed is not None:
+        payloads.append(parsed)
+        to_dict = getattr(parsed, "to_dict", None)
+        if callable(to_dict):
+            try:
+                payloads.append(to_dict())
+            except Exception:
+                pass
+    content = getattr(response, "content", b"")
+    if isinstance(content, bytes) and content:
+        try:
+            payloads.append(json.loads(content.decode()))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            pass
+    elif isinstance(content, str) and content:
+        try:
+            payloads.append(json.loads(content))
+        except json.JSONDecodeError:
+            pass
+    for payload in payloads:
+        message, code = _read_error(payload)
+        if message is not None or code is not None:
+            text = message if isinstance(message, str) and message != "" else f"Anumat returned HTTP {status}"
+            return text, code
+    return f"Anumat returned HTTP {status}", None
+
+
+def _read_error(payload: Any) -> tuple[str | None, str | None]:
+    if isinstance(payload, dict):
+        nested = payload.get("error")
+        if isinstance(nested, dict):
+            json_body = nested.get("json")
+            if isinstance(json_body, dict):
+                return _read_error(json_body)
+            return _string_field(nested, "message"), _code_field(nested)
+        return _string_field(payload, "message"), _code_field(payload)
+    message = getattr(payload, "message", None)
+    code = getattr(payload, "code", None)
+    data = getattr(payload, "data", None)
+    if isinstance(message, str) or isinstance(code, str) or isinstance(data, dict):
+        return message if isinstance(message, str) else None, _code_field({"code": code, "data": data})
+    return None, None
+
+
+def _string_field(payload: dict[str, Any], key: str) -> str | None:
+    value = payload.get(key)
+    return value if isinstance(value, str) else None
+
+
+def _code_field(payload: dict[str, Any]) -> str | None:
+    code = payload.get("code")
+    if isinstance(code, str) and code != "":
+        return code
+    data = payload.get("data")
+    if isinstance(data, dict):
+        nested = data.get("code")
+        if isinstance(nested, str) and nested != "":
+            return nested
+    return None

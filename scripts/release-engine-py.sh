@@ -46,6 +46,8 @@ while IFS= read -r row; do
   bash packages/engine-py/scripts/build-wheel.sh "$target" "$platform" "$binary" "$root/dist"
 done < <(jq -c '.[]' packages/engine-py/platforms.json)
 
+uv build --sdist --package anumat-engine --out-dir dist
+
 echo "$name $version"
 echo "Wheels:"
 ls dist

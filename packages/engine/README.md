@@ -32,7 +32,7 @@ const engine = await createEngine({
 await closeContext(engine);
 ```
 
-Pass `databaseUrl` or `db`, and only one of them. `databaseUrl` opens a client. `db` reuses a client you already opened. `closeContext` disconnects a client that `createEngine` opened. It leaves a passed `db` open.
+Pass `databaseUrl` or `db`, and only one of them. `databaseUrl` must be a `postgres://` or `postgresql://` URL of at most 4096 characters. `createEngine` opens that client and checks the connection before it returns. `db` reuses a client you already opened and must provide `$queryRaw` and `$disconnect`. `closeContext` disconnects a client that `createEngine` opened. It leaves a passed `db` open. Unknown options are rejected. `null` is rejected for `storage`, `llm`, and `firecrawl`.
 
 `storage`, `llm`, and `firecrawl` are optional. `createEngine` does not read them from the environment.
 

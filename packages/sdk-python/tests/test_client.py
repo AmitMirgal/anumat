@@ -1,13 +1,18 @@
+import json
 import os
 import socket
 import subprocess
 import time
 from collections.abc import Iterator
+from types import SimpleNamespace
+from typing import cast
+from uuid import uuid4
 
 import httpx
 import pytest
 
 from anumat_py import AnumatClient, AnumatError
+from anumat_py.client import _body
 
 API_KEY = "test-key-0123456789abcdef"
 
@@ -111,3 +116,71 @@ def test_list_payers(api_url: str) -> None:
     page = client.list_payers(limit=20)
     assert isinstance(page["items"], list)
     assert page["next_cursor"] is None or isinstance(page["next_cursor"], str)
+
+
+def test_none_id_is_a_validation_error() -> None:
+    client = AnumatClient("http://127.0.0.1:9", API_KEY)
+    with pytest.raises(AnumatError) as raised:
+        client.get_source(cast(str, None))
+    assert raised.value.code == "validation_failed"
+    with pytest.raises(AnumatError) as checked:
+        client.check_source(cast(str, None))
+    assert checked.value.code == "validation_failed"
+
+
+def test_transport_errors_are_anumat_errors() -> None:
+    client = AnumatClient("http://127.0.0.1:1", API_KEY)
+    with pytest.raises(AnumatError) as raised:
+        client.list_payers()
+    assert raised.value.code == "network_error"
+
+
+def test_error_bodies_keep_the_server_message_and_code() -> None:
+    flat = SimpleNamespace(
+        status_code=404,
+        parsed=None,
+        content=json.dumps({"message": "Version TEST-missing not found", "code": "NOT_FOUND"}).encode(),
+    )
+    with pytest.raises(AnumatError) as raised:
+        _body(flat)
+    assert raised.value.status == 404
+    assert raised.value.code == "NOT_FOUND"
+    assert "TEST-missing" in str(raised.value)
+    assert str(raised.value) != "Anumat returned HTTP 404"
+
+    nested = SimpleNamespace(
+        status_code=404,
+        parsed=None,
+        content=json.dumps(
+            {"error": {"code": "not_found", "message": "Version TEST-missing not found"}}
+        ).encode(),
+    )
+    with pytest.raises(AnumatError) as wrapped:
+        _body(nested)
+    assert wrapped.value.code == "not_found"
+    assert "TEST-missing" in str(wrapped.value)
+
+
+def test_check_and_approve_send_json_and_keep_not_found(api_url: str) -> None:
+    client = AnumatClient(api_url, API_KEY)
+    suffix = uuid4().hex[:12]
+    payer = client.create_payer(name="TEST-Payer", slug=f"test-{suffix}", market="us")
+    source = client.create_source(
+        payer_id=str(payer["id"]),
+        title="TEST-Policy",
+        source_url=f"http://127.0.0.1:1/TEST-policy-{suffix}.pdf",
+    )
+    checked = client.check_source(str(source["id"]))
+    assert isinstance(checked["watch_run"], dict)
+    missing = str(uuid4())
+    with pytest.raises(AnumatError) as approved:
+        client.approve_version(missing)
+    assert approved.value.status == 404
+    assert approved.value.code == "NOT_FOUND"
+    assert "not found" in str(approved.value).lower()
+    assert str(approved.value) != "Anumat returned HTTP 404"
+    with pytest.raises(AnumatError) as rejected:
+        client.reject_version(missing, reason="TEST-reject")
+    assert rejected.value.status == 404
+    assert rejected.value.code == "NOT_FOUND"
+    assert "not found" in str(rejected.value).lower()

@@ -1,5 +1,6 @@
 import { AppError } from '@anumat/core';
 import type { Db } from '@anumat/db';
+import * as z from 'zod';
 import type { ModelSource } from './agent/policy-agent';
 import { DEFAULT_DATA_DIR, type Config, type S3Storage, type StorageConfig } from './config';
 import { type AppContext, createContext } from './context';
@@ -34,14 +35,101 @@ export type CreateEngineOptions = (
 };
 
 const modelId = /^[^/\s]+\/\S+$/;
+const maxDatabaseUrlLength = 4096;
+const modelIdMessage = 'llm.strong and llm.cheap must be provider/model ids';
+
+const databaseUrlSchema = z.string().superRefine((value, ctx) => {
+  if (value.length > maxDatabaseUrlLength) {
+    ctx.addIssue({ code: 'custom', message: 'databaseUrl must be at most 4096 characters' });
+    return;
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    ctx.addIssue({ code: 'custom', message: 'databaseUrl must be a postgres:// or postgresql:// URL' });
+    return;
+  }
+  if (parsed.protocol !== 'postgres:' && parsed.protocol !== 'postgresql:') {
+    ctx.addIssue({ code: 'custom', message: 'databaseUrl must use the postgres:// or postgresql:// scheme' });
+  }
+});
+
+const engineDbSchema = z.custom<EngineDb>((value) => {
+  if (value === null || typeof value !== 'object') return false;
+  const record = value as { $queryRaw?: unknown; $disconnect?: unknown };
+  return typeof record.$queryRaw === 'function' && typeof record.$disconnect === 'function';
+}, 'db must be an object with $queryRaw and $disconnect');
+
+const localStorageSchema = z
+  .object({
+    kind: z.literal('local'),
+    dataDir: z.string().min(1, 'storage dataDir must be a non-empty path').optional(),
+  })
+  .strict();
+
+const s3StorageSchema = z
+  .object({
+    kind: z.literal('s3'),
+    region: z.string().min(1).optional(),
+    bucket: z.string().min(1).optional(),
+    accessKeyId: z.string().min(1).optional(),
+    secretAccessKey: z.string().min(1).optional(),
+    endpoint: z.string().optional(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (!value.region || !value.bucket || !value.accessKeyId || !value.secretAccessKey) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'storage kind s3 requires region, bucket, accessKeyId, and secretAccessKey',
+      });
+    }
+    if (value.endpoint !== undefined && !URL.canParse(value.endpoint)) {
+      ctx.addIssue({ code: 'custom', message: 'storage endpoint must be a URL' });
+    }
+  });
+
+const storageSchema = z.discriminatedUnion('kind', [localStorageSchema, s3StorageSchema]);
+
+const llmSchema = z
+  .object({
+    strong: z.string().regex(modelId, modelIdMessage),
+    cheap: z.string().regex(modelId, modelIdMessage),
+  })
+  .strict();
+
+const firecrawlSchema = z
+  .object({
+    apiKey: z.string().optional(),
+    apiUrl: z.string().optional(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.apiUrl !== undefined && !URL.canParse(value.apiUrl)) {
+      ctx.addIssue({ code: 'custom', message: 'firecrawl apiUrl must be a URL' });
+    }
+  });
+
+const createEngineSchema = z
+  .object({
+    databaseUrl: databaseUrlSchema.optional(),
+    db: engineDbSchema.optional(),
+    storage: storageSchema.optional(),
+    llm: llmSchema.optional(),
+    firecrawl: firecrawlSchema.optional(),
+  })
+  .strict();
+
+type ParsedEngineOptions = z.infer<typeof createEngineSchema>;
 
 export async function createEngine(options: CreateEngineOptions): Promise<AppContext> {
-  const database = databaseFromOptions(options);
-  const storage = storageFromOptions(options.storage);
-  const models = modelsFromOptions(options.llm);
-  const firecrawl = firecrawlFromOptions(options.firecrawl);
+  const parsed = parseCreateEngineOptions(options);
+  const storage = storageFromParsed(parsed.storage);
+  const models = modelsFromParsed(parsed.llm);
+  const firecrawl = firecrawlFromParsed(parsed.firecrawl);
   const config: Config = {
-    databaseUrl: database.databaseUrl,
+    databaseUrl: parsed.databaseUrl ?? '',
     host: '127.0.0.1',
     port: 4471,
     apiKeys: [],
@@ -52,33 +140,53 @@ export async function createEngine(options: CreateEngineOptions): Promise<AppCon
     firecrawlApiUrl: firecrawl.apiUrl,
     rateLimitPerMinute: 120,
   };
-  return createContext(config, { db: database.db as Db | undefined, models });
+  const context = await createContext(config, { db: parsed.db as Db | undefined, models });
+  if (parsed.db === undefined) {
+    try {
+      await context.db.$queryRaw`SELECT 1`;
+    } catch (error) {
+      await context.db.$disconnect().catch(() => undefined);
+      throw error;
+    }
+  }
+  context.config = visibleConfig(context.config);
+  return context;
 }
 
-function databaseFromOptions(options: CreateEngineOptions): { databaseUrl: string; db?: EngineDb } {
-  const databaseUrl = 'databaseUrl' in options ? options.databaseUrl : undefined;
-  const db = 'db' in options ? options.db : undefined;
-  if ((databaseUrl === undefined) === (db === undefined)) {
+function parseCreateEngineOptions(options: CreateEngineOptions): ParsedEngineOptions {
+  const value: unknown = options;
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new AppError('validation_failed', 'createEngine requires databaseUrl or db, and only one of them');
   }
-  if (databaseUrl !== undefined) {
-    if (!URL.canParse(databaseUrl)) throw new AppError('validation_failed', 'databaseUrl must be a URL');
-    return { databaseUrl };
+  const result = createEngineSchema.safeParse(options);
+  if (!result.success) {
+    throw new AppError('validation_failed', result.error.issues.map((issue) => issue.message).join('\n'));
   }
-  if (db === undefined) throw new AppError('validation_failed', 'createEngine requires databaseUrl or db, and only one of them');
-  return { databaseUrl: '', db };
+  if ((result.data.databaseUrl === undefined) === (result.data.db === undefined)) {
+    throw new AppError('validation_failed', 'createEngine requires databaseUrl or db, and only one of them');
+  }
+  return result.data;
 }
 
-function storageFromOptions(storage: EngineStorage | undefined): StorageConfig {
+function visibleConfig(config: Config): Config {
+  return {
+    databaseUrl: config.databaseUrl,
+    storage: config.storage,
+    llmMode: config.llmMode,
+    models: config.models,
+    firecrawlApiKey: config.firecrawlApiKey,
+    firecrawlApiUrl: config.firecrawlApiUrl,
+    rateLimitPerMinute: config.rateLimitPerMinute,
+  } as Config;
+}
+
+function storageFromParsed(storage: ParsedEngineOptions['storage']): StorageConfig {
   if (storage === undefined) return { kind: 'local', dataDir: DEFAULT_DATA_DIR };
   switch (storage.kind) {
     case 'local':
-      if (storage.dataDir !== undefined && storage.dataDir.length === 0) {
-        throw new AppError('validation_failed', 'storage dataDir must be a non-empty path');
-      }
       return { kind: 'local', dataDir: storage.dataDir ?? DEFAULT_DATA_DIR };
     case 's3':
-      return s3FromOptions(storage);
+      return s3FromParsed(storage);
     default: {
       const unreachable: never = storage;
       return unreachable;
@@ -86,16 +194,15 @@ function storageFromOptions(storage: EngineStorage | undefined): StorageConfig {
   }
 }
 
-function s3FromOptions(storage: Extract<EngineStorage, { kind: 's3' }>): S3Storage {
+function s3FromParsed(storage: Extract<ParsedEngineOptions['storage'], { kind: 's3' }>): S3Storage {
   const { region, bucket, accessKeyId, secretAccessKey, endpoint } = storage;
   if (!region || !bucket || !accessKeyId || !secretAccessKey) {
     throw new AppError('validation_failed', 'storage kind s3 requires region, bucket, accessKeyId, and secretAccessKey');
   }
-  if (endpoint !== undefined && !URL.canParse(endpoint)) throw new AppError('validation_failed', 'storage endpoint must be a URL');
   return { kind: 's3', endpoint, region, bucket, accessKeyId, secretAccessKey };
 }
 
-function modelsFromOptions(llm: EngineLlm | undefined): ModelSource {
+function modelsFromParsed(llm: ParsedEngineOptions['llm']): ModelSource {
   if (llm === undefined) {
     return {
       kind: 'scripted',
@@ -105,16 +212,10 @@ function modelsFromOptions(llm: EngineLlm | undefined): ModelSource {
       },
     };
   }
-  if (!modelId.test(llm.strong) || !modelId.test(llm.cheap)) {
-    throw new AppError('validation_failed', 'llm.strong and llm.cheap must be provider/model ids');
-  }
   return { kind: 'router', strong: llm.strong, cheap: llm.cheap };
 }
 
-function firecrawlFromOptions(firecrawl: EngineFirecrawl | undefined): { apiKey: string | undefined; apiUrl: string | undefined } {
+function firecrawlFromParsed(firecrawl: ParsedEngineOptions['firecrawl']): { apiKey: string | undefined; apiUrl: string | undefined } {
   if (firecrawl === undefined) return { apiKey: undefined, apiUrl: undefined };
-  if (firecrawl.apiUrl !== undefined && !URL.canParse(firecrawl.apiUrl)) {
-    throw new AppError('validation_failed', 'firecrawl apiUrl must be a URL');
-  }
   return { apiKey: firecrawl.apiKey, apiUrl: firecrawl.apiUrl };
 }

@@ -83,6 +83,10 @@
       "dependsOn": ["anumat-py#generate", "@anumat/js#test"],
       "outputs": []
     },
+    "anumat-engine#build": {
+      "command": ["uv", "build", "--sdist", "--package", "anumat-engine"],
+      "outputs": ["dist/**"]
+    },
     "anumat-engine#test": {
       "command": ["uv", "run", "--frozen", "--package", "anumat-engine", "--group", "dev", "pytest"],
       "dependsOn": [],

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import get_type_hints
 
 import pytest
 
 from anumat_engine import EngineError, create_engine, slugify
 from anumat_engine.cli import main
+from anumat_engine.engine import Engine, ProposeVersionResult
 
 FAKE = Path(__file__).with_name("fake_sidecar.py")
 DATABASE_URL = "postgres://anumat:anumat@127.0.0.1:5432/anumat"
@@ -73,6 +75,38 @@ def test_incomplete_storage_and_database_url_fail_validation(monkeypatch: pytest
         create_engine(database_url=DATABASE_URL, storage={"kind": "s3", "region": "us-east-1"})
     assert partial.value.code == "validation_failed"
     assert "required" in str(partial.value)
+
+
+def test_bad_model_ids_fail_before_start(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ANUMAT_ENGINE_BINARY", "/no/such/anumat-engine")
+    with pytest.raises(EngineError) as raised:
+        create_engine(database_url=DATABASE_URL, llm={"strong": "bad", "cheap": "bad"})
+    assert raised.value.code == "validation_failed"
+
+
+def test_database_url_is_rejected_before_start(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ANUMAT_ENGINE_BINARY", "/no/such/anumat-engine")
+    with pytest.raises(EngineError) as long_url:
+        create_engine(database_url="postgres://anumat:anumat@127.0.0.1:5432/" + ("a" * 5000))
+    assert long_url.value.code == "validation_failed"
+    with pytest.raises(EngineError) as scheme:
+        create_engine(database_url="http://example.test/db")
+    assert scheme.value.code == "validation_failed"
+
+
+def test_propose_version_return_type() -> None:
+    assert get_type_hints(Engine.propose_version)["return"] is ProposeVersionResult
+
+
+def test_release_script_builds_an_sdist_without_pushing() -> None:
+    root = Path(__file__).resolve().parents[3]
+    script = (root / "scripts" / "release-engine-py.sh").read_text()
+    assert "uv build --sdist --package anumat-engine --out-dir dist" in script
+    for line in script.splitlines():
+        if "git push" in line:
+            assert line.lstrip().startswith("echo ")
+    readme = (root / "packages" / "engine-py" / "README.md").read_text()
+    assert "source distribution" in readme.lower()
 
 
 def test_startup_failure_includes_stderr(monkeypatch: pytest.MonkeyPatch) -> None:

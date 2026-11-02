@@ -102,6 +102,12 @@ export type CheckJson = {
 
 export type PageJson<T> = { items: T[]; nextCursor: string | null };
 
+export type ProposeVersionResult = {
+  version: VersionJson;
+  diff: DiffJson;
+  created: boolean;
+};
+
 type PolicyInput = {
   registerPayer: { name: string; slug: string; market: 'us' };
   getPayer: { id: string };
@@ -147,7 +153,7 @@ type PolicyOutput = {
   checkSource: CheckJson;
   dueSources: SourceJson[];
   checkDueSources: CheckJson[];
-  proposeVersion: VersionJson;
+  proposeVersion: ProposeVersionResult;
   approveVersion: VersionJson;
   rejectVersion: VersionJson;
   getPublishedPolicy: VersionJson;
