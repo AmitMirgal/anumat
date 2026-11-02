@@ -204,7 +204,6 @@ async function assertPolicyExists(db: Db, policyKey: string) {
 export async function getPublishedPolicy(db: Db, policyKey: string): Promise<PolicyVersion> {
   const latest = await latestApproved(db, policyKey);
   if (latest) return latest;
-  await assertPolicyExists(db, policyKey);
   throw new AppError('policy_not_published', `Policy ${policyKey} has no approved version yet`);
 }
 
