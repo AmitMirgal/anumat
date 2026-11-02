@@ -35,10 +35,10 @@ const result = await Bun.build({
     {
       name: 'optional-import',
       setup(build) {
-        build.onResolve({ filter: /.*/ }, (args) => {
-          if (args.path !== '@opentelemetry/api') return undefined;
-          return { path: stub };
-        });
+        // Match only this module. A catch-all onResolve that returns undefined
+        // makes Bun 1.4.0 drop a declaration that is still referenced, so
+        // createPolicyAgent throws ReferenceError: Agent is not defined.
+        build.onResolve({ filter: /^@opentelemetry\/api$/ }, () => ({ path: stub }));
       },
     },
   ],
