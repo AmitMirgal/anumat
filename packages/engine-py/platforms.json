@@ -7,11 +7,11 @@
     "smoke": true
   },
   {
-    "runner": "macos-14",
+    "runner": "macos-15-intel",
     "target": "bun-darwin-x64",
     "platform": "macosx_11_0_x86_64",
     "binary": "anumat-engine",
-    "smoke": false
+    "smoke": true
   },
   {
     "runner": "ubuntu-24.04",

@@ -17,6 +17,10 @@ await esbuild.build({
   outfile,
   sourcemap: false,
   legalComments: 'none',
+  define: {
+    __dirname: 'import.meta.dirname',
+    __filename: 'import.meta.filename',
+  },
   external: ['@prisma/client', '@prisma/adapter-pg', 'pg', '@aws-sdk/client-s3', '@mastra/core', '@firecrawl/anydoc'],
   plugins: [
     {

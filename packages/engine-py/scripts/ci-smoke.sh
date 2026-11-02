@@ -7,7 +7,7 @@ export ANUMAT_MIGRATION_SQL="${ANUMAT_MIGRATION_SQL:-packages/db/prisma/migratio
 
 if ! pg_isready -h 127.0.0.1 -p 5432 >/dev/null 2>&1; then
   if ! command -v docker >/dev/null 2>&1; then
-    echo "Postgres is not running, and Docker is not available to start it." >&2
+    echo "Postgres is not running. Install Postgres or Docker." >&2
     exit 1
   fi
   docker rm -f anumat-pg >/dev/null 2>&1 || true

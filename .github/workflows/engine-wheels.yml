@@ -39,6 +39,15 @@ jobs:
       - name: Build the wheel
         shell: bash
         run: bash packages/engine-py/scripts/build-wheel.sh "${{ matrix.target }}" "${{ matrix.platform }}" "${{ matrix.binary }}" dist
+      - name: Start Postgres
+        if: matrix.smoke
+        uses: ikalnytskyi/action-setup-postgres@v9
+        with:
+          username: anumat
+          password: anumat
+          database: anumat_engine
+          port: "5432"
+          postgres-version: "16"
       - name: Smoke the wheel
         if: matrix.smoke
         shell: bash
