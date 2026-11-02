@@ -11,6 +11,9 @@ export class AnumatClientError extends Error {
 }
 
 export function createAnumatClient(options: { baseUrl: string; apiKey: string }) {
+  if (options === null || typeof options !== 'object') {
+    throw new AnumatClientError('createAnumatClient requires baseUrl and apiKey');
+  }
   const baseUrl = httpBaseUrl(options.baseUrl);
   const apiKey = requiredApiKey(options.apiKey);
   return createTRPCClient<AppRouter>({

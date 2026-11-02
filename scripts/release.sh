@@ -31,7 +31,13 @@ if [[ "$target" == js ]]; then
   pnpm --filter "$name" publish --dry-run --access public --no-git-checks
 else
   rm -rf dist
+  generated="packages/sdk-python/src/anumat_py/_generated/client.py"
+  if [[ ! -f "$generated" ]]; then
+    echo "Missing $generated. Run pnpm turbo run generate --filter=anumat-py first." >&2
+    exit 1
+  fi
   uv build --package anumat-py
+  python3 scripts/strip-sdist-orig.py dist
   uv venv /tmp/anutest --clear -q
   uv pip install -q --python /tmp/anutest dist/anumat_py-*.whl
   /tmp/anutest/bin/python -c "import anumat_py; print('Wheel installs and imports fine')"

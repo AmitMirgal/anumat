@@ -1,0 +1,2 @@
+*.sql text eol=lf
+*.prisma text eol=lf

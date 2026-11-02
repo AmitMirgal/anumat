@@ -60,3 +60,40 @@ jobs:
           name: anumat-engine-${{ matrix.platform }}
           path: dist/*.whl
           if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anumat-engine-migration-sha-${{ matrix.platform }}
+          path: dist/migration.sha256
+          if-no-files-found: error
+
+  migration-checksum:
+    needs: wheel
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: anumat-engine-migration-sha-*
+          path: checksums
+      - name: Assert the embedded migration checksum matches on every platform
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=()
+          while IFS= read -r -d '' file; do
+            files+=("$file")
+          done < <(find checksums -type f -name migration.sha256 -print0)
+          count="${#files[@]}"
+          if [[ "$count" -ne 5 ]]; then
+            echo "expected 5 migration checksums, found $count" >&2
+            find checksums -type f -print >&2
+            exit 1
+          fi
+          unique=$(cat "${files[@]}" | sort -u | wc -l)
+          unique="${unique//[[:space:]]/}"
+          if [[ "$unique" -ne 1 ]]; then
+            echo "migration checksums differ" >&2
+            printf '%s\n' "${files[@]}" >&2
+            cat "${files[@]}" >&2
+            exit 1
+          fi
+          echo "embedded migration sha256 $(cat "${files[0]}")"

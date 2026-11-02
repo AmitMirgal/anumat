@@ -4,6 +4,7 @@ import atexit
 import json
 import os
 import queue
+import re
 import signal
 import subprocess
 import threading
@@ -11,7 +12,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Any, Literal
+from typing import Any, Literal, TypedDict
 
 from anumat_engine._binary import binary_path
 from anumat_engine.errors import EngineError
@@ -19,6 +20,15 @@ from anumat_engine.errors import EngineError
 JsonObject = dict[str, Any]
 Market = Literal["us"]
 VersionStatus = Literal["proposed", "approved", "rejected", "superseded"]
+_MAX_DATABASE_URL_LENGTH = 4096
+_MODEL_ID = re.compile(r"^[^/\s]+/\S+$")
+_POSTGRES_SCHEMES = {"postgres", "postgresql"}
+
+
+class ProposeVersionResult(TypedDict):
+    version: JsonObject
+    diff: JsonObject
+    created: bool
 
 
 class Engine:
@@ -101,8 +111,10 @@ class Engine:
     def check_due_sources(self) -> list[JsonObject]:
         return _objects(self._call("check_due_sources", {}))
 
-    def propose_version(self, *, source_id: str, document_id: str, extraction: Any, extracted_by: str) -> JsonObject:
-        return _object(
+    def propose_version(
+        self, *, source_id: str, document_id: str, extraction: Any, extracted_by: str
+    ) -> ProposeVersionResult:
+        body = _object(
             self._call(
                 "propose_version",
                 {
@@ -113,6 +125,12 @@ class Engine:
                 },
             )
         )
+        version = body.get("version")
+        diff = body.get("diff")
+        created = body.get("created")
+        if not isinstance(version, dict) or not isinstance(diff, dict) or not isinstance(created, bool):
+            raise EngineError("engine returned an unexpected object", code="internal")
+        return {"version": version, "diff": diff, "created": created}
 
     def approve_version(self, *, version_id: str, approved_by: str) -> JsonObject:
         return _object(self._call("approve_version", {"version_id": version_id, "approved_by": approved_by}))
@@ -309,9 +327,11 @@ def _wait_health(base_url: str, token: str, process: subprocess.Popen[bytes], st
 def _database_url(database_url: str) -> str:
     if not isinstance(database_url, str) or database_url.strip() == "":
         raise EngineError("database_url is required", code="validation_failed")
+    if len(database_url) > _MAX_DATABASE_URL_LENGTH:
+        raise EngineError("database_url must be at most 4096 characters", code="validation_failed")
     parsed = urllib.parse.urlparse(database_url)
-    if parsed.scheme == "" or parsed.netloc == "":
-        raise EngineError("database_url must be a URL", code="validation_failed")
+    if parsed.scheme not in _POSTGRES_SCHEMES or parsed.netloc == "":
+        raise EngineError("database_url must be a postgres:// or postgresql:// URL", code="validation_failed")
     return database_url
 
 
@@ -324,6 +344,8 @@ def _llm_payload(llm: JsonObject | None) -> JsonObject | None:
     cheap = llm.get("cheap")
     if not isinstance(strong, str) or not isinstance(cheap, str) or strong == "" or cheap == "":
         raise EngineError("llm requires strong and cheap", code="validation_failed")
+    if _MODEL_ID.fullmatch(strong) is None or _MODEL_ID.fullmatch(cheap) is None:
+        raise EngineError("llm.strong and llm.cheap must be provider/model ids", code="validation_failed")
     return {"strong": strong, "cheap": cheap}
 
 

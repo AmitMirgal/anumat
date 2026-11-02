@@ -17,6 +17,16 @@ test('create routes publish 201 and the conflict routes publish 409', () => {
   expect(reject?.['409']).toBeTruthy();
 });
 
+test('check and approve declare an empty JSON body', () => {
+  for (const path of ['/sources/{id}/check', '/versions/{id}/approve']) {
+    const body = document.paths?.[path]?.post?.requestBody;
+    expect(body).toMatchObject({
+      required: true,
+      content: { 'application/json': { schema: { type: 'object', additionalProperties: false } } },
+    });
+  }
+});
+
 test('every REST operation has an operationId', () => {
   const ids = Object.values(document.paths ?? {}).flatMap((item) =>
     Object.values(item ?? {}).flatMap((operation) => {

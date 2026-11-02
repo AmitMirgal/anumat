@@ -85,6 +85,12 @@ if ! grep -q "Usage: anumat-engine" "$startup"; then
 fi
 rm -f "$startup"
 
+sha_file="$root/packages/engine/.sidecar/migration.sha256"
+if [[ ! -f "$sha_file" ]]; then
+  echo "missing migration checksum $sha_file" >&2
+  exit 1
+fi
 export ANUMAT_ENGINE_PLATFORM="$platform"
 mkdir -p "$out"
+cp "$sha_file" "$out/migration.sha256"
 uv build --wheel --package anumat-engine --out-dir "$out"

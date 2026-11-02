@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 
 const prelude = `type TrpcContext = {
     apiKey: string | undefined;
@@ -20,7 +20,7 @@ type OpenApiMeta = {
 
 `;
 
-for (const file of ['dist/index.d.ts', 'dist/index.d.mts']) {
+for (const file of ['dist/index.d.ts']) {
   let text = readFileSync(file, 'utf8');
   text = text.replace(/^import \* as trpc_to_openapi from 'trpc-to-openapi';\r?\n/m, '');
   text = text.replace(/^import \* as _anumat_contract from '@anumat\/contract';\r?\n/m, '');
@@ -36,3 +36,4 @@ for (const file of ['dist/index.d.ts', 'dist/index.d.mts']) {
 }
 
 writeFileSync('dist/index.d.cts', readFileSync('dist/index.d.ts', 'utf8'));
+rmSync('dist/index.d.mts', { force: true });

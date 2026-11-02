@@ -10,7 +10,7 @@ from anumat_engine.engine import Engine
 ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = Path(__file__).resolve().parents[1]
 CASES = json.loads((ROOT / "engine" / "policy-cases.json").read_text())
-VECTORS = json.loads((ROOT / "engine" / "slug-vectors.json").read_text())
+VECTORS = json.loads((ROOT / "engine" / "test" / "slugify-fixtures.json").read_text())
 
 
 def _source_install_error() -> str:

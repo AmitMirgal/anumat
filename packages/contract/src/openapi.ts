@@ -3,9 +3,18 @@ import { appRouter } from './router';
 
 const createdPaths = new Set(['/payers', '/sources']);
 const conflictPaths = new Set(['/payers', '/sources', '/versions/{id}/approve', '/versions/{id}/reject']);
+const emptyJsonBodyPaths = new Set(['/sources/{id}/check', '/versions/{id}/approve']);
 
 type Document = ReturnType<typeof generateOpenApiDocument>;
 type ResponseObject = { description?: string; content?: unknown; headers?: unknown };
+type JsonOperation = {
+  requestBody?: {
+    required?: boolean;
+    description?: string;
+    content?: Record<string, { schema?: Record<string, unknown> }>;
+  };
+  responses?: Record<string, ResponseObject>;
+};
 
 export function openApiDocument(baseUrl = 'http://127.0.0.1:4471/api/v1') {
   const document = generateOpenApiDocument(appRouter, {
@@ -35,6 +44,18 @@ function withStatusCodes(document: Document): Document {
       responses['409'] = badRequest
         ? { ...badRequest, description: 'Conflict' }
         : { description: 'Conflict' };
+    }
+    if (emptyJsonBodyPaths.has(path)) {
+      const operation = post as JsonOperation;
+      operation.requestBody = {
+        required: true,
+        description: 'Send an empty JSON object.',
+        content: {
+          'application/json': {
+            schema: { type: 'object', additionalProperties: false },
+          },
+        },
+      };
     }
   }
   return document;

@@ -1,3 +1,4 @@
+import { AppError } from '@anumat/core';
 import { expect, test } from 'vitest';
 import { DEFAULT_DATA_DIR } from '../src/config';
 import { closeContext } from '../src/context';
@@ -114,6 +115,50 @@ test('a bad database url does not fail storage env validation', async () => {
   } finally {
     restoreEnv(previous);
   }
+});
+
+test('createEngine rejects missing and null options', async () => {
+  await expect(createEngine(undefined as never)).rejects.toBeInstanceOf(AppError);
+  await expect(createEngine(undefined as never)).rejects.toMatchObject({ code: 'validation_failed' });
+  await expect(createEngine(null as never)).rejects.toMatchObject({ code: 'validation_failed' });
+});
+
+test('createEngine rejects null storage, llm, and firecrawl', async () => {
+  await expect(createEngine({ databaseUrl, storage: null } as never)).rejects.toMatchObject({ code: 'validation_failed' });
+  await expect(createEngine({ databaseUrl, llm: null } as never)).rejects.toMatchObject({ code: 'validation_failed' });
+  await expect(createEngine({ databaseUrl, firecrawl: null } as never)).rejects.toMatchObject({ code: 'validation_failed' });
+});
+
+test('createEngine rejects storage that is not a local path or complete s3 config', async () => {
+  await expect(createEngine({ databaseUrl, storage: { kind: 'gcs' } } as never)).rejects.toMatchObject({ code: 'validation_failed' });
+  await expect(createEngine({ databaseUrl, storage: {} } as never)).rejects.toMatchObject({ code: 'validation_failed' });
+  await expect(createEngine({ databaseUrl, storage: { kind: 'local', dataDir: 5 } } as never)).rejects.toMatchObject({
+    code: 'validation_failed',
+  });
+});
+
+test('createEngine rejects a db that is not a client', async () => {
+  await expect(createEngine({ db: null } as never)).rejects.toMatchObject({ code: 'validation_failed' });
+  await expect(createEngine({ db: 42 } as never)).rejects.toMatchObject({ code: 'validation_failed' });
+});
+
+test('createEngine rejects a non-postgres or oversized databaseUrl', async () => {
+  await expect(createEngine({ databaseUrl: 'http://example.test/db' })).rejects.toMatchObject({ code: 'validation_failed' });
+  await expect(createEngine({ databaseUrl: `postgres://anumat:anumat@127.0.0.1:5432/${'a'.repeat(4097)}` })).rejects.toMatchObject({
+    code: 'validation_failed',
+  });
+});
+
+test('createEngine rejects unknown options', async () => {
+  await expect(createEngine({ databaseUrl, extra: true } as never)).rejects.toMatchObject({ code: 'validation_failed' });
+});
+
+test('createEngine config omits host, port, and apiKeys', async () => {
+  const engine = await createEngine({ databaseUrl });
+  expect('host' in engine.config).toBe(false);
+  expect('port' in engine.config).toBe(false);
+  expect('apiKeys' in engine.config).toBe(false);
+  await closeContext(engine);
 });
 
 function snapshotEnv(names: string[]): Map<string, string | undefined> {
