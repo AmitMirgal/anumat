@@ -49,7 +49,14 @@ export interface AnumatServices {
   getDiff(id: string): Promise<Out<typeof Diff>>;
 }
 
-const t = initTRPC.context<TrpcContext>().meta<OpenApiMeta>().create();
+const t = initTRPC.context<TrpcContext>().meta<OpenApiMeta>().create({
+  isDev: false,
+  errorFormatter({ shape }) {
+    const data = { ...shape.data } as { stack?: string };
+    delete data.stack;
+    return { ...shape, data };
+  },
+});
 
 export { t };
 
@@ -60,87 +67,87 @@ const authed = t.procedure.use(({ ctx, next }) => {
   return next({ ctx: { ...ctx, principal: ctx.principal } });
 });
 
-const openapi = (method: 'GET' | 'POST', path: `/${string}`) => ({
-  openapi: { method, path, protect: true as const },
+const openapi = (method: 'GET' | 'POST', path: `/${string}`, operationId: string) => ({
+  openapi: { method, path, protect: true as const, operationId },
 });
 
 export const appRouter = t.router({
   payers: t.router({
     create: authed
-      .meta(openapi('POST', '/payers'))
+      .meta(openapi('POST', '/payers', 'createPayer'))
       .input(NewPayer)
       .output(Payer)
       .mutation(({ ctx, input }) => callService(() => ctx.services.createPayer(input))),
     list: authed
-      .meta(openapi('GET', '/payers'))
+      .meta(openapi('GET', '/payers', 'listPayers'))
       .input(pageQuery)
       .output(pageOf(Payer))
       .query(({ ctx, input }) => callService(() => ctx.services.listPayers(input))),
   }),
   sources: t.router({
     create: authed
-      .meta(openapi('POST', '/sources'))
+      .meta(openapi('POST', '/sources', 'createSource'))
       .input(NewSource)
       .output(Source)
       .mutation(({ ctx, input }) => callService(() => ctx.services.createSource(input))),
     list: authed
-      .meta(openapi('GET', '/sources'))
+      .meta(openapi('GET', '/sources', 'listSources'))
       .input(pageQuery)
       .output(pageOf(Source))
       .query(({ ctx, input }) => callService(() => ctx.services.listSources(input))),
     get: authed
-      .meta(openapi('GET', '/sources/{id}'))
+      .meta(openapi('GET', '/sources/{id}', 'getSource'))
       .input(SourceId)
       .output(Source)
       .query(({ ctx, input }) => callService(() => ctx.services.getSource(input.id))),
     check: authed
-      .meta(openapi('POST', '/sources/{id}/check'))
+      .meta(openapi('POST', '/sources/{id}/check', 'checkSource'))
       .input(SourceId)
       .output(CheckResult)
       .mutation(({ ctx, input }) => callService(() => ctx.services.checkSource(input.id))),
   }),
   policies: t.router({
     get: authed
-      .meta(openapi('GET', '/policies/{policyKey}'))
+      .meta(openapi('GET', '/policies/{policyKey}', 'getPolicy'))
       .input(PolicyKey)
       .output(PublishedPolicy)
       .query(({ ctx, input }) => callService(() => ctx.services.getPolicy(input.policyKey))),
     versions: authed
-      .meta(openapi('GET', '/policies/{policyKey}/versions'))
+      .meta(openapi('GET', '/policies/{policyKey}/versions', 'listPolicyVersions'))
       .input(PolicyVersionsQuery)
       .output(pageOf(Version))
       .query(({ ctx, input }) => callService(() => ctx.services.listPolicyVersions(input.policyKey, input))),
     version: authed
-      .meta(openapi('GET', '/policies/{policyKey}/versions/{version}'))
+      .meta(openapi('GET', '/policies/{policyKey}/versions/{version}', 'getPolicyVersion'))
       .input(PolicyVersionQuery)
       .output(PublishedPolicy)
       .query(({ ctx, input }) => callService(() => ctx.services.getPolicyVersion(input.policyKey, input.version))),
   }),
   versions: t.router({
     list: authed
-      .meta(openapi('GET', '/versions'))
+      .meta(openapi('GET', '/versions', 'listVersions'))
       .input(VersionFilter)
       .output(pageOf(Version))
       .query(({ ctx, input }) => callService(() => ctx.services.listVersions(input))),
     get: authed
-      .meta(openapi('GET', '/versions/{id}'))
+      .meta(openapi('GET', '/versions/{id}', 'getVersion'))
       .input(SourceId)
       .output(VersionDetail)
       .query(({ ctx, input }) => callService(() => ctx.services.getVersion(input.id))),
     approve: authed
-      .meta(openapi('POST', '/versions/{id}/approve'))
+      .meta(openapi('POST', '/versions/{id}/approve', 'approveVersion'))
       .input(SourceId)
       .output(Version)
       .mutation(({ ctx, input }) => callService(() => ctx.services.approveVersion(input.id, ctx.principal))),
     reject: authed
-      .meta(openapi('POST', '/versions/{id}/reject'))
+      .meta(openapi('POST', '/versions/{id}/reject', 'rejectVersion'))
       .input(RejectVersion)
       .output(Version)
       .mutation(({ ctx, input }) => callService(() => ctx.services.rejectVersion(input.id, input.reason, ctx.principal))),
   }),
   diffs: t.router({
     get: authed
-      .meta(openapi('GET', '/diffs/{id}'))
+      .meta(openapi('GET', '/diffs/{id}', 'getDiff'))
       .input(SourceId)
       .output(Diff)
       .query(({ ctx, input }) => callService(() => ctx.services.getDiff(input.id))),

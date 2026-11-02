@@ -1,0 +1,31 @@
+Third-party notices for @anumat/engine
+
+The published package links these libraries. Each one keeps its own license. This file does not name the agent framework. That framework is an external dependency and is not reproduced here.
+
+zod
+MIT License
+https://github.com/colinhacks/zod
+
+pg
+MIT License
+https://github.com/brianc/node-postgres
+
+pino
+MIT License
+https://github.com/pinojs/pino
+
+@firecrawl/anydoc
+MIT License
+https://github.com/firecrawl/anydoc
+
+@prisma/client
+Apache License 2.0
+https://github.com/prisma/prisma
+
+@prisma/adapter-pg
+Apache License 2.0
+https://github.com/prisma/prisma
+
+@aws-sdk/client-s3
+Apache License 2.0
+https://github.com/aws/aws-sdk-js-v3

@@ -34,3 +34,5 @@ for (const file of ['dist/index.d.ts', 'dist/index.d.mts']) {
   if (at === -1) throw new Error(`${file} is missing ${marker}`);
   writeFileSync(file, `${text.slice(0, at)}${prelude}${text.slice(at)}`);
 }
+
+writeFileSync('dist/index.d.cts', readFileSync('dist/index.d.ts', 'utf8'));

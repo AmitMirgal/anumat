@@ -2,6 +2,7 @@ node_modules/
 dist/
 packages/engine/migrations/
 packages/engine/package.json.pack-backup
+packages/sdk-js/package.json.pack-backup
 __pycache__/
 *.pyc
 coverage/
@@ -11,6 +12,9 @@ src/generated/
 apps/api/openapi.json
 packages/sdk-python/src/anumat_py/_generated/
 packages/engine-py/src/anumat_engine/bin/
+packages/engine-py/.sidecar/
+packages/engine/.sidecar/
+pyproject.toml.orig
 .env
 .env.*
 !.env.example

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
 import type { AuditRecord, AuditSink } from '@anumat/core';
-import { replayModels } from '@anumat/engine';
+import { replayModels } from '@anumat/engine/replay';
 import { bariatricV1, fakePayerSite, TEST_API_KEY, testContext } from '@anumat/engine/testing';
 import { createApp } from '../src/http/app';
 

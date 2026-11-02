@@ -2,7 +2,7 @@ DRAFT: to be reviewed by a lawyer before use.
 
 Anumat Enterprise Edition License v1.0
 
-Copyright 2026 [LEGAL ENTITY NAME]
+Copyright 2026 AmitMirgal
 
 1. Scope
 

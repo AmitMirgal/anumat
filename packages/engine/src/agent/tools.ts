@@ -1,6 +1,6 @@
 import { RequestContext } from '@mastra/core/request-context';
 import { createTool } from '@mastra/core/tools';
-import { z } from 'zod';
+import * as z from 'zod';
 import { outline, readSections } from '../documents/outline';
 import { extractSchemas, type Market } from '@anumat/markets';
 import type { ModeId } from './policy-agent';

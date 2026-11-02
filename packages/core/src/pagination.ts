@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 import { AppError } from './errors';
 
 export type PageRequest = { limit: number; cursor?: string | undefined };

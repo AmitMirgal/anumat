@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 chdir(join(dirname(fileURLToPath(import.meta.url)), '../../..'));
 import { serve } from '@hono/node-server';
-import { closeContext, createContext, createPolicyAgent, loadConfig, modelSource, type ModelSource } from '@anumat/engine';
+import { closeContext, createContext, createPolicyAgent, loadConfig, type ModelSource } from '@anumat/engine';
+import { modelSource } from '@anumat/engine/replay';
 import { createApp } from '../src/http/app';
 
 const UHC_BARIATRIC =

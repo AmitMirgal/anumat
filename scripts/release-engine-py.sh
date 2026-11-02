@@ -50,6 +50,39 @@ echo "$name $version"
 echo "Wheels:"
 ls dist
 
+native=$(python3 - <<'PY'
+import platform
+import sys
+
+system = platform.system().lower()
+machine = platform.machine().lower()
+if system == "darwin" and machine in {"arm64", "aarch64"}:
+    print("macosx_11_0_arm64")
+elif system == "darwin" and machine in {"x86_64", "amd64"}:
+    print("macosx_11_0_x86_64")
+elif system == "linux" and machine in {"x86_64", "amd64"}:
+    print("manylinux_2_17_x86_64")
+elif system == "linux" and machine in {"aarch64", "arm64"}:
+    print("manylinux_2_17_aarch64")
+elif system == "windows" and machine in {"x86_64", "amd64"}:
+    print("win_amd64")
+else:
+    sys.exit(f"no anumat-engine wheel tag for {system} {machine}")
+PY
+)
+wheel=$(ls "dist/"*"${native}"*.whl)
+export DATABASE_URL="${DATABASE_URL:-postgres://anumat:anumat@127.0.0.1:5432/anumat_engine}"
+export ANUMAT_MIGRATION_SQL="${ANUMAT_MIGRATION_SQL:-packages/db/prisma/migrations/20260929061425_init/migration.sql}"
+uv venv /tmp/anumat-engine-smoke --clear -q
+uv pip install -q --python /tmp/anumat-engine-smoke "$wheel"
+if [[ -x /tmp/anumat-engine-smoke/Scripts/python.exe ]]; then
+  smoke_python=/tmp/anumat-engine-smoke/Scripts/python.exe
+else
+  smoke_python=/tmp/anumat-engine-smoke/bin/python
+fi
+echo "Smoking $wheel before publish."
+"$smoke_python" packages/engine-py/scripts/smoke.py
+
 read -r -p "Publish $name $version for real? Type $version to confirm: " answer
 [[ "$answer" == "$version" ]] || { echo "Cancelled. Nothing was published."; exit 1; }
 
@@ -57,11 +90,10 @@ uv publish --token "$PYPI_TOKEN" dist/*
 
 git add packages/engine-py/pyproject.toml uv.lock
 if ! git diff --cached --quiet; then
-  git commit -m "chore(anumat-py): release anumat-engine $version"
+  git commit -m "chore(anumat-engine): release $version"
 fi
 
-tag="anumat-py@$version"
+tag="anumat-engine@$version"
 git tag "$tag"
 echo "Created local tag $tag."
 echo "git push origin main && git push origin tag $tag"
-echo "git push origin main --follow-tags"

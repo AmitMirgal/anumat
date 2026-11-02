@@ -62,3 +62,23 @@ def test_storage_kind_is_rejected_before_start(monkeypatch: pytest.MonkeyPatch) 
     with pytest.raises(EngineError) as raised:
         create_engine(database_url=DATABASE_URL, storage={"kind": "disk"})
     assert raised.value.code == "validation_failed"
+
+
+def test_incomplete_storage_and_database_url_fail_validation(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ANUMAT_ENGINE_BINARY", str(FAKE))
+    with pytest.raises(EngineError) as missing:
+        create_engine(database_url="", storage={"kind": "s3"})
+    assert missing.value.code == "validation_failed"
+    with pytest.raises(EngineError) as partial:
+        create_engine(database_url=DATABASE_URL, storage={"kind": "s3", "region": "us-east-1"})
+    assert partial.value.code == "validation_failed"
+    assert "required" in str(partial.value)
+
+
+def test_startup_failure_includes_stderr(monkeypatch: pytest.MonkeyPatch) -> None:
+    crash = Path(__file__).with_name("crash_sidecar.py")
+    monkeypatch.setenv("ANUMAT_ENGINE_BINARY", str(crash))
+    with pytest.raises(EngineError) as raised:
+        create_engine(database_url=DATABASE_URL)
+    assert raised.value.code == "internal"
+    assert "z is not defined" in str(raised.value)

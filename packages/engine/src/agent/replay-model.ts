@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { MastraLanguageModelV2Mock, simulateReadableStream } from '@mastra/core/test-utils/llm-mock';
-import { z } from 'zod';
+import * as z from 'zod';
 import type { ModeId, ModelSource } from './policy-agent';
 
 type CallOptions = Parameters<MastraLanguageModelV2Mock['doStream']>[0];

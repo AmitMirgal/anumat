@@ -1,6 +1,6 @@
 {
   "name": "@anumat/engine",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Check payer policy documents and store proposed versions.",
   "license": "Apache-2.0",
   "repository": {
@@ -20,11 +20,13 @@
     "migrations",
     "LICENSE",
     "NOTICE",
+    "THIRD_PARTY_NOTICES",
     "README.md"
   ],
   "exports": {
     ".": "./src/index.ts",
-    "./testing": "./src/testing/index.ts"
+    "./testing": "./src/testing/index.ts",
+    "./replay": "./src/model-source.ts"
   },
   "publishConfig": {
     "access": "public",
@@ -33,9 +35,14 @@
     "types": "./dist/index.d.ts",
     "exports": {
       ".": {
-        "types": "./dist/index.d.ts",
-        "import": "./dist/index.js",
-        "require": "./dist/index.cjs"
+        "import": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/index.js"
+        },
+        "require": {
+          "types": "./dist/index.d.cts",
+          "default": "./dist/index.cjs"
+        }
       }
     },
     "dependencies": {
@@ -52,7 +59,7 @@
   "scripts": {
     "prepack": "node scripts/prepare-pack.mjs",
     "postpack": "node scripts/restore-pack.mjs",
-    "build": "node scripts/check-boundary.mjs && node scripts/copy-migrations.mjs && rm -rf dist && tsup && node scripts/bundle-dts.mjs && node scripts/check-bundle.mjs && chmod +x dist/cli.js",
+    "build": "node scripts/check-boundary.mjs && node scripts/copy-migrations.mjs && rm -rf dist && tsup && node scripts/bundle-dts.mjs && node scripts/check-bundle.mjs && chmod +x dist/cli.js && node scripts/check-pack.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "eval": "vitest run --config vitest.eval.config.ts",
@@ -75,9 +82,11 @@
   },
   "devDependencies": {
     "@anumat/tsconfig": "workspace:*",
+    "@arethetypeswrong/cli": "^0.18.5",
     "@mastra/evals": "^1.10.3",
     "@types/node": "^24.0.0",
     "@types/pg": "^8.15.5",
+    "esbuild": "^0.28.2",
     "rollup": "^4.53.2",
     "rollup-plugin-dts": "^6.2.3",
     "tsup": "^8.5.1",

@@ -5,5 +5,6 @@ const options = {
   base: { service: 'anumat' },
 };
 
-export const log =
-  process.env.ANUMAT_ENGINE_SIDECAR === '1' ? pino(options, pino.destination(process.stderr.fd)) : pino(options);
+const stderr = pino.destination({ dest: process.stderr.fd, sync: true, minLength: 0 });
+
+export const log = pino(options, stderr);

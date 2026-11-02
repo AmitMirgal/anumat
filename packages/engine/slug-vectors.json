@@ -1,0 +1,23 @@
+[
+  { "input": "United Health", "slug": "united-health" },
+  { "input": "  A--B  ", "slug": "a-b" },
+  { "input": "Hello, World!", "slug": "hello-world" },
+  { "input": "---", "slug": "" },
+  { "input": "", "slug": "" },
+  { "input": "Policy #12", "slug": "policy-12" },
+  { "input": "Café", "slug": "cafe" },
+  { "input": "naïve", "slug": "nai-ve" },
+  { "input": "foo_bar", "slug": "foo-bar" },
+  { "input": "MiXeD", "slug": "mixed" },
+  { "input": "a  b", "slug": "a-b" },
+  { "input": "123", "slug": "123" },
+  { "input": "Ünited", "slug": "u-nited" },
+  { "input": "İstanbul", "slug": "i-stanbul" },
+  { "input": "ßeta", "slug": "eta" },
+  { "input": "already-slugged", "slug": "already-slugged" },
+  { "input": "  spaced  out ", "slug": "spaced-out" },
+  { "input": "C++", "slug": "c" },
+  { "input": "100%", "slug": "100" },
+  { "input": "rock & roll", "slug": "rock-roll" },
+  { "input": "é", "slug": "e" }
+]
