@@ -1,3 +1,5 @@
+import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -9,11 +11,24 @@ if (!target || !outfile) {
   process.exit(1);
 }
 
-const optional = new Set(['@opentelemetry/api']);
-const stub = join(root, 'packages/engine/src/optional/empty.ts');
+const bundled = spawnSync('node', ['scripts/bundle-sidecar.mjs'], {
+  cwd: join(root, 'packages/engine'),
+  encoding: 'utf8',
+});
+if (bundled.status !== 0) {
+  process.stderr.write(bundled.stderr);
+  process.exit(bundled.status ?? 1);
+}
+const entry = bundled.stdout.trim();
+const bundledSource = readFileSync(entry, 'utf8');
+if (hasLocalPath(bundledSource)) {
+  console.error('prebundled sidecar contains a local path or username');
+  process.exit(1);
+}
 
+const stub = join(root, 'packages/engine/src/optional/empty.ts');
 const result = await Bun.build({
-  entrypoints: [join(root, 'packages/engine/src/sidecar.ts')],
+  entrypoints: [entry],
   compile: {
     target,
     outfile,
@@ -25,7 +40,7 @@ const result = await Bun.build({
       name: 'optional-import',
       setup(build) {
         build.onResolve({ filter: /.*/ }, (args) => {
-          if (!optional.has(args.path)) return undefined;
+          if (args.path !== '@opentelemetry/api') return undefined;
           return { path: stub };
         });
       },
@@ -33,4 +48,11 @@ const result = await Bun.build({
   ],
 });
 
-if (!result.success) process.exit(1);
+function hasLocalPath(text: string): boolean {
+  return text.includes('/Users') || text.includes('/home') || text.includes('C:\\Users') || text.toLowerCase().includes('amitmirgal');
+}
+
+if (!result.success) {
+  for (const log of result.logs) console.error(log);
+  process.exit(1);
+}

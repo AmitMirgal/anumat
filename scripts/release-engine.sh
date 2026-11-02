@@ -16,8 +16,7 @@ fi
 
 pnpm turbo run build test --filter=@anumat/engine
 
-pack_json=$(cd packages/engine && npm pack --dry-run --json)
-printf '%s\n' "$pack_json" | node scripts/check-engine-tarball.mjs
+node packages/engine/scripts/check-pack.mjs
 
 read -r -p "Publish $name $version for real? Type $version to confirm: " answer
 [[ "$answer" == "$version" ]] || { echo "Cancelled. Nothing was published."; exit 1; }
@@ -25,5 +24,5 @@ read -r -p "Publish $name $version for real? Type $version to confirm: " answer
 pnpm --filter @anumat/engine publish --access public
 
 git tag "$name@$version"
-git push origin "$name@$version"
-echo "Published $name $version and tagged it."
+echo "git push origin main && git push origin tag $name@$version"
+echo "Published $name $version and tagged it locally."

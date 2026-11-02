@@ -9,6 +9,7 @@ import subprocess
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Any, Literal
 
@@ -190,37 +191,38 @@ def create_engine(
     storage: JsonObject | None = None,
     llm: JsonObject | None = None,
 ) -> Engine:
-    config: JsonObject = {"databaseUrl": database_url}
+    config: JsonObject = {"databaseUrl": _database_url(database_url)}
     storage_payload = _storage_payload(storage)
     if storage_payload is not None:
         config["storage"] = storage_payload
-    if llm is not None:
-        strong = llm.get("strong")
-        cheap = llm.get("cheap")
-        if not isinstance(strong, str) or not isinstance(cheap, str):
-            raise EngineError("llm requires strong and cheap", code="validation_failed")
-        config["llm"] = {"strong": strong, "cheap": cheap}
+    llm_payload = _llm_payload(llm)
+    if llm_payload is not None:
+        config["llm"] = llm_payload
     process = _spawn(binary_path())
     stderr = bytearray()
+    drained = threading.Event()
     assert process.stderr is not None
-    threading.Thread(target=_drain, args=(process.stderr, stderr), daemon=True).start()
+    threading.Thread(target=_drain, args=(process.stderr, stderr, drained), daemon=True).start()
     try:
         assert process.stdin is not None and process.stdout is not None
         process.stdin.write(json.dumps(config).encode() + b"\n")
         process.stdin.flush()
         line = _read_line(process.stdout, 60)
         if line == b"":
-            raise EngineError(_with_stderr("engine exited before it was ready", stderr), code="internal")
-        ready = json.loads(line.decode())
+            raise EngineError(_startup_message("engine exited before it was ready", process, stderr, drained), code="internal")
+        try:
+            ready = json.loads(line.decode())
+        except json.JSONDecodeError:
+            raise EngineError(_startup_message("engine ready line was not JSON", process, stderr, drained), code="internal") from None
         port = ready["port"]
         token = ready["token"]
         if not isinstance(port, int) or not isinstance(token, str) or token == "":
-            raise EngineError("engine ready line was incomplete", code="internal")
+            raise EngineError(_with_stderr("engine ready line was incomplete", stderr), code="internal")
         base_url = f"http://127.0.0.1:{port}"
         _wait_health(base_url, token, process, stderr)
         engine_config = ready.get("config")
         if not isinstance(engine_config, dict):
-            raise EngineError("engine ready line was incomplete", code="internal")
+            raise EngineError(_with_stderr("engine ready line was incomplete", stderr), code="internal")
         engine = Engine(process, base_url, token, engine_config, stderr)
     except Exception:
         _stop(process)
@@ -252,13 +254,16 @@ def _spawn(binary: os.PathLike[str]) -> subprocess.Popen[bytes]:
     )
 
 
-def _drain(stream: Any, sink: bytearray, limit: int = 65536) -> None:
-    while True:
-        chunk = stream.read(4096)
-        if not chunk:
-            return
-        if len(sink) < limit:
-            sink.extend(chunk[: limit - len(sink)])
+def _drain(stream: Any, sink: bytearray, done: threading.Event, limit: int = 65536) -> None:
+    try:
+        while True:
+            chunk = stream.read(4096)
+            if not chunk:
+                return
+            if len(sink) < limit:
+                sink.extend(chunk[: limit - len(sink)])
+    finally:
+        done.set()
 
 
 def _read_line(stream: Any, timeout: float) -> bytes:
@@ -301,26 +306,61 @@ def _wait_health(base_url: str, token: str, process: subprocess.Popen[bytes], st
     raise EngineError(last, code="internal")
 
 
+def _database_url(database_url: str) -> str:
+    if not isinstance(database_url, str) or database_url.strip() == "":
+        raise EngineError("database_url is required", code="validation_failed")
+    parsed = urllib.parse.urlparse(database_url)
+    if parsed.scheme == "" or parsed.netloc == "":
+        raise EngineError("database_url must be a URL", code="validation_failed")
+    return database_url
+
+
+def _llm_payload(llm: JsonObject | None) -> JsonObject | None:
+    if llm is None:
+        return None
+    if not isinstance(llm, dict):
+        raise EngineError("llm must be an object", code="validation_failed")
+    strong = llm.get("strong")
+    cheap = llm.get("cheap")
+    if not isinstance(strong, str) or not isinstance(cheap, str) or strong == "" or cheap == "":
+        raise EngineError("llm requires strong and cheap", code="validation_failed")
+    return {"strong": strong, "cheap": cheap}
+
+
+def _storage_text(storage: JsonObject, key: str) -> str:
+    value = storage.get(key)
+    if not isinstance(value, str) or value == "":
+        raise EngineError(f"storage.{key} is required", code="validation_failed")
+    return value
+
+
 def _storage_payload(storage: JsonObject | None) -> JsonObject | None:
     if storage is None:
         return None
+    if not isinstance(storage, dict):
+        raise EngineError("storage must be an object", code="validation_failed")
     kind = storage.get("kind")
     if kind == "local":
         payload: JsonObject = {"kind": "local"}
         data_dir = storage.get("data_dir")
-        if isinstance(data_dir, str):
-            payload["dataDir"] = data_dir
+        if data_dir is None:
+            return payload
+        if not isinstance(data_dir, str) or data_dir == "":
+            raise EngineError("storage.data_dir must be a non-empty path", code="validation_failed")
+        payload["dataDir"] = data_dir
         return payload
     if kind == "s3":
         payload = {
             "kind": "s3",
-            "region": storage["region"],
-            "bucket": storage["bucket"],
-            "accessKeyId": storage["access_key_id"],
-            "secretAccessKey": storage["secret_access_key"],
+            "region": _storage_text(storage, "region"),
+            "bucket": _storage_text(storage, "bucket"),
+            "accessKeyId": _storage_text(storage, "access_key_id"),
+            "secretAccessKey": _storage_text(storage, "secret_access_key"),
         }
         endpoint = storage.get("endpoint")
-        if isinstance(endpoint, str):
+        if endpoint is not None:
+            if not isinstance(endpoint, str) or urllib.parse.urlparse(endpoint).scheme == "":
+                raise EngineError("storage.endpoint must be a URL", code="validation_failed")
             payload["endpoint"] = endpoint
         return payload
     raise EngineError("storage.kind must be local or s3", code="validation_failed")
@@ -377,6 +417,15 @@ def _error_from_http(error: urllib.error.HTTPError) -> EngineError:
             details=details if isinstance(details, dict) else None,
         )
     return EngineError(error.reason or "engine request failed", code="internal")
+
+
+def _startup_message(message: str, process: subprocess.Popen[bytes], stderr: bytearray, drained: threading.Event) -> str:
+    try:
+        process.wait(timeout=2)
+    except subprocess.TimeoutExpired:
+        pass
+    drained.wait(timeout=2)
+    return _with_stderr(message, stderr)
 
 
 def _with_stderr(message: str, stderr: bytearray) -> str:

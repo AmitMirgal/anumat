@@ -1,0 +1,12 @@
+[
+  {"id":"TEST-PA-01","intent":"approve-ish","payer":{"name":"TEST Sunrise Health Plan","slug":"test-sunrise","market":"us"},"source":{"title":"TEST MRI Lumbar Spine Prior Auth","source_url":"https://example.test/policies/mri-lumbar.pdf","policy_slug":"test-mri-lumbar","check_interval_hours":24},"extraction":{"criteria":["6 weeks conservative therapy","red-flag symptoms"],"codes":["72148"]},"action":"approve"},
+  {"id":"TEST-PA-02","intent":"deny-ish","payer":{"name":"TEST Northwind Care","slug":"test-northwind","market":"us"},"source":{"title":"TEST Bariatric Surgery","source_url":"https://example.test/policies/bariatric.pdf","policy_slug":"test-bariatric"},"extraction":{"criteria":["BMI>=40"],"codes":["43644"]},"action":"reject","reason":"TEST: criteria incomplete"},
+  {"id":"TEST-PA-03","intent":"needs-more-info","payer":{"name":"TEST Contoso Mutual","slug":"test-contoso","market":"us"},"source":{"title":"TEST Genetic Testing BRCA","source_url":"https://example.test/policies/brca.pdf"},"extraction":{},"action":"propose_only"},
+  {"id":"TEST-PA-04","intent":"boundary interval=1","payer":{"name":"TEST Edge Payer","slug":"test-edge","market":"us"},"source":{"title":"TEST Hourly","source_url":"https://example.test/p.pdf","check_interval_hours":1},"action":"register_only"},
+  {"id":"TEST-PA-05","intent":"boundary interval=0","payer":{"name":"TEST Edge Payer 2","slug":"test-edge-2","market":"us"},"source":{"title":"TEST Zero","source_url":"https://example.test/z.pdf","check_interval_hours":0},"action":"register_only","expect":"validation_failed"},
+  {"id":"TEST-PA-06","intent":"bad market","payer":{"name":"TEST India Payer","slug":"test-in","market":"in"},"action":"register_only","expect":"validation_failed"},
+  {"id":"TEST-PA-07","intent":"duplicate slug","payer":{"name":"TEST Sunrise Dup","slug":"test-sunrise","market":"us"},"action":"register_only","expect":"conflict"},
+  {"id":"TEST-PA-08","intent":"non-url source","payer":{"name":"TEST Payer 8","slug":"test-p8","market":"us"},"source":{"title":"TEST","source_url":"not-a-url"},"action":"register_only","expect":"validation_failed"},
+  {"id":"TEST-PA-09","intent":"unicode name","payer":{"name":"TEST Résumé Santé Ünïon","slug":"test-resume-sante","market":"us"},"action":"register_only"},
+  {"id":"TEST-PA-10","intent":"unpublished lookup","lookup_policy_key":"test-sunrise/does-not-exist","action":"get_published","expect":"policy_not_published"}
+]

@@ -7,4 +7,5 @@ const { access: _access, ...overlay } = pkg.publishConfig ?? {};
 const published = { ...pkg, ...overlay };
 delete published.publishConfig;
 delete published.devDependencies;
+delete published.scripts;
 writeFileSync(path, `${JSON.stringify(published, null, 2)}\n`);

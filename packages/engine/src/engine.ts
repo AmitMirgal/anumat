@@ -59,13 +59,13 @@ function databaseFromOptions(options: CreateEngineOptions): { databaseUrl: strin
   const databaseUrl = 'databaseUrl' in options ? options.databaseUrl : undefined;
   const db = 'db' in options ? options.db : undefined;
   if ((databaseUrl === undefined) === (db === undefined)) {
-    throw new Error('createEngine requires databaseUrl or db, and only one of them');
+    throw new AppError('validation_failed', 'createEngine requires databaseUrl or db, and only one of them');
   }
   if (databaseUrl !== undefined) {
-    if (!URL.canParse(databaseUrl)) throw new Error('databaseUrl must be a URL');
+    if (!URL.canParse(databaseUrl)) throw new AppError('validation_failed', 'databaseUrl must be a URL');
     return { databaseUrl };
   }
-  if (db === undefined) throw new Error('createEngine requires databaseUrl or db, and only one of them');
+  if (db === undefined) throw new AppError('validation_failed', 'createEngine requires databaseUrl or db, and only one of them');
   return { databaseUrl: '', db };
 }
 
@@ -74,7 +74,7 @@ function storageFromOptions(storage: EngineStorage | undefined): StorageConfig {
   switch (storage.kind) {
     case 'local':
       if (storage.dataDir !== undefined && storage.dataDir.length === 0) {
-        throw new Error('storage dataDir must be a non-empty path');
+        throw new AppError('validation_failed', 'storage dataDir must be a non-empty path');
       }
       return { kind: 'local', dataDir: storage.dataDir ?? DEFAULT_DATA_DIR };
     case 's3':
@@ -89,9 +89,9 @@ function storageFromOptions(storage: EngineStorage | undefined): StorageConfig {
 function s3FromOptions(storage: Extract<EngineStorage, { kind: 's3' }>): S3Storage {
   const { region, bucket, accessKeyId, secretAccessKey, endpoint } = storage;
   if (!region || !bucket || !accessKeyId || !secretAccessKey) {
-    throw new Error('storage kind s3 requires region, bucket, accessKeyId, and secretAccessKey');
+    throw new AppError('validation_failed', 'storage kind s3 requires region, bucket, accessKeyId, and secretAccessKey');
   }
-  if (endpoint !== undefined && !URL.canParse(endpoint)) throw new Error('storage endpoint must be a URL');
+  if (endpoint !== undefined && !URL.canParse(endpoint)) throw new AppError('validation_failed', 'storage endpoint must be a URL');
   return { kind: 's3', endpoint, region, bucket, accessKeyId, secretAccessKey };
 }
 
@@ -106,7 +106,7 @@ function modelsFromOptions(llm: EngineLlm | undefined): ModelSource {
     };
   }
   if (!modelId.test(llm.strong) || !modelId.test(llm.cheap)) {
-    throw new Error('llm.strong and llm.cheap must be provider/model ids');
+    throw new AppError('validation_failed', 'llm.strong and llm.cheap must be provider/model ids');
   }
   return { kind: 'router', strong: llm.strong, cheap: llm.cheap };
 }
@@ -114,7 +114,7 @@ function modelsFromOptions(llm: EngineLlm | undefined): ModelSource {
 function firecrawlFromOptions(firecrawl: EngineFirecrawl | undefined): { apiKey: string | undefined; apiUrl: string | undefined } {
   if (firecrawl === undefined) return { apiKey: undefined, apiUrl: undefined };
   if (firecrawl.apiUrl !== undefined && !URL.canParse(firecrawl.apiUrl)) {
-    throw new Error('firecrawl apiUrl must be a URL');
+    throw new AppError('validation_failed', 'firecrawl apiUrl must be a URL');
   }
   return { apiKey: firecrawl.apiKey, apiUrl: firecrawl.apiUrl };
 }

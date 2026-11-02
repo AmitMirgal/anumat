@@ -1,13 +1,13 @@
-from collections.abc import Iterator
 import os
 import socket
 import subprocess
 import time
+from collections.abc import Iterator
 
 import httpx
 import pytest
 
-from anumat_py import AnumatClient
+from anumat_py import AnumatClient, AnumatError
 
 API_KEY = "test-key-0123456789abcdef"
 
@@ -35,7 +35,15 @@ def api_url() -> Iterator[str]:
         }
     )
     process = subprocess.Popen(
-        ["pnpm", "--filter", "@anumat/api", "exec", "tsx", "--env-file-if-exists=../../.env", "src/main.ts"],
+        [
+            "pnpm",
+            "--filter",
+            "@anumat/api",
+            "exec",
+            "tsx",
+            "--env-file-if-exists=../../.env",
+            "src/main.ts",
+        ],
         env=env,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -65,6 +73,37 @@ def api_url() -> Iterator[str]:
         process.wait(timeout=5)
     except subprocess.TimeoutExpired:
         process.kill()
+
+
+def test_client_rejects_a_bad_base_url() -> None:
+    try:
+        AnumatClient("ftp://example.test", API_KEY)
+    except AnumatError as error:
+        assert error.code == "validation_failed"
+    else:
+        raise AssertionError("expected AnumatError")
+
+
+def test_client_exposes_the_rest_methods() -> None:
+    names = [
+        "create_payer",
+        "list_payers",
+        "create_source",
+        "list_sources",
+        "get_source",
+        "check_source",
+        "get_policy",
+        "list_policy_versions",
+        "get_policy_version",
+        "list_versions",
+        "get_version",
+        "approve_version",
+        "reject_version",
+        "get_diff",
+    ]
+    for name in names:
+        assert callable(getattr(AnumatClient, name))
+        assert callable(getattr(AnumatClient, f"{name}_async"))
 
 
 def test_list_payers(api_url: str) -> None:

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 
 export const US_SCHEMA_ID = 'us.v1';
 

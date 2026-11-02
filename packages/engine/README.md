@@ -41,3 +41,32 @@ For local files, pass `storage` as `{ kind: 'local', dataDir }`. The default dir
 Pass `llm` as `{ strong, cheap }` with two `provider/model` ids when a check should call a model. Omit `llm` until a check needs one.
 
 Pass `firecrawl` as `{ apiKey, apiUrl }` when a scanned PDF needs hosted OCR. Text PDFs do not need it.
+
+## Call a policy method
+
+Each policy function takes the engine, then one input object. Returned fields use camelCase. `slugify` turns a title into the slug those inputs expect.
+
+```ts
+import { listPayers, registerPayer, slugify } from '@anumat/engine';
+
+const payer = await registerPayer(engine, {
+  name: 'Example Health',
+  slug: slugify('Example Health'),
+  market: 'us',
+});
+const page = await listPayers(engine, { limit: 20 });
+```
+
+`dueSources` and `checkDueSources` take an empty object when you omit the second argument.
+
+The package exports these functions.
+
+- `registerPayer`, `getPayer`, `findPayerBySlug`, `listPayers`
+- `registerSource`, `getSource`, `findSourceByPolicyKey`, `listSources`
+- `checkSource`, `dueSources`, `checkDueSources`
+- `proposeVersion`, `approveVersion`, `rejectVersion`
+- `getPublishedPolicy`, `getPublishedVersion`, `listPublishedVersions`
+- `getVersion`, `listVersions`, `getDiff`, `diffForVersion`, `saveDiffNotes`
+- `slugify`
+
+Invalid input throws `AppError` with code `validation_failed`. The Python package `anumat-engine` exposes the same operations as snake_case methods on the engine object.

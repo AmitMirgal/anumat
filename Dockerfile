@@ -5,6 +5,7 @@ LABEL org.opencontainers.image.title="Anumat"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+ENV NODE_ENV=production
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates openssl \

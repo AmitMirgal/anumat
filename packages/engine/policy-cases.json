@@ -1,0 +1,100 @@
+{
+  "methods": [
+    { "javascript": "registerPayer", "python": "register_payer" },
+    { "javascript": "getPayer", "python": "get_payer" },
+    { "javascript": "findPayerBySlug", "python": "find_payer_by_slug" },
+    { "javascript": "listPayers", "python": "list_payers" },
+    { "javascript": "registerSource", "python": "register_source" },
+    { "javascript": "getSource", "python": "get_source" },
+    { "javascript": "findSourceByPolicyKey", "python": "find_source_by_policy_key" },
+    { "javascript": "listSources", "python": "list_sources" },
+    { "javascript": "checkSource", "python": "check_source" },
+    { "javascript": "dueSources", "python": "due_sources" },
+    { "javascript": "checkDueSources", "python": "check_due_sources" },
+    { "javascript": "proposeVersion", "python": "propose_version" },
+    { "javascript": "approveVersion", "python": "approve_version" },
+    { "javascript": "rejectVersion", "python": "reject_version" },
+    { "javascript": "getPublishedPolicy", "python": "get_published_policy" },
+    { "javascript": "getPublishedVersion", "python": "get_published_version" },
+    { "javascript": "listPublishedVersions", "python": "list_published_versions" },
+    { "javascript": "getVersion", "python": "get_version" },
+    { "javascript": "listVersions", "python": "list_versions" },
+    { "javascript": "getDiff", "python": "get_diff" },
+    { "javascript": "diffForVersion", "python": "diff_for_version" },
+    { "javascript": "saveDiffNotes", "python": "save_diff_notes" }
+  ],
+  "invalid": [
+    {
+      "javascript": "registerPayer",
+      "python": "register_payer",
+      "input": { "name": "A", "slug": "a", "market": "us" },
+      "code": "validation_failed"
+    },
+    {
+      "javascript": "registerPayer",
+      "python": "register_payer",
+      "input": { "name": "Acme", "slug": "Acme", "market": "us" },
+      "code": "validation_failed"
+    },
+    {
+      "javascript": "registerPayer",
+      "python": "register_payer",
+      "input": { "name": "Acme", "slug": "acme", "market": "eu" },
+      "code": "validation_failed"
+    },
+    {
+      "javascript": "listPayers",
+      "python": "list_payers",
+      "input": { "limit": 0 },
+      "code": "validation_failed"
+    },
+    {
+      "javascript": "listPayers",
+      "python": "list_payers",
+      "input": { "limit": 101 },
+      "code": "validation_failed"
+    },
+    {
+      "javascript": "getPayer",
+      "python": "get_payer",
+      "input": { "id": "payer" },
+      "code": "validation_failed"
+    },
+    {
+      "javascript": "registerSource",
+      "python": "register_source",
+      "input": { "payerId": "payer", "title": "Policy", "sourceUrl": "notaurl" },
+      "code": "validation_failed"
+    },
+    {
+      "javascript": "approveVersion",
+      "python": "approve_version",
+      "input": { "versionId": "550e8400-e29b-41d4-a716-446655440000" },
+      "code": "validation_failed"
+    },
+    {
+      "javascript": "rejectVersion",
+      "python": "reject_version",
+      "input": { "versionId": "550e8400-e29b-41d4-a716-446655440000", "rejectedBy": "reviewer", "reason": "no" },
+      "code": "validation_failed"
+    },
+    {
+      "javascript": "dueSources",
+      "python": "due_sources",
+      "input": { "extra": true },
+      "code": "validation_failed"
+    },
+    {
+      "javascript": "listVersions",
+      "python": "list_versions",
+      "input": { "status": "draft" },
+      "code": "validation_failed"
+    },
+    {
+      "javascript": "saveDiffNotes",
+      "python": "save_diff_notes",
+      "input": { "diffId": "550e8400-e29b-41d4-a716-446655440000", "summary": null },
+      "code": "validation_failed"
+    }
+  ]
+}

@@ -29,6 +29,20 @@ function walk(dir) {
       console.error(`${path} imports ee/`);
       failed = true;
     }
+    if (text.includes('@mastra/core/test-utils') || text.includes('replay-model') || text.includes('llm-mock')) {
+      console.error(`${path} includes the replay test double`);
+      failed = true;
+    }
+  }
+}
+
+const licenseNames = new Set(['LICENSE', 'LICENSE.md', 'NOTICE', 'THIRD_PARTY_NOTICES']);
+const packageRoot = join(dist, '..');
+for (const name of readdirSync(packageRoot)) {
+  if (!licenseNames.has(name)) continue;
+  if (/mastra/i.test(readFileSync(join(packageRoot, name), 'utf8'))) {
+    console.error(`${name} contains a forbidden framework name`);
+    failed = true;
   }
 }
 

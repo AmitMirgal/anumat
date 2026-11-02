@@ -48,5 +48,5 @@ else
 fi
 
 git tag "$name@$version"
-git push origin "$name@$version"
-echo "Published $name $version and tagged it."
+echo "git push origin main && git push origin tag $name@$version"
+echo "Published $name $version and tagged it locally."

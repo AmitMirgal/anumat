@@ -1,0 +1,53 @@
+name: Engine wheels
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  platforms:
+    runs-on: ubuntu-24.04
+    outputs:
+      include: ${{ steps.set.outputs.include }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: set
+        run: echo "include=$(jq -c . packages/engine-py/platforms.json)" >> "$GITHUB_OUTPUT"
+
+  wheel:
+    needs: platforms
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.platforms.outputs.include) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.15.0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - uses: astral-sh/setup-uv@v5
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build the wheel
+        shell: bash
+        run: bash packages/engine-py/scripts/build-wheel.sh "${{ matrix.target }}" "${{ matrix.platform }}" "${{ matrix.binary }}" dist
+      - name: Smoke the wheel
+        if: matrix.smoke
+        shell: bash
+        env:
+          DATABASE_URL: postgres://anumat:anumat@127.0.0.1:5432/anumat_engine
+          ANUMAT_MIGRATION_SQL: packages/db/prisma/migrations/20260929061425_init/migration.sql
+        run: bash packages/engine-py/scripts/ci-smoke.sh dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anumat-engine-${{ matrix.platform }}
+          path: dist/*.whl
+          if-no-files-found: error

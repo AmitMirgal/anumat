@@ -4,11 +4,13 @@ import { fileURLToPath } from 'node:url';
 import { loadConfig } from '../config';
 
 chdir(join(dirname(fileURLToPath(import.meta.url)), '../../../..'));
+import { modelSource } from '../model-source';
 import { closeContext, createContext } from '../context';
 import { log } from '../log';
 import { checkDueSources } from '../pipeline/check';
 
-const ctx = await createContext(loadConfig());
+const config = loadConfig();
+const ctx = await createContext(config, { models: modelSource(config) });
 try {
   const results = await checkDueSources(ctx);
   const outcomes = Object.groupBy(results, (result) => result.run.outcome);

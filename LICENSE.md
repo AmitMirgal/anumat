@@ -1,6 +1,6 @@
 Anything inside a directory named `ee/`, anywhere in this repository, is under the Anumat Enterprise Edition License in `apps/api/src/ee/LICENSE.md`. Today that directory is `apps/api/src/ee/`. Everything else is under the Apache License 2.0 below. Third-party code keeps its own license.
 
-Copyright 2026 [LEGAL ENTITY NAME]
+Copyright 2026 AmitMirgal
 
 
                                  Apache License

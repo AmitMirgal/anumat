@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 
 const apiKeys = z.string().transform((raw, ctx) => {
   const keys = raw

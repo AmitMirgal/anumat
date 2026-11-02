@@ -2,7 +2,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { createInterface } from 'node:readline';
 import { toAppError } from '@anumat/core';
-import { z } from 'zod';
+import * as z from 'zod';
 import { closeContext } from './context';
 import { createEngine, type CreateEngineOptions, type EngineLlm, type EngineStorage } from './engine';
 import { callEngineMethod, toJson } from './sidecar-rpc';

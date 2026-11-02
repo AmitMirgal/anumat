@@ -24,6 +24,7 @@ export function fakePayerSite(lines: string[]) {
 export async function testContext(options: { models: ModelSource; adapter: SourceAdapter }) {
   const t = await testDb();
   const config = loadConfig({
+    NODE_ENV: 'test',
     DATABASE_URL: TEST_DATABASE_URL,
     ANUMAT_API_KEYS: `tester:${TEST_API_KEY}`,
     ANUMAT_DATA_DIR: await mkdtemp(join(tmpdir(), 'anumat-data-')),

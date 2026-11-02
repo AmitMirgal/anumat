@@ -3,12 +3,13 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serve } from '@hono/node-server';
 import { closeContext, createContext, loadConfig, log } from '@anumat/engine';
+import { modelSource } from '@anumat/engine/replay';
 import { createApp } from './http/app';
 
 chdir(join(dirname(fileURLToPath(import.meta.url)), '../../..'));
 
 const config = loadConfig();
-const ctx = await createContext(config);
+const ctx = await createContext(config, { models: modelSource(config) });
 const server = serve({ fetch: createApp({ ctx }).fetch, hostname: config.host, port: config.port }, (info) => {
   log.info({ url: `http://${info.address}:${info.port}` }, 'anumat listening');
 });
