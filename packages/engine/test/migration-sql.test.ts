@@ -16,3 +16,9 @@ test('embedded migration SQL is LF and the wheel jobs compare one checksum', () 
   expect(workflow).toContain('anumat-engine-migration-sha-');
   expect(workflow).toContain('expected 5 migration checksums');
 });
+
+test('the bun sidecar plugin does not fall through every import', () => {
+  const source = readFileSync(new URL('../../engine-py/scripts/compile-sidecar.ts', import.meta.url), 'utf8');
+  expect(source).toContain('filter: /^@opentelemetry\\/api$/');
+  expect(source).not.toContain('filter: /.*/');
+});
