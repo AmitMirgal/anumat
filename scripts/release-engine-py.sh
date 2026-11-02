@@ -75,6 +75,9 @@ PY
 wheel=$(ls "dist/"*"${native}"*.whl)
 export DATABASE_URL="${DATABASE_URL:-postgres://anumat:anumat@127.0.0.1:5432/anumat_engine}"
 export ANUMAT_MIGRATION_SQL="${ANUMAT_MIGRATION_SQL:-packages/db/prisma/migrations/20260929061425_init/migration.sql}"
+# Migrate connects to that database, so a missing one exits before smoke.
+# Create it when Postgres is up. If Postgres is down, this stops with that fact.
+node packages/engine/scripts/ensure-smoke-database.mjs
 uv venv /tmp/anumat-engine-smoke --clear -q
 uv pip install -q --python /tmp/anumat-engine-smoke "$wheel"
 if [[ -x /tmp/anumat-engine-smoke/Scripts/python.exe ]]; then
