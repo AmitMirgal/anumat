@@ -15,12 +15,13 @@ import {
   registerPayer,
   registerSource,
   rejectVersion,
+  requireDatabase,
   type AppContext,
 } from '@anumat/engine';
 import { diffDto, pageDto, payerDto, publishedDto, sourceDto, versionDto, watchRunDto } from './http/dto';
 
 export function createServices(ctx: AppContext): AnumatServices {
-  const { db } = ctx;
+  const db = requireDatabase(ctx);
   return {
     createPayer: async (input) => payerDto(await registerPayer(db, input)),
     listPayers: async (input) => pageDto(await listPayers(db, input), payerDto),

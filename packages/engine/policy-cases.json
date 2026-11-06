@@ -21,7 +21,8 @@
     { "javascript": "listVersions", "python": "list_versions" },
     { "javascript": "getDiff", "python": "get_diff" },
     { "javascript": "diffForVersion", "python": "diff_for_version" },
-    { "javascript": "saveDiffNotes", "python": "save_diff_notes" }
+    { "javascript": "saveDiffNotes", "python": "save_diff_notes" },
+    { "javascript": "extract", "python": "extract" }
   ],
   "invalid": [
     {
@@ -94,6 +95,12 @@
       "javascript": "saveDiffNotes",
       "python": "save_diff_notes",
       "input": { "diffId": "550e8400-e29b-41d4-a716-446655440000", "summary": null },
+      "code": "validation_failed"
+    },
+    {
+      "javascript": "extract",
+      "python": "extract",
+      "input": {},
       "code": "validation_failed"
     }
   ]

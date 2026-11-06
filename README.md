@@ -39,6 +39,39 @@ page = client.list_payers()
 
 This repository does not publish either package.
 
+The embedded engine can extract rules without Postgres. Catalog, versioning, and approval still need a database.
+
+```typescript
+import { closeContext, createEngine, extract } from '@anumat/engine';
+import { readFile } from 'node:fs/promises';
+
+const engine = await createEngine({
+  llm: { strong: 'anthropic/claude-sonnet-4-5', cheap: 'anthropic/claude-haiku-4-5' },
+});
+const result = await extract(engine, {
+  pdf: new Uint8Array(await readFile('bariatric-surgery.pdf')),
+  payer: 'UnitedHealthcare',
+  title: 'Bariatric Surgery',
+});
+await closeContext(engine);
+```
+
+```python
+from pathlib import Path
+from anumat_engine import create_engine
+
+with create_engine(
+    llm={"strong": "anthropic/claude-sonnet-4-5", "cheap": "anthropic/claude-haiku-4-5"},
+) as engine:
+    result = engine.extract(
+        Path("bariatric-surgery.pdf").read_bytes(),
+        payer="UnitedHealthcare",
+        title="Bariatric Surgery",
+    )
+```
+
+`result.extraction` (Python: `result["extraction"]`) is the structured coverage object. Store it in your own database.
+
 ## Run it yourself
 
 You need Node 24 (see `.nvmrc`, install it with nvm), pnpm 12 (enable it with Corepack), uv, and PostgreSQL 16.
@@ -385,19 +418,25 @@ To score the configured models instead of the replay, set `ANUMAT_EVAL_LIVE=1` a
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `DATABASE_URL` | none | Postgres connection string. Required. |
+| `DATABASE_URL` | none | Postgres connection string. Required for the HTTP API, `pnpm watch`, and `pnpm db:migrate`. Optional for `createEngine` / `create_engine`; omit it to extract rules without a catalog. |
 | `ANUMAT_API_KEYS` | none | Comma-separated `name:key` pairs. Keys need 16 or more characters. Required. |
 | `TEST_DATABASE_URL` | `postgres://anumat:anumat@127.0.0.1:5432/anumat_test` | Database for `pnpm test`. |
 | `HOST`, `PORT` | `127.0.0.1`, `4471` | Listen address. |
 | `LOG_LEVEL` | `info` | Pino log level. Logs are JSON lines. |
 | `RATE_LIMIT_PER_MINUTE` | `120` | Requests per key per minute. |
 | `ANUMAT_DATA_DIR` | `./data/policies` | Directory for PDFs and markdown when `ANUMAT_STORAGE` is `local`. |
-| `ANUMAT_STORAGE` | `local` | `local` writes `ANUMAT_DATA_DIR`. `s3` writes one S3-compatible bucket. |
-| `ANUMAT_S3_ENDPOINT` | none | Custom S3 endpoint. Set it for Supabase Storage and for Google Cloud Storage. Omit it for Amazon S3. |
+| `ANUMAT_STORAGE` | `local` | `local` writes `ANUMAT_DATA_DIR`. `s3` writes one S3-compatible bucket. `gcs` writes a GCS bucket with the Google Cloud client. `supabase` writes a Supabase Storage bucket. |
+| `ANUMAT_S3_ENDPOINT` | none | Custom S3 endpoint. Set it for the S3 protocol on Supabase Storage or GCS. Omit it for Amazon S3. |
 | `ANUMAT_S3_REGION` | none | Region. Required when `ANUMAT_STORAGE` is `s3`. Supabase often uses `us-east-1`. Google Cloud Storage uses `auto`. |
 | `ANUMAT_S3_BUCKET` | none | Bucket name. Required when `ANUMAT_STORAGE` is `s3`. |
 | `ANUMAT_S3_ACCESS_KEY_ID` | none | Access key. Required when `ANUMAT_STORAGE` is `s3`. |
 | `ANUMAT_S3_SECRET_ACCESS_KEY` | none | Secret key. Required when `ANUMAT_STORAGE` is `s3`. |
+| `ANUMAT_GCS_BUCKET` | none | Bucket name. Required when `ANUMAT_STORAGE` is `gcs`. |
+| `ANUMAT_GCS_PROJECT_ID` | none | GCP project. Optional when `ANUMAT_STORAGE` is `gcs`; ADC can supply it. |
+| `ANUMAT_GCS_KEY_FILENAME` | none | Path to a service-account JSON key. Optional when `ANUMAT_STORAGE` is `gcs`. |
+| `ANUMAT_SUPABASE_URL` | none | Project URL. Required when `ANUMAT_STORAGE` is `supabase`. |
+| `ANUMAT_SUPABASE_API_KEY` | none | Service-role key. Required when `ANUMAT_STORAGE` is `supabase`. |
+| `ANUMAT_SUPABASE_BUCKET` | none | Bucket name. Required when `ANUMAT_STORAGE` is `supabase`. |
 | `ANUMAT_LLM_MODE` | `live` | `live` uses the model router. `replay` uses the scripted fixture model and does not read a provider key. |
 | `ANUMAT_STRONG_MODEL` | `anthropic/claude-sonnet-4-5` | Model for extract and review. A model router id, `provider/model`. Google: `google/gemini-2.5-pro`. Grok: `xai/grok-4.3`. |
 | `ANUMAT_CHEAP_MODEL` | `anthropic/claude-haiku-4-5` | Model for triage and diff. Google: `google/gemini-2.5-flash`. Grok: `xai/grok-build-0.1`. |
@@ -420,7 +459,25 @@ ANUMAT_STORAGE=local
 ANUMAT_DATA_DIR=./data/policies
 ```
 
-Supabase Storage:
+Supabase Storage (native):
+
+```bash
+ANUMAT_STORAGE=supabase
+ANUMAT_SUPABASE_URL=https://abcdefghijklmnopqrst.supabase.co
+ANUMAT_SUPABASE_API_KEY=your-service-role-key
+ANUMAT_SUPABASE_BUCKET=policies
+```
+
+Google Cloud Storage (native):
+
+```bash
+ANUMAT_STORAGE=gcs
+ANUMAT_GCS_BUCKET=anumat-policies
+ANUMAT_GCS_PROJECT_ID=your-project
+# ANUMAT_GCS_KEY_FILENAME=/path/to/service-account.json
+```
+
+S3, or the S3 protocol on Supabase Storage or GCS:
 
 ```bash
 ANUMAT_STORAGE=s3
@@ -429,17 +486,6 @@ ANUMAT_S3_REGION=us-east-1
 ANUMAT_S3_BUCKET=policies
 ANUMAT_S3_ACCESS_KEY_ID=your-access-key-id
 ANUMAT_S3_SECRET_ACCESS_KEY=your-secret-access-key
-```
-
-Google Cloud Storage, S3 interoperability:
-
-```bash
-ANUMAT_STORAGE=s3
-ANUMAT_S3_ENDPOINT=https://storage.googleapis.com
-ANUMAT_S3_REGION=auto
-ANUMAT_S3_BUCKET=anumat-policies
-ANUMAT_S3_ACCESS_KEY_ID=your-hmac-access-id
-ANUMAT_S3_SECRET_ACCESS_KEY=your-hmac-secret
 ```
 
 ## Seed sources

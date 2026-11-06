@@ -9,7 +9,9 @@ import { connect } from '@anumat/db';
 import { log } from '../src/log';
 import { US_SEED_PAYERS, US_SEED_SOURCES } from '@anumat/markets';
 
-const db = connect(loadConfig().databaseUrl);
+const databaseUrl = loadConfig().databaseUrl;
+if (!databaseUrl) throw new Error('DATABASE_URL is required to seed');
+const db = connect(databaseUrl);
 try {
   const payerIds = new Map<string, string>();
   for (const payer of US_SEED_PAYERS) {

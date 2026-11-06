@@ -18,6 +18,21 @@ def test_slugify_matches_the_engine_rules() -> None:
     assert slugify("  A--B  ") == "a-b"
 
 
+def test_create_engine_works_without_a_database(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ANUMAT_ENGINE_BINARY", str(FAKE))
+    engine = create_engine()
+    try:
+        assert engine.config["databaseUrl"] is None
+        with pytest.raises(EngineError) as raised:
+            engine.list_payers()
+        assert raised.value.code == "database_not_configured"
+        result = engine.extract(b"%PDF-1.4 fixture policy", payer="UnitedHealthcare", title="Bariatric Surgery")
+        assert result["extraction"]["payer"] == "UnitedHealthcare"
+        assert result["converter"] == "anydoc"
+    finally:
+        engine.close()
+
+
 def test_create_engine_lists_payers_and_close_stops_calls(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ANUMAT_ENGINE_BINARY", str(FAKE))
     engine = create_engine(database_url=DATABASE_URL)
@@ -64,6 +79,28 @@ def test_storage_kind_is_rejected_before_start(monkeypatch: pytest.MonkeyPatch) 
     with pytest.raises(EngineError) as raised:
         create_engine(database_url=DATABASE_URL, storage={"kind": "disk"})
     assert raised.value.code == "validation_failed"
+
+
+def test_gcs_and_supabase_storage_are_accepted_before_start(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ANUMAT_ENGINE_BINARY", str(FAKE))
+    gcs = create_engine(storage={"kind": "gcs", "bucket": "policies", "project_id": "anumat"})
+    try:
+        assert gcs.config["databaseUrl"] is None
+    finally:
+        gcs.close()
+    supabase = create_engine(
+        database_url=DATABASE_URL,
+        storage={
+            "kind": "supabase",
+            "url": "https://example.supabase.co",
+            "api_key": "service-role-key",
+            "bucket": "policies",
+        },
+    )
+    try:
+        assert supabase.config["databaseUrl"] == DATABASE_URL
+    finally:
+        supabase.close()
 
 
 def test_incomplete_storage_and_database_url_fail_validation(monkeypatch: pytest.MonkeyPatch) -> None:

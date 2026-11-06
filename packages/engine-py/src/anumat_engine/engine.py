@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import atexit
+import base64
 import json
 import os
 import queue
@@ -179,6 +180,23 @@ class Engine:
     def save_diff_notes(self, *, diff_id: str, summary: str | None, review: Any) -> JsonObject:
         return _object(self._call("save_diff_notes", {"diff_id": diff_id, "summary": summary, "review": review}))
 
+    def extract(
+        self,
+        pdf: bytes,
+        *,
+        payer: str | None = None,
+        title: str | None = None,
+        market: Market = "us",
+    ) -> JsonObject:
+        if not isinstance(pdf, (bytes, bytearray)) or len(pdf) == 0:
+            raise EngineError("extract requires a non-empty PDF", code="validation_failed")
+        payload: JsonObject = {"pdf": base64.b64encode(bytes(pdf)).decode("ascii"), "market": market}
+        if payer is not None:
+            payload["payer"] = payer
+        if title is not None:
+            payload["title"] = title
+        return _object(self._call("extract", payload))
+
     def _call(self, method: str, payload: JsonObject) -> Any:
         if self._closed:
             raise EngineError("engine is closed", code="closed")
@@ -205,11 +223,13 @@ class Engine:
 
 
 def create_engine(
-    database_url: str,
+    database_url: str | None = None,
     storage: JsonObject | None = None,
     llm: JsonObject | None = None,
 ) -> Engine:
-    config: JsonObject = {"databaseUrl": _database_url(database_url)}
+    config: JsonObject = {}
+    if database_url is not None:
+        config["databaseUrl"] = _database_url(database_url)
     storage_payload = _storage_payload(storage)
     if storage_payload is not None:
         config["storage"] = storage_payload
@@ -326,7 +346,7 @@ def _wait_health(base_url: str, token: str, process: subprocess.Popen[bytes], st
 
 def _database_url(database_url: str) -> str:
     if not isinstance(database_url, str) or database_url.strip() == "":
-        raise EngineError("database_url is required", code="validation_failed")
+        raise EngineError("database_url must be a postgres:// or postgresql:// URL", code="validation_failed")
     if len(database_url) > _MAX_DATABASE_URL_LENGTH:
         raise EngineError("database_url must be at most 4096 characters", code="validation_failed")
     parsed = urllib.parse.urlparse(database_url)
@@ -385,7 +405,30 @@ def _storage_payload(storage: JsonObject | None) -> JsonObject | None:
                 raise EngineError("storage.endpoint must be a URL", code="validation_failed")
             payload["endpoint"] = endpoint
         return payload
-    raise EngineError("storage.kind must be local or s3", code="validation_failed")
+    if kind == "gcs":
+        payload = {"kind": "gcs", "bucket": _storage_text(storage, "bucket")}
+        project_id = storage.get("project_id")
+        if project_id is not None:
+            if not isinstance(project_id, str) or project_id == "":
+                raise EngineError("storage.project_id must be a non-empty string", code="validation_failed")
+            payload["projectId"] = project_id
+        key_filename = storage.get("key_filename")
+        if key_filename is not None:
+            if not isinstance(key_filename, str) or key_filename == "":
+                raise EngineError("storage.key_filename must be a non-empty path", code="validation_failed")
+            payload["keyFilename"] = key_filename
+        return payload
+    if kind == "supabase":
+        url = _storage_text(storage, "url")
+        if urllib.parse.urlparse(url).scheme == "":
+            raise EngineError("storage.url must be a URL", code="validation_failed")
+        return {
+            "kind": "supabase",
+            "url": url,
+            "apiKey": _storage_text(storage, "api_key"),
+            "bucket": _storage_text(storage, "bucket"),
+        }
+    raise EngineError("storage.kind must be local, s3, gcs, or supabase", code="validation_failed")
 
 
 def _page_input(limit: int, cursor: str | None, **extra: Any) -> JsonObject:

@@ -1,0 +1,60 @@
+---
+title: Extract
+description: Turn a payer policy PDF into structured coverage rules without Postgres.
+---
+
+`extract` runs the same convert-triage-extract pipeline as a source check. It does not write payers, versions, or diffs. Use it when you want the structured rules and will store them yourself.
+
+A database is not required. Catalog and approval methods still need `databaseUrl` or `db`.
+
+<Tabs groupId="lang" persist items={['TypeScript', 'Python']}>
+  <Tab value="TypeScript">
+
+```ts
+import { closeContext, createEngine, extract } from '@anumat/engine';
+import { readFile } from 'node:fs/promises';
+
+const engine = await createEngine({
+  llm: {
+    strong: 'anthropic/claude-sonnet-4-5',
+    cheap: 'anthropic/claude-haiku-4-5',
+  },
+});
+
+const result = await extract(engine, {
+  pdf: new Uint8Array(await readFile('bariatric-surgery.pdf')),
+  payer: 'UnitedHealthcare',
+  title: 'Bariatric Surgery',
+});
+
+await closeContext(engine);
+```
+
+`result.extraction` matches the US market schema. `result.converter` is `anydoc` or `firecrawl-parse`. `result.model` is the extract-step model id.
+
+  </Tab>
+  <Tab value="Python">
+
+```python
+from pathlib import Path
+from anumat_engine import create_engine
+
+with create_engine(
+    llm={
+        "strong": "anthropic/claude-sonnet-4-5",
+        "cheap": "anthropic/claude-haiku-4-5",
+    },
+) as engine:
+    result = engine.extract(
+        Path("bariatric-surgery.pdf").read_bytes(),
+        payer="UnitedHealthcare",
+        title="Bariatric Surgery",
+    )
+```
+
+`result["extraction"]` matches the US market schema.
+
+  </Tab>
+</Tabs>
+
+Pass `payer` and `title` when you know them. They are hints for the extract step, not patient data. Omit `llm` only if you do not need a model yet; extract then fails with `llm_not_configured`.

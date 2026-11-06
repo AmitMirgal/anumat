@@ -88,7 +88,7 @@ export function createApp(input?: AppContext | CreateAppOptions) {
       llm_mode: ctx?.config.llmMode ?? 'live',
       ocr: ctx?.config.firecrawlApiKey ? 'configured' : 'missing',
     };
-    if (!ctx) return c.json({ status: 'not_ready', checks: { database: 'down', ...checks } }, 503);
+    if (!ctx?.db) return c.json({ status: 'not_ready', checks: { database: 'down', ...checks } }, 503);
     try {
       await ctx.db.$queryRaw`SELECT 1`;
     } catch {

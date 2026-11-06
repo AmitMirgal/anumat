@@ -19,6 +19,8 @@ const TRPC_CODES = {
   extraction_failed: 'BAD_GATEWAY',
   llm_not_configured: 'SERVICE_UNAVAILABLE',
   ocr_not_configured: 'SERVICE_UNAVAILABLE',
+  database_not_configured: 'SERVICE_UNAVAILABLE',
+  storage_not_configured: 'SERVICE_UNAVAILABLE',
 } as const satisfies Record<ErrorCode, TRPC_ERROR_CODE_KEY>;
 
 export function toTrpcError(error: unknown): TRPCError {

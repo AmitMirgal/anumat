@@ -9,21 +9,22 @@ import {
   type EngineLlm,
   type EngineStorage,
 } from './engine';
+import { extractFromPdf, type ExtractedPolicy, type ExtractInput } from './extract';
 import { callPolicy, toJson, type PolicyMethod } from './policy-api';
 import { slugify } from './catalog';
 
-export type { CreateEngineOptions, EngineDb, EngineFirecrawl, EngineLlm, EngineStorage };
+export type { CreateEngineOptions, EngineDb, EngineFirecrawl, EngineLlm, EngineStorage, ExtractedPolicy, ExtractInput };
 export { AppError, slugify };
 
 export type Engine = {
   config: {
-    databaseUrl: string;
+    databaseUrl: string | undefined;
     storage: StorageConfig;
     models: { strong: string; cheap: string };
     firecrawlApiKey: string | undefined;
     firecrawlApiUrl: string | undefined;
   };
-  db: EngineDb;
+  db?: EngineDb;
 };
 
 export type PayerJson = {
@@ -170,14 +171,16 @@ function asContext(engine: Engine): AppContext {
   return engine as unknown as AppContext;
 }
 
-function policyCall<M extends PolicyMethod>(method: M) {
+type CatalogMethod = Exclude<PolicyMethod, 'extract'>;
+
+function policyCall<M extends CatalogMethod>(method: M) {
   return async (engine: Engine, input: PolicyInput[M]): Promise<PolicyOutput[M]> => {
     const result = await callPolicy(asContext(engine), method, input);
     return toJson(result) as PolicyOutput[M];
   };
 }
 
-export async function createEngine(options: CreateEngineOptions): Promise<Engine> {
+export async function createEngine(options: CreateEngineOptions = {}): Promise<Engine> {
   return createFullEngine(options);
 }
 
@@ -205,6 +208,10 @@ export const listVersions = policyCall('listVersions');
 export const getDiff = policyCall('getDiff');
 export const diffForVersion = policyCall('diffForVersion');
 export const saveDiffNotes = policyCall('saveDiffNotes');
+
+export async function extract(engine: Engine, input: ExtractInput): Promise<ExtractedPolicy> {
+  return extractFromPdf(asContext(engine), input);
+}
 
 export function dueSources(engine: Engine, input: PolicyInput['dueSources'] = {}): Promise<SourceJson[]> {
   return policyCall('dueSources')(engine, input);

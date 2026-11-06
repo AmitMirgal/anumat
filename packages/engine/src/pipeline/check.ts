@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { getPayer, getSource, type PolicySource } from '../catalog';
 import type { Converter } from '../convert/pdf-to-markdown';
 import { pdfToMarkdown } from '../convert/pdf-to-markdown';
-import type { AppContext } from '../context';
+import { requireDatabase, type AppContext } from '../context';
 import { toAppError } from '@anumat/core';
 import type { Converter as StoredConverter, PolicyArtifact, PolicyDocument, WatchRun } from '@anumat/db';
 import { log } from '../log';
@@ -29,9 +29,10 @@ function storedConverter(converter: Converter): StoredConverter {
 }
 
 async function recordArtifact(ctx: AppContext, source: PolicySource, fetched: FetchedArtifact) {
+  const db = requireDatabase(ctx);
   const sha = sha256(fetched.bytes);
   const storagePath = await ctx.blobs.put(`pdf/${sha}.pdf`, fetched.bytes);
-  return ctx.db.$transaction(async (tx) => {
+  return db.$transaction(async (tx) => {
     await tx.$queryRaw`SELECT id FROM policy_sources WHERE id = CAST(${source.id} AS uuid) FOR UPDATE`;
     const latest = await tx.policyArtifact.findFirst({
       where: { sourceId: source.id },
@@ -52,7 +53,8 @@ async function recordArtifact(ctx: AppContext, source: PolicySource, fetched: Fe
 }
 
 async function ensureDocument(ctx: AppContext, artifact: PolicyArtifact): Promise<PolicyDocument> {
-  const existing = await ctx.db.policyDocument.findUnique({ where: { artifactId: artifact.id } });
+  const db = requireDatabase(ctx);
+  const existing = await db.policyDocument.findUnique({ where: { artifactId: artifact.id } });
   if (existing?.status === 'converted') return existing;
   const upsert = (values: {
     status: 'converted' | 'failed';
@@ -61,7 +63,7 @@ async function ensureDocument(ctx: AppContext, artifact: PolicyArtifact): Promis
     errorCode: string | null;
     errorMessage: string | null;
   }) =>
-    ctx.db.policyDocument.upsert({
+    db.policyDocument.upsert({
       where: { artifactId: artifact.id },
       create: { artifactId: artifact.id, ...values },
       update: values,
@@ -93,10 +95,11 @@ async function ensureDocument(ctx: AppContext, artifact: PolicyArtifact): Promis
 }
 
 async function ensureVersion(ctx: AppContext, source: PolicySource, document: PolicyDocument) {
-  const existing = await ctx.db.policyVersion.findUnique({ where: { documentId: document.id } });
-  if (existing) return { version: existing, diff: await diffForVersion(ctx.db, existing.id) };
+  const db = requireDatabase(ctx);
+  const existing = await db.policyVersion.findUnique({ where: { documentId: document.id } });
+  if (existing) return { version: existing, diff: await diffForVersion(db, existing.id) };
 
-  const payer = await getPayer(ctx.db, source.payerId);
+  const payer = await getPayer(db, source.payerId);
   const agent = ctx.agents[source.market];
   const extracted = await agent.extractDocument({
     documentId: document.id,
@@ -109,7 +112,7 @@ async function ensureVersion(ctx: AppContext, source: PolicySource, document: Po
     'extraction captured',
   );
   const { version, diff, created } = await proposeVersion(
-    ctx.db,
+    db,
     {
       sourceId: source.id,
       documentId: document.id,
@@ -127,17 +130,18 @@ async function ensureVersion(ctx: AppContext, source: PolicySource, document: Po
     changes: diff.diffJson as Change[],
   });
   if (notes.failures.length > 0) log.warn({ diffId: diff.id, failures: notes.failures }, 'diff notes incomplete');
-  return { version, diff: await saveDiffNotes(ctx.db, diff.id, notes) };
+  return { version, diff: await saveDiffNotes(db, diff.id, notes) };
 }
 
 export async function checkSource(ctx: AppContext, sourceId: string): Promise<CheckResult> {
-  const source = await getSource(ctx.db, sourceId);
+  const db = requireDatabase(ctx);
+  const source = await getSource(db, sourceId);
   const startedAt = new Date();
   let outcome: 'unchanged' | 'new_artifact' = 'unchanged';
   let artifact: PolicyArtifact | undefined;
   const finish = async (fields: { version?: PolicyVersion; diff?: PolicyDiff; error?: unknown }): Promise<CheckResult> => {
     const failure = fields.error === undefined ? undefined : toAppError(fields.error);
-    const run = await ctx.db.watchRun.create({
+    const run = await db.watchRun.create({
       data: {
         sourceId: source.id,
         startedAt,
@@ -166,7 +170,8 @@ export async function checkSource(ctx: AppContext, sourceId: string): Promise<Ch
 }
 
 export async function dueSources(ctx: AppContext): Promise<PolicySource[]> {
-  const due = await ctx.db.$queryRaw<Array<{ id: string }>>`
+  const db = requireDatabase(ctx);
+  const due = await db.$queryRaw<Array<{ id: string }>>`
     SELECT s.id
     FROM policy_sources s
     WHERE s.enabled = true
@@ -179,7 +184,7 @@ export async function dueSources(ctx: AppContext): Promise<PolicySource[]> {
     ORDER BY s.policy_key ASC
   `;
   if (due.length === 0) return [];
-  return ctx.db.policySource.findMany({
+  return db.policySource.findMany({
     where: { id: { in: due.map((row) => row.id) } },
     orderBy: { policyKey: 'asc' },
   });

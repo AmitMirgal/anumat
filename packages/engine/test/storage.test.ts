@@ -72,3 +72,42 @@ test('local storage is the default and s3 settings are required only for s3', ()
     }),
   ).toThrow(/ANUMAT_S3_BUCKET/);
 });
+
+test('native GCS and Supabase storage parse from the environment', () => {
+  expect(
+    loadConfig({
+      ...baseEnv,
+      ANUMAT_STORAGE: 'gcs',
+      ANUMAT_GCS_BUCKET: 'anumat-policies',
+      ANUMAT_GCS_PROJECT_ID: 'anumat',
+      ANUMAT_GCS_KEY_FILENAME: '/tmp/gcs.json',
+    }).storage,
+  ).toEqual({
+    kind: 'gcs',
+    bucket: 'anumat-policies',
+    projectId: 'anumat',
+    keyFilename: '/tmp/gcs.json',
+  });
+  expect(
+    loadConfig({
+      ...baseEnv,
+      ANUMAT_STORAGE: 'supabase',
+      ANUMAT_SUPABASE_URL: 'https://abcdefghijklmnop.supabase.co',
+      ANUMAT_SUPABASE_API_KEY: 'service-role-key',
+      ANUMAT_SUPABASE_BUCKET: 'policies',
+    }).storage,
+  ).toEqual({
+    kind: 'supabase',
+    url: 'https://abcdefghijklmnop.supabase.co',
+    apiKey: 'service-role-key',
+    bucket: 'policies',
+  });
+  expect(() => loadConfig({ ...baseEnv, ANUMAT_STORAGE: 'gcs' })).toThrow(/ANUMAT_GCS_BUCKET/);
+  expect(() =>
+    loadConfig({
+      ...baseEnv,
+      ANUMAT_STORAGE: 'supabase',
+      ANUMAT_SUPABASE_URL: 'https://abcdefghijklmnop.supabase.co',
+    }),
+  ).toThrow(/ANUMAT_SUPABASE/);
+});
