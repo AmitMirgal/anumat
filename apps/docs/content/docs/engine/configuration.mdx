@@ -25,7 +25,15 @@ const engine = await createEngine({
 });
 ```
 
-For object storage, pass `storage` as `{ kind: 's3', region, bucket, accessKeyId, secretAccessKey }`. Pass `endpoint` for a custom S3-compatible URL.
+For object storage, pass `storage` as one of:
+
+```ts
+{ kind: 's3', region, bucket, accessKeyId, secretAccessKey, endpoint? }
+{ kind: 'gcs', bucket, projectId?, keyFilename? }
+{ kind: 'supabase', url, apiKey, bucket }
+```
+
+Install `@aws-sdk/client-s3`, `@google-cloud/storage`, or `@supabase/supabase-js` only for the backend you use. Pass `endpoint` on S3 for a custom S3-compatible URL.
 
 Pass `firecrawl` as `{ apiKey, apiUrl }` when a scanned PDF needs hosted OCR. Text PDFs do not need it. `apiKey` and `apiUrl` are both optional on the type.
 
@@ -48,7 +56,7 @@ engine = create_engine(
 engine.close()
 ```
 
-For object storage, pass `storage` with `kind` set to `s3` and `region`, `bucket`, `access_key_id`, and `secret_access_key`. `endpoint` is optional.
+For object storage, pass `storage` with `kind` set to `s3`, `gcs`, or `supabase`. S3 uses `region`, `bucket`, `access_key_id`, and `secret_access_key` (`endpoint` is optional). GCS uses `bucket` and optional `project_id` and `key_filename`. Supabase uses `url`, `api_key`, and `bucket`.
 
 `llm` requires both `strong` and `cheap` strings. Python has no `firecrawl` argument. A scanned PDF that needs hosted OCR has no equivalent in `create_engine`.
 

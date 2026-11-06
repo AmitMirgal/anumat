@@ -24,7 +24,16 @@ await esbuild.build({
     __dirname: 'import.meta.dirname',
     __filename: 'import.meta.filename',
   },
-  external: ['@prisma/client', '@prisma/adapter-pg', 'pg', '@aws-sdk/client-s3', '@mastra/core', '@firecrawl/anydoc'],
+  external: [
+    '@prisma/client',
+    '@prisma/adapter-pg',
+    'pg',
+    '@aws-sdk/client-s3',
+    '@google-cloud/storage',
+    '@supabase/supabase-js',
+    '@mastra/core',
+    '@firecrawl/anydoc',
+  ],
   plugins: [
     {
       name: 'optional-otel',

@@ -17,12 +17,15 @@ export {
   loadConfig,
   MODEL_EXAMPLES,
   type Config,
+  type GcsStorage,
   type LocalStorage,
   type S3Storage,
   type StorageConfig,
+  type SupabaseStorage,
 } from './config';
-export { closeContext, createContext, type AppContext } from './context';
+export { closeContext, createContext, requireDatabase, type AppContext } from './context';
 export { createEngine, type CreateEngineOptions, type EngineFirecrawl, type EngineLlm, type EngineStorage } from './engine';
+export { extractFromPdf, extractFromPdf as extract, type ExtractedPolicy, type ExtractInput } from './extract';
 export { pdfToMarkdown, type Converter } from './convert/pdf-to-markdown';
 export { outline, readSections } from './documents/outline';
 export { log } from './log';

@@ -11,7 +11,7 @@ const ownedContexts = new WeakSet<AppContext>();
 
 export type AppContext = {
   config: Config;
-  db: Db;
+  db: Db | undefined;
   blobs: BlobStore;
   adapters: Record<AdapterType, SourceAdapter>;
   agents: Record<Market, PolicyAgent>;
@@ -25,6 +25,16 @@ function modelsFromConfig(config: Config): ModelSource {
   return { kind: 'router', ...config.models };
 }
 
+export function requireDatabase(ctx: AppContext): Db {
+  if (ctx.db === undefined) {
+    throw new AppError(
+      'database_not_configured',
+      'A database is not configured. Pass databaseUrl or db to createEngine to use the catalog, versioning, and approval workflow.',
+    );
+  }
+  return ctx.db;
+}
+
 export async function createContext(
   config: Config,
   overrides: {
@@ -34,7 +44,7 @@ export async function createContext(
     plugins?: Partial<EnginePlugins>;
   } = {},
 ): Promise<AppContext> {
-  const db = overrides.db ?? connect(config.databaseUrl);
+  const db = overrides.db ?? (config.databaseUrl ? connect(config.databaseUrl) : undefined);
   const blobs = createBlobStore(config.storage);
   const models = overrides.models ?? modelsFromConfig(config);
   const context: AppContext = {
@@ -45,10 +55,10 @@ export async function createContext(
     agents: { us: await createPolicyAgent({ market: 'us', models, sources: databaseSources(db, blobs) }) },
     plugins: resolveEnginePlugins(overrides.plugins),
   };
-  if (overrides.db === undefined) ownedContexts.add(context);
+  if (overrides.db === undefined && db !== undefined) ownedContexts.add(context);
   return context;
 }
 
 export async function closeContext(ctx: AppContext): Promise<void> {
-  if (ownedContexts.has(ctx)) await ctx.db.$disconnect();
+  if (ownedContexts.has(ctx) && ctx.db) await ctx.db.$disconnect();
 }

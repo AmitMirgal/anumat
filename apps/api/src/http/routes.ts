@@ -25,6 +25,7 @@ import {
   registerPayer,
   registerSource,
   rejectVersion,
+  requireDatabase,
   type AppContext,
 } from '@anumat/engine';
 import { z } from 'zod';
@@ -49,7 +50,7 @@ async function jsonBody<T>(c: Context<AppEnv>, schema: z.ZodType<T>): Promise<T>
 }
 
 export function v1(ctx: AppContext) {
-  const { db } = ctx;
+  const db = requireDatabase(ctx);
   const routes = new Hono<AppEnv>();
 
   routes.post('/payers', async (c) => c.json(payerDto(await registerPayer(db, await jsonBody(c, NewPayer))), 201));

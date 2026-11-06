@@ -39,7 +39,7 @@ test('createEngine uses arguments instead of storage, firecrawl, and model env',
     expect(engine.config.firecrawlApiUrl).toBeUndefined();
     expect(engine.config.models).toEqual({ strong: '', cheap: '' });
     expect(engine.agents.us.models.kind).toBe('scripted');
-    expect(await engine.db.payer.count()).toBe(0);
+    expect(await engine.db?.payer.count()).toBe(0);
     await closeContext(engine);
   } finally {
     restoreEnv(previous);
@@ -80,24 +80,25 @@ test('createEngine keeps the storage, llm, and firecrawl arguments', async () =>
 
 test('closeContext disconnects a client it opened and leaves a passed db open', async () => {
   const owner = await createEngine({ databaseUrl });
+  const db = owner.db;
+  if (!db) throw new Error('expected a database client');
   let disconnects = 0;
-  const original = owner.db.$disconnect.bind(owner.db);
-  owner.db.$disconnect = async () => {
+  const original = db.$disconnect.bind(db);
+  db.$disconnect = async () => {
     disconnects += 1;
     return original();
   };
-  const shared = await createEngine({ db: owner.db });
+  const shared = await createEngine({ db });
   await closeContext(shared);
   expect(disconnects).toBe(0);
-  expect(await owner.db.payer.count()).toBe(0);
+  expect(await db.payer.count()).toBe(0);
   await closeContext(owner);
   expect(disconnects).toBe(1);
 });
 
-test('createEngine rejects zero or two database arguments', async () => {
-  await expect(createEngine({} as CreateEngineOptions)).rejects.toThrow(/only one of them/);
+test('createEngine rejects both databaseUrl and db', async () => {
   const owner = await createEngine({ databaseUrl });
-  await expect(createEngine({ databaseUrl, db: owner.db } as unknown as CreateEngineOptions)).rejects.toThrow(/only one of them/);
+  await expect(createEngine({ databaseUrl, db: owner.db } as unknown as CreateEngineOptions)).rejects.toThrow(/not both/);
   await closeContext(owner);
 });
 
@@ -117,9 +118,10 @@ test('a bad database url does not fail storage env validation', async () => {
   }
 });
 
-test('createEngine rejects missing and null options', async () => {
-  await expect(createEngine(undefined as never)).rejects.toBeInstanceOf(AppError);
-  await expect(createEngine(undefined as never)).rejects.toMatchObject({ code: 'validation_failed' });
+test('createEngine treats omitted options as empty and rejects null', async () => {
+  const engine = await createEngine(undefined as never);
+  expect(engine.db).toBeUndefined();
+  await closeContext(engine);
   await expect(createEngine(null as never)).rejects.toMatchObject({ code: 'validation_failed' });
 });
 
@@ -129,12 +131,33 @@ test('createEngine rejects null storage, llm, and firecrawl', async () => {
   await expect(createEngine({ databaseUrl, firecrawl: null } as never)).rejects.toMatchObject({ code: 'validation_failed' });
 });
 
-test('createEngine rejects storage that is not a local path or complete s3 config', async () => {
+test('createEngine rejects storage that is not a local path or complete cloud config', async () => {
+  await expect(createEngine({ databaseUrl, storage: { kind: 'disk' } } as never)).rejects.toMatchObject({ code: 'validation_failed' });
   await expect(createEngine({ databaseUrl, storage: { kind: 'gcs' } } as never)).rejects.toMatchObject({ code: 'validation_failed' });
+  await expect(createEngine({ databaseUrl, storage: { kind: 'supabase' } } as never)).rejects.toMatchObject({
+    code: 'validation_failed',
+  });
   await expect(createEngine({ databaseUrl, storage: {} } as never)).rejects.toMatchObject({ code: 'validation_failed' });
   await expect(createEngine({ databaseUrl, storage: { kind: 'local', dataDir: 5 } } as never)).rejects.toMatchObject({
     code: 'validation_failed',
   });
+});
+
+test('createEngine accepts gcs and supabase storage without opening a cloud client', async () => {
+  const gcs = await createEngine({ databaseUrl, storage: { kind: 'gcs', bucket: 'policies', projectId: 'proj' } });
+  expect(gcs.config.storage).toEqual({ kind: 'gcs', bucket: 'policies', projectId: 'proj', keyFilename: undefined });
+  await closeContext(gcs);
+  const supabase = await createEngine({
+    databaseUrl,
+    storage: { kind: 'supabase', url: 'https://example.supabase.co', apiKey: 'service-role-key', bucket: 'policies' },
+  });
+  expect(supabase.config.storage).toEqual({
+    kind: 'supabase',
+    url: 'https://example.supabase.co',
+    apiKey: 'service-role-key',
+    bucket: 'policies',
+  });
+  await closeContext(supabase);
 });
 
 test('createEngine rejects a db that is not a client', async () => {

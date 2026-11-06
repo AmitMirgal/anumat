@@ -10,6 +10,7 @@ TOKEN = "test-token"
 
 
 class Handler(BaseHTTPRequestHandler):
+    config: dict[str, object] = {}
     def do_GET(self) -> None:
         if self.path != "/health":
             self._json(404, {"error": {"code": "not_found", "message": "missing"}})
@@ -25,8 +26,34 @@ class Handler(BaseHTTPRequestHandler):
             return
         length = int(self.headers.get("content-length", "0"))
         payload = json.loads(self.rfile.read(length).decode())
-        if payload.get("method") == "list_payers":
+        method = payload.get("method")
+        if method == "list_payers":
+            if Handler.config.get("databaseUrl") in (None, ""):
+                self._json(
+                    503,
+                    {
+                        "error": {
+                            "code": "database_not_configured",
+                            "message": "A database is not configured. Pass databaseUrl or db to createEngine to use the catalog, versioning, and approval workflow.",
+                        }
+                    },
+                )
+                return
             self._json(200, {"result": {"items": [], "nextCursor": None}})
+            return
+        if method == "extract":
+            self._json(
+                200,
+                {
+                    "result": {
+                        "extraction": {"market": "us", "title": "Bariatric Surgery", "payer": "UnitedHealthcare"},
+                        "model": "replay/extract",
+                        "converter": "anydoc",
+                        "charsRead": 0,
+                        "sectionsRead": [],
+                    }
+                },
+            )
             return
         self._json(404, {"error": {"code": "not_found", "message": f"Unknown engine method {payload.get('method')}"}})
 
@@ -44,6 +71,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def serve() -> None:
     incoming = json.loads(sys.stdin.readline())
+    Handler.config = incoming if isinstance(incoming, dict) else {}
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -52,7 +80,7 @@ def serve() -> None:
         "port": port,
         "token": TOKEN,
         "config": {
-            "databaseUrl": incoming["databaseUrl"],
+            "databaseUrl": incoming.get("databaseUrl"),
             "storage": {"kind": "local", "dataDir": "./data/policies"},
             "models": {"strong": "", "cheap": ""},
             "firecrawlApiKey": None,

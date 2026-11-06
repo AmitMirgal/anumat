@@ -3,7 +3,7 @@ title: Create
 description: Open an embedded engine and close it.
 ---
 
-Pass the database URL to the constructor. Neither constructor reads `storage` or `llm` from the environment.
+The database URL is optional. Omit it to extract rules without a catalog. Neither constructor reads `storage` or `llm` from the environment.
 
 <Tabs groupId="lang" persist items={['TypeScript', 'Python']}>
   <Tab value="TypeScript">
@@ -18,7 +18,7 @@ const engine = await createEngine({
 await closeContext(engine);
 ```
 
-Pass `databaseUrl` or `db`, and only one of them. `databaseUrl` opens a client. `db` reuses a client you already opened. `closeContext` disconnects a client that `createEngine` opened. It leaves a passed `db` open.
+`databaseUrl` and `db` are optional. Pass at most one of them. `databaseUrl` opens a client. `db` reuses a client you already opened. `closeContext` disconnects a client that `createEngine` opened. It leaves a passed `db` open. Catalog, versioning, and approval methods throw `database_not_configured` when neither is set.
 
 `storage`, `llm`, and `firecrawl` are optional.
 
@@ -32,7 +32,7 @@ with create_engine("postgres://USER:PASSWORD@HOST:5432/DATABASE") as engine:
     page = engine.list_payers()
 ```
 
-`create_engine` starts the engine and returns after the engine health check succeeds. `engine.close()` stops the process. A `with` block calls `close()`. The process also stops when the parent process exits.
+`database_url` is optional. `create_engine` starts the engine and returns after the engine health check succeeds. `engine.close()` stops the process. A `with` block calls `close()`. The process also stops when the parent process exits. Catalog, versioning, and approval methods raise `EngineError` with code `database_not_configured` when no URL is set.
 
 `storage` and `llm` are optional. Python `create_engine` does not accept a `db` client or a `firecrawl` argument. Those exist on `createEngine` only.
 

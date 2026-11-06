@@ -2,7 +2,7 @@ import { AppError } from '@anumat/core';
 import type { Db } from '@anumat/db';
 import * as z from 'zod';
 import type { ModelSource } from './agent/policy-agent';
-import { DEFAULT_DATA_DIR, type Config, type S3Storage, type StorageConfig } from './config';
+import { DEFAULT_DATA_DIR, type Config, type GcsStorage, type S3Storage, type StorageConfig, type SupabaseStorage } from './config';
 import { type AppContext, createContext } from './context';
 
 export type EngineDb = {
@@ -19,16 +19,27 @@ export type EngineStorage =
       accessKeyId: string;
       secretAccessKey: string;
       endpoint?: string;
+    }
+  | {
+      kind: 'gcs';
+      bucket: string;
+      projectId?: string;
+      keyFilename?: string;
+    }
+  | {
+      kind: 'supabase';
+      url: string;
+      apiKey: string;
+      bucket: string;
     };
 
 export type EngineLlm = { strong: string; cheap: string };
 
 export type EngineFirecrawl = { apiKey?: string; apiUrl?: string };
 
-export type CreateEngineOptions = (
-  | { databaseUrl: string; db?: never }
-  | { db: EngineDb; databaseUrl?: never }
-) & {
+export type CreateEngineOptions = {
+  databaseUrl?: string;
+  db?: EngineDb;
   storage?: EngineStorage;
   llm?: EngineLlm;
   firecrawl?: EngineFirecrawl;
@@ -90,7 +101,36 @@ const s3StorageSchema = z
     }
   });
 
-const storageSchema = z.discriminatedUnion('kind', [localStorageSchema, s3StorageSchema]);
+const gcsStorageSchema = z
+  .object({
+    kind: z.literal('gcs'),
+    bucket: z.string().min(1, 'storage kind gcs requires bucket'),
+    projectId: z.string().min(1).optional(),
+    keyFilename: z.string().min(1).optional(),
+  })
+  .strict();
+
+const supabaseStorageSchema = z
+  .object({
+    kind: z.literal('supabase'),
+    url: z.string().min(1),
+    apiKey: z.string().min(1),
+    bucket: z.string().min(1),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (!value.url || !value.apiKey || !value.bucket) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'storage kind supabase requires url, apiKey, and bucket',
+      });
+    }
+    if (value.url !== undefined && !URL.canParse(value.url)) {
+      ctx.addIssue({ code: 'custom', message: 'storage url must be a URL' });
+    }
+  });
+
+const storageSchema = z.discriminatedUnion('kind', [localStorageSchema, s3StorageSchema, gcsStorageSchema, supabaseStorageSchema]);
 
 const llmSchema = z
   .object({
@@ -123,13 +163,13 @@ const createEngineSchema = z
 
 type ParsedEngineOptions = z.infer<typeof createEngineSchema>;
 
-export async function createEngine(options: CreateEngineOptions): Promise<AppContext> {
+export async function createEngine(options: CreateEngineOptions = {}): Promise<AppContext> {
   const parsed = parseCreateEngineOptions(options);
   const storage = storageFromParsed(parsed.storage);
   const models = modelsFromParsed(parsed.llm);
   const firecrawl = firecrawlFromParsed(parsed.firecrawl);
   const config: Config = {
-    databaseUrl: parsed.databaseUrl ?? '',
+    databaseUrl: parsed.databaseUrl,
     host: '127.0.0.1',
     port: 4471,
     apiKeys: [],
@@ -141,11 +181,13 @@ export async function createEngine(options: CreateEngineOptions): Promise<AppCon
     rateLimitPerMinute: 120,
   };
   const context = await createContext(config, { db: parsed.db as Db | undefined, models });
-  if (parsed.db === undefined) {
+  if (parsed.databaseUrl !== undefined && parsed.db === undefined) {
+    const db = context.db;
+    if (!db) throw new AppError('internal', 'createEngine opened no database client');
     try {
-      await context.db.$queryRaw`SELECT 1`;
+      await db.$queryRaw`SELECT 1`;
     } catch (error) {
-      await context.db.$disconnect().catch(() => undefined);
+      await db.$disconnect().catch(() => undefined);
       throw error;
     }
   }
@@ -156,14 +198,14 @@ export async function createEngine(options: CreateEngineOptions): Promise<AppCon
 function parseCreateEngineOptions(options: CreateEngineOptions): ParsedEngineOptions {
   const value: unknown = options;
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    throw new AppError('validation_failed', 'createEngine requires databaseUrl or db, and only one of them');
+    throw new AppError('validation_failed', 'createEngine requires an options object');
   }
   const result = createEngineSchema.safeParse(options);
   if (!result.success) {
     throw new AppError('validation_failed', result.error.issues.map((issue) => issue.message).join('\n'));
   }
-  if ((result.data.databaseUrl === undefined) === (result.data.db === undefined)) {
-    throw new AppError('validation_failed', 'createEngine requires databaseUrl or db, and only one of them');
+  if (result.data.databaseUrl !== undefined && result.data.db !== undefined) {
+    throw new AppError('validation_failed', 'createEngine accepts databaseUrl or db, not both');
   }
   return result.data;
 }
@@ -187,6 +229,10 @@ function storageFromParsed(storage: ParsedEngineOptions['storage']): StorageConf
       return { kind: 'local', dataDir: storage.dataDir ?? DEFAULT_DATA_DIR };
     case 's3':
       return s3FromParsed(storage);
+    case 'gcs':
+      return gcsFromParsed(storage);
+    case 'supabase':
+      return supabaseFromParsed(storage);
     default: {
       const unreachable: never = storage;
       return unreachable;
@@ -200,6 +246,23 @@ function s3FromParsed(storage: Extract<ParsedEngineOptions['storage'], { kind: '
     throw new AppError('validation_failed', 'storage kind s3 requires region, bucket, accessKeyId, and secretAccessKey');
   }
   return { kind: 's3', endpoint, region, bucket, accessKeyId, secretAccessKey };
+}
+
+function gcsFromParsed(storage: Extract<ParsedEngineOptions['storage'], { kind: 'gcs' }>): GcsStorage {
+  return {
+    kind: 'gcs',
+    bucket: storage.bucket,
+    projectId: storage.projectId,
+    keyFilename: storage.keyFilename,
+  };
+}
+
+function supabaseFromParsed(storage: Extract<ParsedEngineOptions['storage'], { kind: 'supabase' }>): SupabaseStorage {
+  const { url, apiKey, bucket } = storage;
+  if (!url || !apiKey || !bucket) {
+    throw new AppError('validation_failed', 'storage kind supabase requires url, apiKey, and bucket');
+  }
+  return { kind: 'supabase', url, apiKey, bucket };
 }
 
 function modelsFromParsed(llm: ParsedEngineOptions['llm']): ModelSource {

@@ -12,7 +12,8 @@ import {
   registerPayer,
   registerSource,
 } from './catalog';
-import type { AppContext } from './context';
+import { requireDatabase, type AppContext } from './context';
+import { extractFromPdf, pdfFromBase64 } from './extract';
 import { checkDueSources, checkSource, dueSources } from './pipeline/check';
 import {
   approveVersion,
@@ -51,6 +52,7 @@ export const POLICY_METHODS = [
   ['getDiff', 'get_diff'],
   ['diffForVersion', 'diff_for_version'],
   ['saveDiffNotes', 'save_diff_notes'],
+  ['extract', 'extract'],
 ] as const;
 
 export type PolicyMethod = (typeof POLICY_METHODS)[number][0];
@@ -118,6 +120,14 @@ export const policyInputs = {
   getDiff: idInput,
   diffForVersion: z.object({ versionId: z.uuid() }).strict(),
   saveDiffNotes: z.object({ diffId: z.uuid(), summary: z.string().nullable(), review: z.unknown() }).strict(),
+  extract: z
+    .object({
+      pdf: z.string().min(1),
+      payer: z.string().min(1).max(120).optional(),
+      title: z.string().min(1).max(300).optional(),
+      market: market.optional(),
+    })
+    .strict(),
 } satisfies Record<PolicyMethod, z.ZodType>;
 
 const SNAKE_TO_CAMEL: Record<string, string> = {
@@ -167,19 +177,34 @@ export function toJson(value: unknown): unknown {
 
 export async function callPolicy(ctx: AppContext, method: PolicyMethod, input: unknown): Promise<unknown> {
   switch (method) {
+    case 'extract': {
+      const body = parse(policyInputs.extract, input);
+      return extractFromPdf(ctx, {
+        pdf: pdfFromBase64(body.pdf),
+        payer: body.payer,
+        title: body.title,
+        market: body.market as Market | undefined,
+      });
+    }
     case 'registerPayer': {
       const body = parse(policyInputs.registerPayer, input);
-      return registerPayer(ctx.db, { name: body.name, slug: body.slug, market: body.market as Market });
+      return registerPayer(requireDatabase(ctx), { name: body.name, slug: body.slug, market: body.market as Market });
     }
-    case 'getPayer':
-      return getPayer(ctx.db, parse(policyInputs.getPayer, input).id);
-    case 'findPayerBySlug':
-      return findPayerBySlug(ctx.db, parse(policyInputs.findPayerBySlug, input).slug);
-    case 'listPayers':
-      return listPayers(ctx.db, pageOf(parse(policyInputs.listPayers, input)));
+    case 'getPayer': {
+      const body = parse(policyInputs.getPayer, input);
+      return getPayer(requireDatabase(ctx), body.id);
+    }
+    case 'findPayerBySlug': {
+      const body = parse(policyInputs.findPayerBySlug, input);
+      return findPayerBySlug(requireDatabase(ctx), body.slug);
+    }
+    case 'listPayers': {
+      const body = parse(policyInputs.listPayers, input);
+      return listPayers(requireDatabase(ctx), pageOf(body));
+    }
     case 'registerSource': {
       const body = parse(policyInputs.registerSource, input);
-      return registerSource(ctx.db, {
+      return registerSource(requireDatabase(ctx), {
         payerId: body.payerId,
         title: body.title,
         sourceUrl: body.sourceUrl,
@@ -189,14 +214,22 @@ export async function callPolicy(ctx: AppContext, method: PolicyMethod, input: u
         enabled: body.enabled,
       });
     }
-    case 'getSource':
-      return getSource(ctx.db, parse(policyInputs.getSource, input).id);
-    case 'findSourceByPolicyKey':
-      return findSourceByPolicyKey(ctx.db, parse(policyInputs.findSourceByPolicyKey, input).policyKey);
-    case 'listSources':
-      return listSources(ctx.db, pageOf(parse(policyInputs.listSources, input)));
-    case 'checkSource':
-      return checkSource(ctx, parse(policyInputs.checkSource, input).sourceId);
+    case 'getSource': {
+      const body = parse(policyInputs.getSource, input);
+      return getSource(requireDatabase(ctx), body.id);
+    }
+    case 'findSourceByPolicyKey': {
+      const body = parse(policyInputs.findSourceByPolicyKey, input);
+      return findSourceByPolicyKey(requireDatabase(ctx), body.policyKey);
+    }
+    case 'listSources': {
+      const body = parse(policyInputs.listSources, input);
+      return listSources(requireDatabase(ctx), pageOf(body));
+    }
+    case 'checkSource': {
+      const body = parse(policyInputs.checkSource, input);
+      return checkSource(ctx, body.sourceId);
+    }
     case 'dueSources':
       parse(policyInputs.dueSources, input);
       return dueSources(ctx);
@@ -206,7 +239,7 @@ export async function callPolicy(ctx: AppContext, method: PolicyMethod, input: u
     case 'proposeVersion': {
       const body = parse(policyInputs.proposeVersion, input);
       return proposeVersion(
-        ctx.db,
+        requireDatabase(ctx),
         {
           sourceId: body.sourceId,
           documentId: body.documentId,
@@ -218,43 +251,51 @@ export async function callPolicy(ctx: AppContext, method: PolicyMethod, input: u
     }
     case 'approveVersion': {
       const body = parse(policyInputs.approveVersion, input);
-      return approveVersion(ctx.db, { versionId: body.versionId, approvedBy: body.approvedBy }, ctx.plugins);
+      return approveVersion(requireDatabase(ctx), { versionId: body.versionId, approvedBy: body.approvedBy }, ctx.plugins);
     }
     case 'rejectVersion': {
       const body = parse(policyInputs.rejectVersion, input);
       return rejectVersion(
-        ctx.db,
+        requireDatabase(ctx),
         { versionId: body.versionId, rejectedBy: body.rejectedBy, reason: body.reason },
         ctx.plugins,
       );
     }
-    case 'getPublishedPolicy':
-      return getPublishedPolicy(ctx.db, parse(policyInputs.getPublishedPolicy, input).policyKey);
+    case 'getPublishedPolicy': {
+      const body = parse(policyInputs.getPublishedPolicy, input);
+      return getPublishedPolicy(requireDatabase(ctx), body.policyKey);
+    }
     case 'getPublishedVersion': {
       const body = parse(policyInputs.getPublishedVersion, input);
-      return getPublishedVersion(ctx.db, body.policyKey, body.version);
+      return getPublishedVersion(requireDatabase(ctx), body.policyKey, body.version);
     }
     case 'listPublishedVersions': {
       const body = parse(policyInputs.listPublishedVersions, input);
-      return listPublishedVersions(ctx.db, body.policyKey, pageOf(body));
+      return listPublishedVersions(requireDatabase(ctx), body.policyKey, pageOf(body));
     }
-    case 'getVersion':
-      return getVersion(ctx.db, parse(policyInputs.getVersion, input).id);
+    case 'getVersion': {
+      const body = parse(policyInputs.getVersion, input);
+      return getVersion(requireDatabase(ctx), body.id);
+    }
     case 'listVersions': {
       const body = parse(policyInputs.listVersions, input);
       return listVersions(
-        ctx.db,
+        requireDatabase(ctx),
         { status: body.status as VersionStatus | undefined, policyKey: body.policyKey },
         pageOf(body),
       );
     }
-    case 'getDiff':
-      return getDiff(ctx.db, parse(policyInputs.getDiff, input).id);
-    case 'diffForVersion':
-      return diffForVersion(ctx.db, parse(policyInputs.diffForVersion, input).versionId);
+    case 'getDiff': {
+      const body = parse(policyInputs.getDiff, input);
+      return getDiff(requireDatabase(ctx), body.id);
+    }
+    case 'diffForVersion': {
+      const body = parse(policyInputs.diffForVersion, input);
+      return diffForVersion(requireDatabase(ctx), body.versionId);
+    }
     case 'saveDiffNotes': {
       const body = parse(policyInputs.saveDiffNotes, input);
-      return saveDiffNotes(ctx.db, body.diffId, { summary: body.summary, review: body.review });
+      return saveDiffNotes(requireDatabase(ctx), body.diffId, { summary: body.summary, review: body.review });
     }
     default: {
       const unreachable: never = method;

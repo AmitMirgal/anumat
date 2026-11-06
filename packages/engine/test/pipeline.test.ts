@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from 'vitest';
 import { replayModels } from '../src/agent/replay-model';
+import { requireDatabase } from '../src/context';
 import { checkSource, dueSources } from '../src/pipeline/check';
 import { getVersion } from '../src/versions';
 import { testContext, fakePayerSite } from '../src/testing/context';
@@ -17,7 +18,7 @@ async function setup(extraction: () => unknown) {
   const t = await testContext({ models: replayModels(extraction), adapter: site.adapter });
   close = t.close;
   await t.reset();
-  return { ...t, site, source: await seedSource(t.ctx.db) };
+  return { ...t, site, source: await seedSource(requireDatabase(t.ctx)) };
 }
 
 test('checking the same PDF twice creates one artifact and one version', async () => {
@@ -44,7 +45,7 @@ test('a changed PDF creates a new proposal that supersedes the open one', async 
   const second = await checkSource(ctx, source.id);
 
   expect(second.run.outcome).toBe('new_artifact');
-  expect((await getVersion(ctx.db, first.version?.id ?? '')).status).toBe('superseded');
+  expect((await getVersion(requireDatabase(ctx), first.version?.id ?? '')).status).toBe('superseded');
   expect({ status: second.version?.status, supersedes: second.version?.supersedesId }).toEqual({
     status: 'proposed',
     supersedes: first.version?.id,
@@ -90,7 +91,7 @@ test('without an LLM key the watch run records llm_not_configured and keeps the 
     });
     close = t.close;
     await t.reset();
-    const source = await seedSource(t.ctx.db);
+    const source = await seedSource(requireDatabase(t.ctx));
 
     const result = await checkSource(t.ctx, source.id);
 

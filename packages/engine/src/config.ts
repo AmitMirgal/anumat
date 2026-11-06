@@ -47,12 +47,18 @@ const EnvSchema = z
     PORT: z.coerce.number().int().min(1).max(65535).default(4471),
     ANUMAT_API_KEYS: apiKeys,
     ANUMAT_DATA_DIR: z.string().default(DEFAULT_DATA_DIR),
-    ANUMAT_STORAGE: z.enum(['local', 's3']).default('local'),
+    ANUMAT_STORAGE: z.enum(['local', 's3', 'gcs', 'supabase']).default('local'),
     ANUMAT_S3_ENDPOINT: z.url().optional(),
     ANUMAT_S3_REGION: s3Setting.optional(),
     ANUMAT_S3_BUCKET: s3Setting.optional(),
     ANUMAT_S3_ACCESS_KEY_ID: s3Setting.optional(),
     ANUMAT_S3_SECRET_ACCESS_KEY: s3Setting.optional(),
+    ANUMAT_GCS_BUCKET: s3Setting.optional(),
+    ANUMAT_GCS_PROJECT_ID: s3Setting.optional(),
+    ANUMAT_GCS_KEY_FILENAME: s3Setting.optional(),
+    ANUMAT_SUPABASE_URL: z.url().optional(),
+    ANUMAT_SUPABASE_API_KEY: s3Setting.optional(),
+    ANUMAT_SUPABASE_BUCKET: s3Setting.optional(),
     ANUMAT_LLM_MODE: z.enum(['live', 'replay']).default('live'),
     ANUMAT_STRONG_MODEL: modelRouterId.default(DEFAULT_MODELS.strong),
     ANUMAT_CHEAP_MODEL: modelRouterId.default(DEFAULT_MODELS.cheap),
@@ -72,10 +78,24 @@ export type S3Storage = {
   secretAccessKey: string;
 };
 
-export type StorageConfig = LocalStorage | S3Storage;
+export type GcsStorage = {
+  kind: 'gcs';
+  bucket: string;
+  projectId: string | undefined;
+  keyFilename: string | undefined;
+};
+
+export type SupabaseStorage = {
+  kind: 'supabase';
+  url: string;
+  apiKey: string;
+  bucket: string;
+};
+
+export type StorageConfig = LocalStorage | S3Storage | GcsStorage | SupabaseStorage;
 
 export type Config = {
-  databaseUrl: string;
+  databaseUrl: string | undefined;
   host: string;
   port: number;
   apiKeys: { name: string; key: string }[];
@@ -115,6 +135,10 @@ function storageConfig(env: Env): StorageConfig {
       return { kind: 'local', dataDir: env.ANUMAT_DATA_DIR };
     case 's3':
       return s3Storage(env);
+    case 'gcs':
+      return gcsStorage(env);
+    case 'supabase':
+      return supabaseStorage(env);
     default: {
       const unreachable: never = env.ANUMAT_STORAGE;
       return unreachable;
@@ -133,4 +157,29 @@ function s3Storage(env: Env): S3Storage {
     );
   }
   return { kind: 's3', endpoint: env.ANUMAT_S3_ENDPOINT, region, bucket, accessKeyId, secretAccessKey };
+}
+
+function gcsStorage(env: Env): GcsStorage {
+  const bucket = env.ANUMAT_GCS_BUCKET;
+  if (!bucket) {
+    throw new Error('Invalid environment: ANUMAT_STORAGE=gcs requires ANUMAT_GCS_BUCKET');
+  }
+  return {
+    kind: 'gcs',
+    bucket,
+    projectId: env.ANUMAT_GCS_PROJECT_ID,
+    keyFilename: env.ANUMAT_GCS_KEY_FILENAME,
+  };
+}
+
+function supabaseStorage(env: Env): SupabaseStorage {
+  const url = env.ANUMAT_SUPABASE_URL;
+  const apiKey = env.ANUMAT_SUPABASE_API_KEY;
+  const bucket = env.ANUMAT_SUPABASE_BUCKET;
+  if (!url || !apiKey || !bucket) {
+    throw new Error(
+      'Invalid environment: ANUMAT_STORAGE=supabase requires ANUMAT_SUPABASE_URL, ANUMAT_SUPABASE_API_KEY, and ANUMAT_SUPABASE_BUCKET',
+    );
+  }
+  return { kind: 'supabase', url, apiKey, bucket };
 }

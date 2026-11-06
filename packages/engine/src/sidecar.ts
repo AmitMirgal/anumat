@@ -4,12 +4,12 @@ import { createInterface } from 'node:readline';
 import { toAppError } from '@anumat/core';
 import * as z from 'zod';
 import { closeContext } from './context';
-import { createEngine, type CreateEngineOptions, type EngineLlm, type EngineStorage } from './engine';
+import { createEngine, type CreateEngineOptions, type EngineStorage } from './engine';
 import { callEngineMethod, toJson } from './sidecar-rpc';
 import { runBundledMigrations } from './sidecar-migrate';
 
 const usage = 'Usage: anumat-engine migrate --db <url>';
-const bodyLimit = 8 * 1024 * 1024;
+const bodyLimit = 32 * 1024 * 1024;
 
 const localStorage = z.object({
   kind: z.literal('local'),
@@ -25,9 +25,23 @@ const s3Storage = z.object({
   endpoint: z.url().optional(),
 });
 
+const gcsStorage = z.object({
+  kind: z.literal('gcs'),
+  bucket: z.string().min(1),
+  projectId: z.string().min(1).optional(),
+  keyFilename: z.string().min(1).optional(),
+});
+
+const supabaseStorage = z.object({
+  kind: z.literal('supabase'),
+  url: z.url(),
+  apiKey: z.string().min(1),
+  bucket: z.string().min(1),
+});
+
 const serveConfig = z.object({
-  databaseUrl: z.url(),
-  storage: z.discriminatedUnion('kind', [localStorage, s3Storage]).optional(),
+  databaseUrl: z.string().min(1).optional(),
+  storage: z.discriminatedUnion('kind', [localStorage, s3Storage, gcsStorage, supabaseStorage]).optional(),
   llm: z.object({ strong: z.string(), cheap: z.string() }).optional(),
 });
 
@@ -113,7 +127,7 @@ async function serve(): Promise<void> {
       port: address.port,
       token,
       config: {
-        databaseUrl: engine.config.databaseUrl,
+        databaseUrl: engine.config.databaseUrl ?? null,
         storage: engine.config.storage,
         models: engine.config.models,
         firecrawlApiKey: engine.config.firecrawlApiKey ?? null,
@@ -124,12 +138,11 @@ async function serve(): Promise<void> {
 }
 
 function optionsFromConfig(config: z.infer<typeof serveConfig>): CreateEngineOptions {
-  const storage: EngineStorage | undefined = config.storage;
-  const llm: EngineLlm | undefined = config.llm;
-  if (storage !== undefined && llm !== undefined) return { databaseUrl: config.databaseUrl, storage, llm };
-  if (storage !== undefined) return { databaseUrl: config.databaseUrl, storage };
-  if (llm !== undefined) return { databaseUrl: config.databaseUrl, llm };
-  return { databaseUrl: config.databaseUrl };
+  const options: CreateEngineOptions = {};
+  if (config.databaseUrl !== undefined) options.databaseUrl = config.databaseUrl;
+  if (config.storage !== undefined) options.storage = config.storage as EngineStorage;
+  if (config.llm !== undefined) options.llm = config.llm;
+  return options;
 }
 
 async function handle(
@@ -145,11 +158,13 @@ async function handle(
     }
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     if (req.method === 'GET' && url.pathname === '/health') {
-      try {
-        await engine.db.$queryRaw`SELECT 1`;
-      } catch {
-        send(res, 503, { status: 'not_ready' });
-        return;
+      if (engine.db !== undefined) {
+        try {
+          await engine.db.$queryRaw`SELECT 1`;
+        } catch {
+          send(res, 503, { status: 'not_ready' });
+          return;
+        }
       }
       send(res, 200, { status: 'ok' });
       return;
