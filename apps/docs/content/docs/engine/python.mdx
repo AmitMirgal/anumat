@@ -11,7 +11,7 @@ description: anumat-engine starts a compiled binary as a local process.
   </Tab>
   <Tab value="Python">
 
-`anumat-engine` installs one binary for the wheel's platform. `create_engine` starts that binary as a child process with the `serve` command. It writes one JSON config line to the process stdin. It reads one ready line from stdout. That line carries the port and the bearer token. The client then calls `http://127.0.0.1:<port>`. It checks `GET /health` before it returns, and later calls `POST /rpc`.
+`anumat-engine` installs one binary for the wheel's platform. `create_engine` starts that binary as a child process with the `serve` command. It writes one JSON config line to the process stdin. That line may omit `databaseUrl`. It reads one ready line from stdout. That line carries the port and the bearer token. The client then calls `http://127.0.0.1:<port>`. It checks `GET /health` before it returns, and later calls `POST /rpc`. Health does not query Postgres when no database is configured.
 
 `close()` stops the process. A `with` block calls `close()`. The process also stops when the parent process exits.
 

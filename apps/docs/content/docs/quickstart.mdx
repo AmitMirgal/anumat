@@ -1,19 +1,40 @@
 ---
 title: Quickstart
-description: Install the embedded engine, create it, and run one check.
+description: Extract structured rules from a policy PDF, or run a catalog check with Postgres.
 ---
 
-The embedded engine does not start the Anumat server. Apply migrations before the first check. The database URL in the examples is a placeholder.
-
-`registerPayer` rejects a slug that already exists. `checkSource` fetches the PDF. Pass `llm` when that check must call a model. The seed policy below is the public UnitedHealthcare Bariatric Surgery PDF.
+The embedded engine does not start the Anumat server. A database is not required to extract rules. Catalog, versioning, and approval need Postgres. The HTTP API is a different process and requires `DATABASE_URL`.
 
 <Tabs groupId="lang" persist items={['TypeScript', 'Python']}>
   <Tab value="TypeScript">
 
-Install the package. It requires Node.js 24 or newer.
+Install the package. It requires Node.js 24 or newer. Local disk needs no extra package. For S3, GCS, or Supabase Storage, also install the matching optional SDK.
 
 ```bash
 npm install @anumat/engine
+```
+
+Extract without a database. Store `result.extraction` yourself.
+
+```ts
+import { closeContext, createEngine, extract } from '@anumat/engine';
+import { readFile } from 'node:fs/promises';
+
+const engine = await createEngine({
+  llm: { strong: 'anthropic/claude-sonnet-4-5', cheap: 'anthropic/claude-haiku-4-5' },
+});
+const result = await extract(engine, {
+  pdf: new Uint8Array(await readFile('bariatric-surgery.pdf')),
+  payer: 'UnitedHealthcare',
+  title: 'Bariatric Surgery',
+});
+await closeContext(engine);
+```
+
+With a database, apply migrations, then register a source and check it. The seed policy below is the public UnitedHealthcare Bariatric Surgery PDF.
+
+```bash
+npx anumat migrate --db postgres://USER:PASSWORD@HOST:5432/DATABASE
 ```
 
 ```ts
@@ -23,24 +44,24 @@ const engine = await createEngine({
   databaseUrl: 'postgres://USER:PASSWORD@HOST:5432/DATABASE',
 });
 
-const payer = await registerPayer(engine.db, {
+const payer = await registerPayer(engine, {
   name: 'UnitedHealthcare',
   slug: 'unitedhealthcare',
   market: 'us',
 });
 
-const source = await registerSource(engine.db, {
+const source = await registerSource(engine, {
   payerId: payer.id,
   title: 'Bariatric Surgery',
   sourceUrl:
     'https://www.uhcprovider.com/content/dam/provider/docs/public/policies/comm-medical-drug/bariatric-surgery.pdf',
 });
 
-const result = await checkSource(engine, source.id);
+const result = await checkSource(engine, { sourceId: source.id });
 await closeContext(engine);
 ```
 
-`createEngine` returns the engine context. `closeContext` disconnects a database client that `createEngine` opened.
+`createEngine` returns the engine. `closeContext` disconnects a database client that `createEngine` opened. Catalog methods throw `database_not_configured` when no URL or `db` is set.
 
   </Tab>
   <Tab value="Python">
@@ -50,6 +71,28 @@ pip install anumat-engine
 ```
 
 Python 3.10 or newer is required. Each wheel contains the binary for one platform.
+
+Extract without a database. Store `result["extraction"]` yourself.
+
+```python
+from pathlib import Path
+from anumat_engine import create_engine
+
+with create_engine(
+    llm={"strong": "anthropic/claude-sonnet-4-5", "cheap": "anthropic/claude-haiku-4-5"},
+) as engine:
+    result = engine.extract(
+        Path("bariatric-surgery.pdf").read_bytes(),
+        payer="UnitedHealthcare",
+        title="Bariatric Surgery",
+    )
+```
+
+With a database, apply migrations, then register a source and check it.
+
+```bash
+anumat-engine migrate --db postgres://USER:PASSWORD@HOST:5432/DATABASE
+```
 
 ```python
 from anumat_engine import create_engine
@@ -64,7 +107,7 @@ with create_engine("postgres://USER:PASSWORD@HOST:5432/DATABASE") as engine:
     result = engine.check_source(source_id=source["id"])
 ```
 
-`create_engine` returns after the engine health check succeeds. The `with` block calls `close()`.
+`create_engine` returns after the engine health check succeeds. The `with` block calls `close()`. Catalog methods raise `EngineError` with code `database_not_configured` when no URL is set.
 
   </Tab>
 </Tabs>

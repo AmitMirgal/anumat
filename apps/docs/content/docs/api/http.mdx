@@ -3,6 +3,8 @@ title: HTTP
 description: The server OpenAPI document is produced by the API build.
 ---
 
+The HTTP API requires `DATABASE_URL`. It stores the catalog, versions, and approval workflow in Postgres. The embedded engine can extract rules without a database; that path is not this server.
+
 TODO. This site does not render HTTP operations yet.
 
 `fumadocs-openapi` needs an OpenAPI document in the repository. There is no `openapi.json` in git. `@anumat/api` writes `apps/api/openapi.json` when it builds, and that file is gitignored. A running API serves the same document at `http://127.0.0.1:4471/api/v1/openapi.json`.

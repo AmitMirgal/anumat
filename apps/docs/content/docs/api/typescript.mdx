@@ -3,7 +3,7 @@ title: TypeScript
 description: Types exported by @anumat/engine and the @anumat/js client options.
 ---
 
-The tables below are generated from the TypeScript source by fumadocs-typescript. `CreateEngineOptions` is exported from `@anumat/engine`. `createAnumatClient` is the only export from `@anumat/js`.
+The tables below are generated from the TypeScript source by fumadocs-typescript. `CreateEngineOptions` is exported from `@anumat/engine`. `databaseUrl` and `db` are optional. `AppContext.db` is `Db | undefined`; call `requireDatabase(ctx)` when a handler needs a client. `createAnumatClient` is the only export from `@anumat/js`. That client talks to the HTTP API, which requires `DATABASE_URL`.
 
 `@anumat/engine` also exports these names from `packages/engine/src/index.ts`.
 

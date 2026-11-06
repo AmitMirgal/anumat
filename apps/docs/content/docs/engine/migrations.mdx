@@ -3,7 +3,9 @@ title: Migrations
 description: Apply the SQL migrations shipped with the embedded engine.
 ---
 
-The command records migrations in `_prisma_migrations`. A second run leaves an up-to-date database unchanged. Pass the database URL with `--db`. The command does not read `DATABASE_URL` from the environment.
+Apply migrations before catalog, versioning, or approval. `extract` does not need a database or these migrations.
+
+The command records migrations in `_prisma_migrations`. A second run leaves an up-to-date database unchanged. Pass the database URL with `--db`. The command does not read `DATABASE_URL` from the environment. The HTTP API does read `DATABASE_URL` and requires it.
 
 <Tabs groupId="lang" persist items={['TypeScript', 'Python']}>
   <Tab value="TypeScript">

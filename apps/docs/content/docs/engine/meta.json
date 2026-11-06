@@ -1,5 +1,5 @@
 {
   "title": "Engine",
   "defaultOpen": true,
-  "pages": ["install", "create", "extract", "migrations", "configuration", "python"]
+  "pages": ["install", "create", "extract", "configuration", "upgrade", "migrations", "python"]
 }

@@ -61,12 +61,31 @@ await closeContext(engine);
 For local files, pass `storage` as `{ kind: 'local', dataDir }`. The default directory is `./data/policies`. For object storage, pass one of:
 
 ```ts
-{ kind: 's3', region, bucket, accessKeyId, secretAccessKey, endpoint? }
-{ kind: 'gcs', bucket, projectId?, keyFilename? }
-{ kind: 'supabase', url, apiKey, bucket }
+{
+  kind: 's3',
+  region: 'us-east-1',
+  bucket: 'policies',
+  accessKeyId: 'AKIA...',
+  secretAccessKey: '...',
+  endpoint: 'https://s3.example', // optional
+}
+{
+  kind: 'gcs',
+  bucket: 'anumat-policies',
+  projectId: 'my-project', // optional
+  keyFilename: '/path/to/key.json', // optional
+}
+{
+  kind: 'supabase',
+  url: 'https://PROJECT.supabase.co',
+  apiKey: 'service-role-key',
+  bucket: 'policies',
+}
 ```
 
 S3 `endpoint` is the custom URL for an S3-compatible store, including the GCS XML API and Supabase's S3 protocol. Prefer `kind: 'gcs'` or `kind: 'supabase'` when you want the native SDK.
+
+The HTTP API reads `ANUMAT_STORAGE=local|s3|gcs|supabase` and the matching `ANUMAT_DATA_DIR`, `ANUMAT_S3_*`, `ANUMAT_GCS_*`, or `ANUMAT_SUPABASE_*` variables. `createEngine` does not. The HTTP API requires `DATABASE_URL`.
 
 Pass `llm` as `{ strong, cheap }` with two `provider/model` ids when extract or a check should call a model. Omit `llm` until a call needs one.
 
@@ -101,3 +120,11 @@ The package exports these functions.
 - `slugify`
 
 Invalid input throws `AppError` with code `validation_failed`. The Python package `anumat-engine` exposes the same operations as snake_case methods on the engine object.
+
+## Breaking changes
+
+The published package no longer depends on `@aws-sdk/client-s3`. S3 users must install that client. GCS and Supabase Storage use `@google-cloud/storage` and `@supabase/supabase-js` the same way.
+
+`AppContext.db` is `Db | undefined` when no `databaseUrl` or `db` is passed. Call `requireDatabase(ctx)` instead of reading `ctx.db` as if a client is always there. Catalog methods already do that and throw `database_not_configured`.
+
+`createEngine()` with no options is valid. `null` is still rejected.

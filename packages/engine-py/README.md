@@ -52,12 +52,29 @@ with create_engine(database_url="postgres://USER:PASSWORD@HOST:5432/DATABASE") a
 For local files, pass `storage={"kind": "local", "data_dir": "data/policies"}`. The default directory is `./data/policies`. For object storage, pass one of:
 
 ```python
-{"kind": "s3", "region": "...", "bucket": "...", "access_key_id": "...", "secret_access_key": "...", "endpoint": "..."}
-{"kind": "gcs", "bucket": "...", "project_id": "...", "key_filename": "..."}
-{"kind": "supabase", "url": "https://PROJECT.supabase.co", "api_key": "...", "bucket": "..."}
+{
+    "kind": "s3",
+    "region": "us-east-1",
+    "bucket": "policies",
+    "access_key_id": "AKIA...",
+    "secret_access_key": "...",
+    "endpoint": "https://s3.example",  # optional
+}
+{
+    "kind": "gcs",
+    "bucket": "anumat-policies",
+    "project_id": "my-project",  # optional
+    "key_filename": "/path/to/key.json",  # optional
+}
+{
+    "kind": "supabase",
+    "url": "https://PROJECT.supabase.co",
+    "api_key": "service-role-key",
+    "bucket": "policies",
+}
 ```
 
-`endpoint` on S3 is the custom URL for an S3-compatible store. Prefer `kind` `gcs` or `supabase` when you want the native SDK.
+`endpoint` on S3 is the custom URL for an S3-compatible store. Prefer `kind` `gcs` or `supabase` when you want the native SDK. The HTTP API uses `ANUMAT_STORAGE` and the matching `ANUMAT_*` variables instead of these arguments, and it requires `DATABASE_URL`.
 
 Pass `llm={"strong": "anthropic/claude-sonnet-4-5", "cheap": "anthropic/claude-haiku-4-5"}` when extract or a check should call a model. Omit `llm` until a call needs one.
 
@@ -82,3 +99,5 @@ The engine object has these methods besides `close`.
 - `get_version`, `list_versions`, `get_diff`, `diff_for_version`, `save_diff_notes`
 
 Installing the source distribution on a platform without a wheel fails with the list of wheel tags. It does not leave a partial install that imports.
+
+`create_engine()` with no arguments is valid. Catalog methods then raise `EngineError` with code `database_not_configured` until you pass `database_url`.

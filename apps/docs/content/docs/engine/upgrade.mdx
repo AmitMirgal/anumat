@@ -1,0 +1,28 @@
+---
+title: Upgrade
+description: Breaking changes when Postgres became optional and storage grew GCS and Supabase.
+---
+
+These notes apply to the embedded engine after Postgres became optional. The HTTP API still requires `DATABASE_URL`. No package versions were bumped for that change.
+
+## S3 users must install the AWS SDK
+
+The published `@anumat/engine` package no longer depends on `@aws-sdk/client-s3`. That client is an optional peer, the same as `@google-cloud/storage` and `@supabase/supabase-js`.
+
+```bash
+npm install @aws-sdk/client-s3
+```
+
+Install `@google-cloud/storage` or `@supabase/supabase-js` only when you pass `kind: 'gcs'` or `kind: 'supabase'`. A missing SDK fails with `storage_not_configured` and names the package.
+
+## `AppContext.db` can be undefined
+
+`createEngine()` and `createContext()` succeed with no database URL. `ctx.db` is then `undefined`.
+
+Do not read `ctx.db` as if a client is always there. Call `requireDatabase(ctx)`. It returns the client, or throws `database_not_configured` with a message to pass `databaseUrl` or `db`. Published catalog functions already call it. `extract` does not need a database.
+
+## `createEngine()` with no options is valid
+
+`createEngine()` and `createEngine({})` construct an engine with local storage and no catalog. `null` is still rejected. Passing both `databaseUrl` and `db` is still rejected.
+
+Python `create_engine()` with no arguments is the same path. Catalog methods raise `EngineError` with code `database_not_configured` until you pass `database_url`.

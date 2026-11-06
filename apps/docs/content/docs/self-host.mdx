@@ -3,7 +3,9 @@ title: Self-host
 description: Install the API with Docker, or build it from this repository.
 ---
 
-Docker is the only install requirement for the published image. The API listens on `http://127.0.0.1:4471`.
+Docker is the only install requirement for the published image. The API listens on `http://127.0.0.1:4471`. The HTTP API requires `DATABASE_URL`. The installer writes that URL for the Compose Postgres service.
+
+Policy files default to local disk (`ANUMAT_STORAGE=local`, `ANUMAT_DATA_DIR=/data/policies`). To use S3, GCS, or Supabase Storage, set `ANUMAT_STORAGE` and the matching `ANUMAT_S3_*`, `ANUMAT_GCS_*`, or `ANUMAT_SUPABASE_*` variables from the repository README configuration table.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/AmitMirgal/anumat/main/install.sh | sh
