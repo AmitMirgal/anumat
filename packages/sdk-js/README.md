@@ -28,6 +28,6 @@ The client follows the tRPC router. These calls cover the REST resources.
 
 The published package ships ESM from `dist/index.js` and CJS from `dist/index.cjs`, with a separate type file for each. The tarball includes `LICENSE` and this README, and it omits source maps, scripts, and dev dependencies.
 
-The server is a separate process. See the repository [README](../../README.md) for how to run it.
+The server is a separate process and requires `DATABASE_URL`. This client does not embed `@anumat/engine`. See the repository [README](../../README.md) for how to run it.
 
 `@anumat/js` is Apache-2.0. The copyright line in `LICENSE` is `Copyright 2026 AmitMirgal`. Version bumps go through Changesets.

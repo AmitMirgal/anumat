@@ -3,7 +3,7 @@ title: Create
 description: Open an embedded engine and close it.
 ---
 
-The database URL is optional. Omit it to extract rules without a catalog. Neither constructor reads `storage` or `llm` from the environment.
+The database URL is optional. Omit it to extract rules without a catalog. Neither constructor reads `storage` or `llm` from the environment. The HTTP API still requires `DATABASE_URL`.
 
 <Tabs groupId="lang" persist items={['TypeScript', 'Python']}>
   <Tab value="TypeScript">
@@ -11,14 +11,21 @@ The database URL is optional. Omit it to extract rules without a catalog. Neithe
 ```ts
 import { closeContext, createEngine } from '@anumat/engine';
 
-const engine = await createEngine({
-  databaseUrl: 'postgres://USER:PASSWORD@HOST:5432/DATABASE',
-});
-
+const engine = await createEngine();
 await closeContext(engine);
 ```
 
+Pass `databaseUrl` when you want the catalog, versioning, approval workflow, and serving of approved rules.
+
+```ts
+const engine = await createEngine({
+  databaseUrl: 'postgres://USER:PASSWORD@HOST:5432/DATABASE',
+});
+```
+
 `databaseUrl` and `db` are optional. Pass at most one of them. `databaseUrl` opens a client. `db` reuses a client you already opened. `closeContext` disconnects a client that `createEngine` opened. It leaves a passed `db` open. Catalog, versioning, and approval methods throw `database_not_configured` when neither is set.
+
+`AppContext.db` is `undefined` until a URL or `db` is passed. Call `requireDatabase(ctx)` when a handler needs a client. It throws `database_not_configured` with the same message.
 
 `storage`, `llm`, and `firecrawl` are optional.
 
@@ -28,6 +35,13 @@ await closeContext(engine);
 ```python
 from anumat_engine import create_engine
 
+engine = create_engine()
+engine.close()
+```
+
+Pass `database_url` when you want the catalog.
+
+```python
 with create_engine("postgres://USER:PASSWORD@HOST:5432/DATABASE") as engine:
     page = engine.list_payers()
 ```

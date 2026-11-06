@@ -5,15 +5,18 @@ description: Public functions on anumat-engine and anumat-py.
 
 `fumadocs-python` can generate a page per module from docstrings. The public methods in `anumat_engine` and `anumat_py` have no docstrings, so that generator would emit empty pages. This page is hand-written from the type hints in the source.
 
-`anumat_engine` exports `Engine`, `EngineError`, `create_engine`, and `slugify`.
+`anumat_engine` exports `Engine`, `EngineError`, `ProposeVersionResult`, `create_engine`, and `slugify`.
 
-`create_engine(database_url, storage=None, llm=None)` returns an `Engine`. `slugify(value)` takes a string and returns a string. `EngineError` has `code` and `details`. `code` defaults to `"internal"`.
+`create_engine(database_url=None, storage=None, llm=None)` returns an `Engine`. `database_url` is optional. Omit it to extract rules without a catalog. Catalog, versioning, and approval methods then raise `EngineError` with code `database_not_configured`. `slugify(value)` takes a string and returns a string. `EngineError` has `code` and `details`. `code` defaults to `"internal"`.
+
+The HTTP API that `anumat-py` calls is a different process and requires `DATABASE_URL`.
 
 `Engine` methods take keyword arguments. Return values are JSON objects unless noted.
 
 | Method | Arguments |
 | --- | --- |
 | `close` | none |
+| `extract` | `pdf` (bytes), optional `payer`, `title`, `market` default `"us"` |
 | `register_payer` | `name`, `slug`, `market` |
 | `get_payer` | `id` |
 | `find_payer_by_slug` | `slug`. Returns an object or `None` |

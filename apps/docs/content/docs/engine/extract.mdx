@@ -3,9 +3,9 @@ title: Extract
 description: Turn a payer policy PDF into structured coverage rules without Postgres.
 ---
 
-`extract` runs the same convert-triage-extract pipeline as a source check. It does not write payers, versions, or diffs. Use it when you want the structured rules and will store them yourself.
+`extract` runs the same convert-triage-extract pipeline as a source check. It does not write payers, versions, diffs, or blob storage. Use it when you want the structured rules and will store them yourself.
 
-A database is not required. Catalog and approval methods still need `databaseUrl` or `db`.
+A database is not required. Catalog and approval methods still need `databaseUrl` or `db` and throw `database_not_configured` without one. The HTTP API still requires `DATABASE_URL`.
 
 <Tabs groupId="lang" persist items={['TypeScript', 'Python']}>
   <Tab value="TypeScript">

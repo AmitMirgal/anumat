@@ -30,6 +30,6 @@ page = client.list_payers(limit=20)
 
 `client.generated` is the client produced from `apps/api/openapi.json`. Regenerate it with `pnpm turbo generate --filter=anumat-py` after the API build.
 
-The server is a separate process. See the repository [README](../../README.md) for how to run it.
+The server is a separate process and requires `DATABASE_URL`. This client does not embed `anumat-engine`. See the repository [README](../../README.md) for how to run it.
 
 `anumat-py` is Apache-2.0. The wheel includes `LICENSE`, `NOTICE`, and `py.typed`. The copyright line is `Copyright 2026 AmitMirgal`.

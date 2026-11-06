@@ -1,6 +1,6 @@
 # Anumat
 
-Anumat takes insurance policy documents and returns structured coverage rules. It tracks each change, waits for a person to approve it, and serves the approved rules from a versioned API. It does not check individual patients.
+Anumat takes insurance policy documents and returns structured coverage rules. The embedded engine can extract those rules without Postgres. With a database it tracks each change, waits for a person to approve it, and serves the approved rules from a versioned API. The HTTP API requires `DATABASE_URL`. It does not check individual patients.
 
 This repository is the US market. India is a seam for a later pack, not a second set of rules inside the core. Anumat is a separate product from Pramaan.
 
@@ -37,7 +37,7 @@ client = AnumatClient("http://127.0.0.1:4471", "your-api-key")
 page = client.list_payers()
 ```
 
-This repository does not publish either package.
+This repository does not publish either package. Those clients call the HTTP API, which requires `DATABASE_URL`.
 
 The embedded engine can extract rules without Postgres. Catalog, versioning, and approval still need a database.
 
@@ -73,6 +73,8 @@ with create_engine(
 `result.extraction` (Python: `result["extraction"]`) is the structured coverage object. Store it in your own database.
 
 ## Run it yourself
+
+This section starts the HTTP API. That process requires `DATABASE_URL`. The embedded engine does not.
 
 You need Node 24 (see `.nvmrc`, install it with nvm), pnpm 12 (enable it with Corepack), uv, and PostgreSQL 16.
 
@@ -227,6 +229,8 @@ Packages do not import `apps/`. Free code never imports from a directory named `
 
 ## API
 
+The HTTP API requires `DATABASE_URL`. It is not the embedded `extract` path.
+
 tRPC is at `/trpc`. The TypeScript client uses it, so the server and the client share the router type.
 
 REST and OpenAPI are at `/api/v1`. Other languages, including the Python client, use that. Both come from the same tRPC router. `GET /api/v1/openapi.json` serves the document.
@@ -329,13 +333,15 @@ Imports flow one way, as in the diagram above. A package that needs a type from 
 
 ## Architecture
 
+The diagram is the HTTP API check-and-approve path. It uses Postgres. `extract()` runs convert, triage, and extract in memory and does not write the catalog. Policy files sit behind a BlobStore: local disk by default, or S3, GCS, or Supabase Storage.
+
 ```mermaid
 flowchart TD
   client["API client or reviewer"] -->|Bearer API key| api["Hono API"]
   cron["pnpm watch from cron"] --> check
   api -->|"POST /v1/sources/:id/check"| check["checkSource"]
   check --> adapter["http_pdf source adapter"]
-  adapter -->|"PDF bytes, SHA-256"| blobs[("BlobStore, local directory or S3-compatible bucket")]
+  adapter -->|"PDF bytes, SHA-256"| blobs[("BlobStore: local, S3, GCS, or Supabase")]
   check --> convert["anydoc, or Firecrawl Parse when pages need OCR"]
   convert --> triage
   subgraph agent["AgentController, one session per job"]
@@ -363,6 +369,8 @@ flowchart TD
 `market` is a column on payers, policy sources, and policy versions, and a literal in each extraction. Composite foreign keys keep those copies equal. `packages/markets/src/registry.ts` maps each built-in market to its `schemaId`, its Zod extract schema, and its pure diff function. `registerMarket` lets a later pack add a market without editing this package. The pipeline looks the market up with `marketFor` and does not import `packages/markets/src/us` directly. Source adapters sit behind `fetchArtifact(source)`, and only `http_pdf` exists. Codes are `{ system, code, display? }`, and the US schema checks the format of CPT, HCPCS, ICD-10-CM, and ICD-10-PCS codes. `packages/markets/src/in/README.md` lists the steps that were written for an India market. No India code, payer, source, or form exists. The Prisma `Market` enum is still only `us`.
 
 ### How a policy moves through Anumat
+
+`extract(engine, { pdf })` (Python: `engine.extract(pdf)`) runs convert, triage, and extract without storing an artifact or version. The HTTP API and `checkSource` use the path below and require Postgres.
 
 1. A check fetches the PDF, stores it at `pdf/<sha256>.pdf`, and locks the source row. It inserts an artifact only when the SHA-256 differs from the latest artifact for that source. The same PDF never creates a new artifact, document, or version.
 2. anydoc converts the PDF locally. When pages need OCR, Firecrawl Parse converts it if `FIRECRAWL_API_KEY` is set. Without the key, that document fails with `ocr_not_configured` and nothing else is affected.
@@ -415,6 +423,10 @@ A second case replays an extraction that breaks the US schema and expects the ga
 To score the configured models instead of the replay, set `ANUMAT_EVAL_LIVE=1` and the provider key, then run `pnpm eval`.
 
 ## Configuration
+
+The HTTP API, `pnpm watch`, and `pnpm db:migrate` read these variables. `createEngine` / `create_engine` do not; pass `databaseUrl` / `database_url`, `storage`, and `llm` as arguments. `DATABASE_URL` is required for the HTTP API.
+
+For the published `@anumat/engine` package, install only the object-storage client you use: `@aws-sdk/client-s3`, `@google-cloud/storage`, or `@supabase/supabase-js`. Local disk needs no extra package. S3 is no longer a hard dependency of the published package.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
@@ -487,6 +499,12 @@ ANUMAT_S3_BUCKET=policies
 ANUMAT_S3_ACCESS_KEY_ID=your-access-key-id
 ANUMAT_S3_SECRET_ACCESS_KEY=your-secret-access-key
 ```
+
+### Breaking changes
+
+- Published `@anumat/engine` no longer depends on `@aws-sdk/client-s3`. S3 users must install that client. GCS and Supabase Storage use `@google-cloud/storage` and `@supabase/supabase-js` the same way.
+- `AppContext.db` is `Db | undefined` when no `databaseUrl` or `db` is passed. Call `requireDatabase(ctx)` instead of reading `ctx.db` as if a client is always there.
+- `createEngine()` / `create_engine()` with no database URL is valid. Catalog methods throw `database_not_configured`.
 
 ## Seed sources
 

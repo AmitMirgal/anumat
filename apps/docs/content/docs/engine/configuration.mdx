@@ -1,22 +1,21 @@
 ---
 title: Configuration
-description: Storage and model options for the embedded engine.
+description: Storage and model options for the embedded engine and the HTTP API.
 ---
 
-Omit `llm` until a check needs a model. Model ids are `provider/model`. The package README names `anthropic/claude-sonnet-4-5` and `anthropic/claude-haiku-4-5` as the pair to pass when a check should call a model.
+Omit `llm` until extract or a check needs a model. Model ids are `provider/model`. The package README names `anthropic/claude-sonnet-4-5` and `anthropic/claude-haiku-4-5` as the pair to pass when a call should use a model.
 
-For local files, the default directory is `./data/policies`.
+`createEngine` / `create_engine` do not read `storage`, `llm`, or `databaseUrl` from the environment. The HTTP API, `pnpm watch`, and `pnpm db:migrate` do. The HTTP API requires `DATABASE_URL`.
+
+Policy files default to local disk at `./data/policies`.
 
 <Tabs groupId="lang" persist items={['TypeScript', 'Python']}>
   <Tab value="TypeScript">
-
-`createEngine` does not read these fields from the environment.
 
 ```ts
 import { createEngine } from '@anumat/engine';
 
 const engine = await createEngine({
-  databaseUrl: 'postgres://USER:PASSWORD@HOST:5432/DATABASE',
   storage: { kind: 'local', dataDir: 'data/policies' },
   llm: {
     strong: 'anthropic/claude-sonnet-4-5',
@@ -25,28 +24,44 @@ const engine = await createEngine({
 });
 ```
 
-For object storage, pass `storage` as one of:
+Pass `databaseUrl` only when you want the catalog. For object storage, pass `storage` as one of:
 
 ```ts
-{ kind: 's3', region, bucket, accessKeyId, secretAccessKey, endpoint? }
-{ kind: 'gcs', bucket, projectId?, keyFilename? }
-{ kind: 'supabase', url, apiKey, bucket }
+{
+  kind: 's3',
+  region: 'us-east-1',
+  bucket: 'policies',
+  accessKeyId: 'AKIA...',
+  secretAccessKey: '...',
+  endpoint: 'https://s3.example', // optional, S3-compatible URL
+}
+
+{
+  kind: 'gcs',
+  bucket: 'anumat-policies',
+  projectId: 'my-project', // optional
+  keyFilename: '/path/to/service-account.json', // optional
+}
+
+{
+  kind: 'supabase',
+  url: 'https://PROJECT.supabase.co',
+  apiKey: 'service-role-key',
+  bucket: 'policies',
+}
 ```
 
-Install `@aws-sdk/client-s3`, `@google-cloud/storage`, or `@supabase/supabase-js` only for the backend you use. Pass `endpoint` on S3 for a custom S3-compatible URL.
+Install `@aws-sdk/client-s3`, `@google-cloud/storage`, or `@supabase/supabase-js` only for the backend you use. Local disk needs no extra package. A missing SDK fails with `storage_not_configured` and names the package. Pass `endpoint` on S3 for a custom S3-compatible URL, including the GCS XML API and Supabase's S3 protocol. Prefer `kind: 'gcs'` or `kind: 'supabase'` for the native clients.
 
 Pass `firecrawl` as `{ apiKey, apiUrl }` when a scanned PDF needs hosted OCR. Text PDFs do not need it. `apiKey` and `apiUrl` are both optional on the type.
 
   </Tab>
   <Tab value="Python">
 
-`create_engine` does not read these fields from the environment.
-
 ```python
 from anumat_engine import create_engine
 
 engine = create_engine(
-    "postgres://USER:PASSWORD@HOST:5432/DATABASE",
     storage={"kind": "local", "data_dir": "data/policies"},
     llm={
         "strong": "anthropic/claude-sonnet-4-5",
@@ -56,9 +71,74 @@ engine = create_engine(
 engine.close()
 ```
 
-For object storage, pass `storage` with `kind` set to `s3`, `gcs`, or `supabase`. S3 uses `region`, `bucket`, `access_key_id`, and `secret_access_key` (`endpoint` is optional). GCS uses `bucket` and optional `project_id` and `key_filename`. Supabase uses `url`, `api_key`, and `bucket`.
+Pass `database_url` only when you want the catalog. For object storage, pass `storage` as one of:
+
+```python
+{
+    "kind": "s3",
+    "region": "us-east-1",
+    "bucket": "policies",
+    "access_key_id": "AKIA...",
+    "secret_access_key": "...",
+    "endpoint": "https://s3.example",  # optional
+}
+
+{
+    "kind": "gcs",
+    "bucket": "anumat-policies",
+    "project_id": "my-project",  # optional
+    "key_filename": "/path/to/service-account.json",  # optional
+}
+
+{
+    "kind": "supabase",
+    "url": "https://PROJECT.supabase.co",
+    "api_key": "service-role-key",
+    "bucket": "policies",
+}
+```
 
 `llm` requires both `strong` and `cheap` strings. Python has no `firecrawl` argument. A scanned PDF that needs hosted OCR has no equivalent in `create_engine`.
 
   </Tab>
 </Tabs>
+
+The HTTP API reads storage from the environment. `ANUMAT_STORAGE` is `local` (default), `s3`, `gcs`, or `supabase`.
+
+Local disk:
+
+```bash
+ANUMAT_STORAGE=local
+ANUMAT_DATA_DIR=./data/policies
+```
+
+S3, or the S3 protocol on Supabase Storage or GCS:
+
+```bash
+ANUMAT_STORAGE=s3
+ANUMAT_S3_ENDPOINT=https://abcdefghijklmnopqrst.supabase.co/storage/v1/s3
+ANUMAT_S3_REGION=us-east-1
+ANUMAT_S3_BUCKET=policies
+ANUMAT_S3_ACCESS_KEY_ID=
+ANUMAT_S3_SECRET_ACCESS_KEY=
+```
+
+Google Cloud Storage (native):
+
+```bash
+ANUMAT_STORAGE=gcs
+ANUMAT_GCS_BUCKET=anumat-policies
+ANUMAT_GCS_PROJECT_ID=
+ANUMAT_GCS_KEY_FILENAME=
+```
+
+Supabase Storage (native):
+
+```bash
+ANUMAT_STORAGE=supabase
+ANUMAT_SUPABASE_URL=https://abcdefghijklmnopqrst.supabase.co
+ANUMAT_SUPABASE_API_KEY=
+ANUMAT_SUPABASE_BUCKET=policies
+```
+
+`DATABASE_URL` is required for the HTTP API. It is optional for `createEngine` / `create_engine`.

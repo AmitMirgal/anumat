@@ -3,7 +3,7 @@ title: Install
 description: Install the embedded engine for Node.js or Python.
 ---
 
-This package runs on your machine. It does not install the Anumat server.
+This package runs on your machine. It does not install the Anumat server. A database is not required to extract rules. Catalog, versioning, and approval need Postgres. The HTTP API is a different process and requires `DATABASE_URL`.
 
 <Tabs groupId="lang" persist items={['TypeScript', 'Python']}>
   <Tab value="TypeScript">
@@ -14,6 +14,8 @@ npm install @anumat/engine
 
 `@anumat/engine` requires Node.js 24 or newer. The published package includes `dist` and `migrations`.
 
+Cloud object storage is optional. Install a client only for the backend you use: `@aws-sdk/client-s3` for S3, `@google-cloud/storage` for GCS, or `@supabase/supabase-js` for Supabase Storage. Local disk needs no extra package. S3 used to ship as a hard dependency of the published package; install `@aws-sdk/client-s3` yourself now.
+
   </Tab>
   <Tab value="Python">
 
@@ -22,6 +24,8 @@ pip install anumat-engine
 ```
 
 `anumat-engine` requires Python 3.10 or newer. Each wheel contains the binary for one platform. The platforms are macOS arm64, macOS x64, Linux x64, Linux arm64, and Windows x64.
+
+Pass `storage` to `create_engine` when you want S3, GCS, or Supabase Storage. Local disk is the default and needs no extra package.
 
   </Tab>
 </Tabs>
