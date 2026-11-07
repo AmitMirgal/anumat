@@ -1,71 +1,44 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-[[ "$(git branch --show-current)" == main ]] || { echo "Switch to main first."; exit 1; }
-git diff --quiet && git diff --cached --quiet || { echo "Commit or stash your changes first."; exit 1; }
-git fetch -q origin main
-[[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] || { echo "main is not in sync with GitHub. Pull first."; exit 1; }
+root=$(cd "$(dirname "$0")/.." && pwd)
+cd "$root"
+
+bash scripts/release/require-clean-main.sh
 
 name="anumat-engine"
-: "${PYPI_TOKEN:?PYPI_TOKEN is not set. Add it to ~/.zshrc}"
-
 version=$(bash scripts/engine-py-release-version.sh)
-bash scripts/require-local-postgres.sh
+tag="${name}@${version}"
 
+bash scripts/require-local-postgres.sh
 pnpm turbo run test --filter=anumat-engine
 
-root=$(pwd)
-rm -rf dist
-while IFS= read -r row; do
-  target=$(jq -r '.target' <<<"$row")
-  platform=$(jq -r '.platform' <<<"$row")
-  binary=$(jq -r '.binary' <<<"$row")
-  bash packages/engine-py/scripts/build-wheel.sh "$target" "$platform" "$binary" "$root/dist"
-done < <(jq -c '.[]' packages/engine-py/platforms.json)
-
-uv build --sdist --package anumat-engine --out-dir dist
-
-echo "$name $version"
-echo "Wheels:"
-ls dist
-
-native=$(python3 - <<'PY'
-import platform
-import sys
-
-system = platform.system().lower()
-machine = platform.machine().lower()
-if system == "darwin" and machine in {"arm64", "aarch64"}:
-    print("macosx_11_0_arm64")
-elif system == "darwin" and machine in {"x86_64", "amd64"}:
-    print("macosx_11_0_x86_64")
-elif system == "linux" and machine in {"x86_64", "amd64"}:
-    print("manylinux_2_17_x86_64")
-elif system == "linux" and machine in {"aarch64", "arm64"}:
-    print("manylinux_2_17_aarch64")
-elif system == "windows" and machine in {"x86_64", "amd64"}:
-    print("win_amd64")
-else:
-    sys.exit(f"no anumat-engine wheel tag for {system} {machine}")
-PY
-)
-wheel=$(ls "dist/"*"${native}"*.whl)
-export DATABASE_URL="${DATABASE_URL:-postgres://anumat:anumat@127.0.0.1:5432/anumat_engine}"
-export ANUMAT_MIGRATION_SQL="${ANUMAT_MIGRATION_SQL:-packages/db/prisma/migrations/20260929061425_init/migration.sql}"
-# Migrate connects to that database, so a missing one exits before smoke.
-# Create it when Postgres is up. If Postgres is down, this stops with that fact.
-node packages/engine/scripts/ensure-smoke-database.mjs
+bundle=$(mktemp -d "${TMPDIR:-/tmp}/anumat-engine-bundle.XXXXXX")
 smoke_work=
-cleanup_smoke_work() {
+cleanup() {
+  rm -rf "$bundle"
   if [[ -n "${smoke_work:-}" ]]; then
     rm -rf "$smoke_work"
   fi
 }
-trap cleanup_smoke_work EXIT
+trap cleanup EXIT
+
+bash scripts/release/fetch-engine-ci-bundle.sh "$bundle"
+python3 scripts/release/verify_engine_bundle.py \
+  --repo "$root" \
+  --bundle "$bundle" \
+  --commit "$(git rev-parse HEAD)" \
+  --version "$version"
+
+wheel=$(python3 scripts/release/select_native_wheel.py "$bundle")
+export DATABASE_URL="${DATABASE_URL:-postgres://anumat:anumat@127.0.0.1:5432/anumat_engine}"
+export ANUMAT_MIGRATION_SQL="${ANUMAT_MIGRATION_SQL:-packages/db/prisma/migrations/20260929061425_init/migration.sql}"
+node packages/engine/scripts/ensure-smoke-database.mjs
+
 {
   IFS= read -r smoke_work
   IFS= read -r smoke_python
-} < <(bash scripts/engine-py-make-smoke-venv.sh)
+} < <(bash scripts/release/make-smoke-venv.sh anumat-engine-smoke)
 if [[ -z "$smoke_work" || -z "${smoke_python:-}" || ! -x "$smoke_python" ]]; then
   echo "failed to create the engine smoke virtualenv" >&2
   exit 1
@@ -78,15 +51,12 @@ case "$smoke_python" in
     ;;
 esac
 uv pip install -q --python "$smoke_python" "$wheel"
-echo "Smoking $wheel before publish."
+echo "Smoking $wheel from the Engine wheels CI bundle before publish."
 "$smoke_python" packages/engine-py/scripts/smoke.py
 
-read -r -p "Publish $name $version for real? Type $version to confirm: " answer
-[[ "$answer" == "$version" ]] || { echo "Cancelled. Nothing was published."; exit 1; }
-
-uv publish --token "$PYPI_TOKEN" dist/*
-
-tag="anumat-engine@$version"
-git tag "$tag"
-echo "Created local tag $tag."
-echo "git push origin main && git push origin tag $tag"
+mapfile -t files < <(python3 -c 'import json,sys; from pathlib import Path; bundle=Path(sys.argv[1]); names=json.loads((bundle/"provenance.json").read_text())["files"]; print("\n".join(str(bundle/name) for name in names))' "$bundle")
+if [[ "${#files[@]}" -ne 6 ]]; then
+  echo "expected 5 wheels and 1 sdist in the CI bundle" >&2
+  exit 1
+fi
+bash scripts/release/finish-pypi.sh "$name" "$version" "$tag" "${files[@]}"

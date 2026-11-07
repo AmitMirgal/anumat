@@ -10,8 +10,9 @@ port="${ANUMAT_POSTGRES_PORT:-5432}"
 print_setup() {
   cat >&2 <<EOF
 Postgres is not accepting connections at ${host}:${port}.
-anumat-engine tests need the documented disposable Postgres (role anumat / anumat).
-They recreate only database anumat_engine_parity. They do not drop anumat or anumat_test.
+Package tests need the documented disposable Postgres (role anumat / anumat).
+anumat-engine catalog tests recreate only database anumat_engine_parity.
+SDK tests use anumat_test and do not drop it. They do not drop anumat.
 
 Start it with the README commands, then run the tests or release again:
 
@@ -26,7 +27,11 @@ or change any database.
 EOF
 }
 
-if python3 - "$host" "$port" <<'PY'
+python_bin=python3
+if ! command -v python3 >/dev/null 2>&1; then
+  python_bin=python
+fi
+if "$python_bin" - "$host" "$port" <<'PY'
 import socket
 import sys
 

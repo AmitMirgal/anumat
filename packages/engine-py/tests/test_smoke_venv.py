@@ -6,15 +6,18 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-MAKE_VENV = ROOT / "scripts" / "engine-py-make-smoke-venv.sh"
+MAKE_VENV = ROOT / "scripts" / "release" / "make-smoke-venv.sh"
+WRAPPER = ROOT / "scripts" / "engine-py-make-smoke-venv.sh"
 RELEASE = ROOT / "scripts" / "release-engine-py.sh"
+CI_SMOKE = ROOT / "packages" / "engine-py" / "scripts" / "ci-smoke.sh"
+ANUMAT_PY = ROOT / "scripts" / "release.sh"
 
 
-def _make_venv(tmp_path: Path) -> tuple[Path, Path]:
+def _make_venv(tmp_path: Path, prefix: str = "anumat-engine-smoke") -> tuple[Path, Path]:
     env = os.environ.copy()
     env["TMPDIR"] = str(tmp_path)
     result = subprocess.run(
-        ["bash", str(MAKE_VENV)],
+        ["bash", str(MAKE_VENV), prefix],
         cwd=ROOT,
         env=env,
         text=True,
@@ -118,27 +121,58 @@ def test_make_smoke_venv_python_can_install_a_local_wheel(tmp_path: Path) -> Non
         shutil.rmtree(work, ignore_errors=True)
 
 
-def test_release_script_smokes_native_wheel_from_owned_venv() -> None:
-    script = RELEASE.read_text()
-    helper = MAKE_VENV.read_text()
-    assert "bash scripts/engine-py-make-smoke-venv.sh" in script
-    assert 'uv pip install -q --python "$smoke_python" "$wheel"' in script
-    assert '"$smoke_python" packages/engine-py/scripts/smoke.py' in script
-    assert "uv venv /tmp/anumat-engine-smoke --clear" not in script
-    for line in helper.splitlines():
+def test_wrapper_still_creates_an_owned_venv(tmp_path: Path) -> None:
+    env = os.environ.copy()
+    env["TMPDIR"] = str(tmp_path)
+    leftover = tmp_path / "anumat-engine-smoke"
+    leftover.mkdir()
+    (leftover / "keep-me").write_text("user-files")
+    result = subprocess.run(
+        ["bash", str(WRAPPER)],
+        cwd=ROOT,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    work = Path(result.stdout.splitlines()[0])
+    try:
+        assert leftover.joinpath("keep-me").read_text() == "user-files"
+        assert work.parent.resolve() == tmp_path.resolve()
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def _no_force_clear(path: Path) -> None:
+    for line in path.read_text().splitlines():
         code = line.split("#", 1)[0]
-        assert "--force" not in code
-        assert "--clear" not in code
+        assert "--force" not in code, path
+        assert "--clear" not in code, path
+
+
+def test_release_and_ci_smoke_use_owned_venv_and_native_wheel() -> None:
+    script = RELEASE.read_text()
+    ci = CI_SMOKE.read_text()
+    py = ANUMAT_PY.read_text()
+    helper = MAKE_VENV.read_text()
+    assert "bash scripts/release/make-smoke-venv.sh" in script
+    assert "bash scripts/release/make-smoke-venv.sh" in ci
+    assert "bash scripts/release/make-smoke-venv.sh anumat-py-smoke" in py
+    assert "select_native_wheel.py" in script
+    assert "select_native_wheel.py" in ci
+    assert "uv venv /tmp/anumat-engine-smoke --clear" not in script
+    assert "uv venv /tmp/anumat-engine-smoke --clear" not in ci
+    assert "/tmp/anutest" not in py
+    assert "docker rm -f" not in ci
+    _no_force_clear(MAKE_VENV)
+    _no_force_clear(CI_SMOKE)
+    _no_force_clear(RELEASE)
     assert 'uv venv "$work/venv" -q' in helper
-    assert script.index("bash scripts/engine-py-make-smoke-venv.sh") < script.index(
+    assert script.index("bash scripts/release/make-smoke-venv.sh") < script.index(
         'uv pip install -q --python "$smoke_python" "$wheel"'
     )
     assert script.index('"$smoke_python" packages/engine-py/scripts/smoke.py') < script.index(
-        "uv publish --token"
+        "bash scripts/release/finish-pypi.sh"
     )
-    assert "set -euo pipefail" in script.splitlines()[1]
-    for line in script.splitlines():
-        if "git push" in line:
-            assert line.lstrip().startswith("echo ")
-        if "uv publish" in line:
-            assert "PYPI_TOKEN" in line
+    assert ci.index("select_native_wheel.py") < ci.index("make-smoke-venv.sh")

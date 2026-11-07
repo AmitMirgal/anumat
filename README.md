@@ -209,7 +209,7 @@ From `main`, run `pnpm release:server`. The script reads the version in `apps/ap
 | `packages/core` | `@anumat/core` | Errors, pagination, change shape, market id, plug-in interfaces | Internal |
 | `packages/markets` | `@anumat/markets` | Registry, US schema, US diff, US seeds. `in/` is a README | Internal |
 | `packages/db` | `@anumat/db` | Prisma schema, migrations, generated client | Internal |
-| `packages/engine` | `@anumat/engine` | Fetch, convert, extract, diff, jobs, agent, storage, catalog, versions | Internal |
+| `packages/engine` | `@anumat/engine` | Fetch, convert, extract, diff, jobs, agent, storage, catalog, versions | Public |
 | `packages/contract` | `@anumat/contract` | tRPC router and shared Zod schemas | Internal |
 | `packages/tsconfig` | `@anumat/tsconfig` | Shared TypeScript presets | Internal |
 | `packages/sdk-js` | `@anumat/js` | Typed tRPC client for npm | Public |
@@ -303,29 +303,32 @@ Anything inside a directory named `ee/`, anywhere in this repository, is under t
 
 ## Releasing
 
-Bump `@anumat/js` or `@anumat/engine` with changesets. Bump `anumat-py` with `pnpm bump:anumat:version`. Bump `anumat-engine` with `pnpm bump:engine:version` when you want a patch on that package. Merge that branch to `main`. Publish from `main`.
+Publish from a clean `main` that matches GitHub. The four package commands never push tags. They create a local tag after a successful publish (or after a hash-verified tag-only recovery) and print `git push origin tag <tag>`. Type the version to confirm before any publish or local tag. They do not bump versions.
 
-1. For `@anumat/js` or `@anumat/engine`, run `pnpm changeset`. Then run `pnpm changeset version`.
-2. For `anumat-py`, run `pnpm bump:anumat:version`. For `anumat-engine`, run `pnpm bump:engine:version`.
-3. Open a pull request.
-4. Squash-merge the pull request.
-5. Run `git checkout main && git pull`.
-6. Run `pnpm release:anumat`, `pnpm release:anumat-py`, `pnpm release:engine`, or `pnpm release:engine-py`.
+JavaScript versions come from each package's `package.json` after Changesets. Python versions are independent: `anumat-py` from `packages/sdk-python`, `anumat-engine` from `packages/engine-py` (what `pnpm bump:engine:version` writes). `pnpm release:engine-py` does not copy `@anumat/engine`.
 
-`pnpm release:anumat` publishes `@anumat/js` from a clean `main` that matches GitHub. It builds, runs the tests, prints the npm dry run, and waits until you type the version.
+1. For `@anumat/js` or `@anumat/engine`, run `pnpm changeset`, then `pnpm changeset version`.
+2. For `anumat-py`, run `pnpm bump:anumat:version`. For a patch of `anumat-engine`, run `pnpm bump:engine:version`.
+3. Open a pull request, squash-merge it, then `git checkout main && git pull`.
+4. Wait until CI is green on that commit. `pnpm release:engine-py` publishes the `anumat-engine-release` artifact from the Engine wheels run for `HEAD`. It does not compile wheels on the laptop. If that artifact is missing or expired, re-run `gh workflow run 'Engine wheels' --ref main` and wait; do not bump the version to recover.
+5. Start the disposable Postgres in [Run it yourself](#run-it-yourself) (`anumat-postgres` on `127.0.0.1:5432`, role `anumat` / `anumat`, database `anumat_test` created). Release scripts check that port. They do not start Docker and do not drop `anumat` or `anumat_test`.
+6. Run one of `pnpm release:anumat`, `pnpm release:anumat-py`, `pnpm release:engine`, or `pnpm release:engine-py`.
 
-`pnpm release:anumat-py` publishes `anumat-py` from a clean `main` that matches GitHub. It builds the wheel, checks that the wheel imports, and publishes with `uv publish`. `PYPI_TOKEN` comes from the environment.
+`pnpm release:anumat` builds `@anumat/js`, runs that package's tests (they start the API against `anumat_test`), and packs the tarball (`npm pack` plus attw, not a dry-run). If the version is absent on npm, it publishes after you type the version. If npm already has that version and the local pack integrity matches, it only creates the local tag `@anumat/js@<version>`. A hash mismatch is fatal.
 
-`pnpm release:engine` publishes `@anumat/engine` from a clean `main` that matches GitHub. It builds, runs the tests, prints the `npm pack --dry-run` file list, and waits until you type the version. Bump `@anumat/engine` with changesets first, the same way as `@anumat/js`.
+`pnpm release:engine` is the same shape for `@anumat/engine`: scoped engine build/test (catalog tests need Postgres), `check-pack.mjs`, then publish or tag-only recovery. The tag is `@anumat/engine@<version>`.
 
-`pnpm release:engine-py` publishes `anumat-engine` from a clean `main` that matches GitHub. It uses the version in `packages/engine-py` (the same field `pnpm bump:engine:version` writes). It does not copy the `@anumat/engine` version. The package tests include a catalog integration test, so start the disposable Postgres in [Run it yourself](#run-it-yourself) first (`anumat-postgres` on `127.0.0.1:5432`, role `anumat` / `anumat`). The release script checks that port before pytest. It does not start Docker or drop `anumat` / `anumat_test`. The policy-case test recreates only `anumat_engine_parity`. Then it runs the package tests and builds one wheel for each platform with Bun. It publishes those wheels with `uv publish`. `PYPI_TOKEN` comes from the environment. The script creates the local tag `anumat-engine@<version>` and prints these two lines. It does not push.
+`pnpm release:anumat-py` generates the client, runs `anumat-py` tests against `anumat_test`, builds wheel and sdist into an owned temp directory, installs the wheel in an owned venv, and publishes with `uv publish`. Files already on PyPI with the same sha256 are skipped. A different sha256 is fatal. Partial uploads can be retried without bumping. `PYPI_TOKEN` is required only when there is something left to upload. The tag is `anumat-py@<version>`.
+
+`pnpm release:engine-py` runs `anumat-engine` tests (they recreate only `anumat_engine_parity`), downloads the Engine wheels bundle for this commit, checks provenance/commit/version/migration sha256/SHA256SUMS, smokes the host wheel from that bundle, then publishes the five CI wheels plus the CI sdist. The tag is `anumat-engine@<version>`. `gh` must be installed and authenticated. There is no local Bun compile fallback.
+
+If a version is already on the registry with matching artifacts, re-run the same command and type the version to create the local tag only. Then:
 
 ```bash
-git push origin main && git push origin tag anumat-engine@<version>
-git push origin main --follow-tags
+git push origin tag <tag>
 ```
 
-`npm login` stores the npm token in `~/.npmrc`. Store `PYPI_TOKEN` in `~/.zshrc`. Keep both tokens out of the repo and out of `.env`.
+`npm login` stores the npm token in `~/.npmrc`. Store `PYPI_TOKEN` in the environment (for example your shell profile). Keep both tokens out of the repo and out of `.env`.
 
 ## Contributing
 

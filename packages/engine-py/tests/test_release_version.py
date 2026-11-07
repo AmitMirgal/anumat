@@ -36,7 +36,7 @@ def _repo_with_differing_versions(tmp_path: Path) -> Path:
     return repo
 
 
-def _stub_path(tmp_path: Path, *, pypi_present: str | None) -> Path:
+def _stub_path(tmp_path: Path) -> Path:
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     _write_executable(
@@ -73,22 +73,11 @@ print(match.group(1))
 PY
 """,
     )
-    present = "" if pypi_present is None else pypi_present
     _write_executable(
         bin_dir / "curl",
-        f"""#!/usr/bin/env bash
-set -euo pipefail
-url=""
-for arg in "$@"; do
-  case "$arg" in
-    http*) url="$arg" ;;
-  esac
-done
-printf '%s\\n' "$url" >> "${{CURL_LOG:?}}"
-if [[ -n "{present}" && "$url" == "{present}" ]]; then
-  exit 0
-fi
-exit 22
+        """#!/usr/bin/env bash
+echo "curl should not run during version selection" >&2
+exit 99
 """,
     )
     _write_executable(
@@ -101,14 +90,9 @@ exit 99
     return bin_dir
 
 
-def _run_version_script(
-    repo: Path,
-    bin_dir: Path,
-    curl_log: Path,
-) -> subprocess.CompletedProcess[str]:
+def _run_version_script(repo: Path, bin_dir: Path) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
-    env["CURL_LOG"] = str(curl_log)
     env.pop("PYPI_TOKEN", None)
     return subprocess.run(
         ["bash", str(VERSION_SCRIPT)],
@@ -131,35 +115,20 @@ def _snapshot(repo: Path) -> dict[str, str]:
 def test_differing_js_python_versions_selects_python_and_does_not_mutate(tmp_path: Path) -> None:
     repo = _repo_with_differing_versions(tmp_path)
     before = _snapshot(repo)
-    curl_log = tmp_path / "curl.log"
-    bin_dir = _stub_path(
-        tmp_path,
-        pypi_present=f"https://pypi.org/pypi/anumat-engine/{JS_VERSION}/json",
-    )
-    result = _run_version_script(repo, bin_dir, curl_log)
+    result = _run_version_script(repo, _stub_path(tmp_path))
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == PYTHON_VERSION
     assert JS_VERSION not in result.stdout
-    urls = curl_log.read_text().splitlines()
-    assert urls == [f"https://pypi.org/pypi/anumat-engine/{PYTHON_VERSION}/json"]
     assert _snapshot(repo) == before
 
 
-def test_duplicate_pypi_version_is_rejected_without_mutation(tmp_path: Path) -> None:
+def test_version_script_does_not_query_pypi(tmp_path: Path) -> None:
     repo = _repo_with_differing_versions(tmp_path)
-    before = _snapshot(repo)
-    curl_log = tmp_path / "curl.log"
-    bin_dir = _stub_path(
-        tmp_path,
-        pypi_present=f"https://pypi.org/pypi/anumat-engine/{PYTHON_VERSION}/json",
-    )
-    result = _run_version_script(repo, bin_dir, curl_log)
-    assert result.returncode == 1
-    assert result.stdout == ""
-    assert f"anumat-engine {PYTHON_VERSION} is already on PyPI" in result.stderr
-    assert "pnpm bump:engine:version" in result.stderr
-    assert "Bump @anumat/engine first" not in result.stderr
-    assert _snapshot(repo) == before
+    result = _run_version_script(repo, _stub_path(tmp_path))
+    assert result.returncode == 0, result.stderr
+    helper = VERSION_SCRIPT.read_text()
+    assert "pypi.org" not in helper
+    assert "Bump @anumat/engine first" not in helper
 
 
 def test_release_script_uses_python_version_helper_and_does_not_copy_js() -> None:
@@ -173,10 +142,18 @@ def test_release_script_uses_python_version_helper_and_does_not_copy_js() -> Non
     assert not re.search(r'uv version "\$', script)
     assert "needle = 'name = \"anumat-engine\"\\nversion = \"'" not in script
     assert "git commit -m \"chore(anumat-engine): release" not in script
-    assert 'tag="anumat-engine@$version"' in script
+    assert 'tag="${name}@${version}"' in script
     assert "compile-sidecar.ts" in (ROOT / "packages" / "engine-py" / "scripts" / "build-wheel.sh").read_text()
-    for line in script.splitlines():
-        if "git push" in line:
-            assert line.lstrip().startswith("echo ")
-        if "uv publish" in line:
-            assert "PYPI_TOKEN" in line
+    assert "bash scripts/release/fetch-engine-ci-bundle.sh" in script
+    assert "uv build --sdist --package anumat-engine --out-dir dist" not in script
+    assert "packages/engine-py/scripts/build-wheel.sh" not in script
+    for path in (
+        RELEASE_SCRIPT,
+        ROOT / "scripts" / "release" / "tag-local.sh",
+        ROOT / "scripts" / "release" / "finish-pypi.sh",
+        ROOT / "scripts" / "release" / "finish-npm.sh",
+    ):
+        for line in path.read_text().splitlines():
+            code = line.split("#", 1)[0]
+            if "git push" in code:
+                assert code.lstrip().startswith("echo "), path

@@ -14,8 +14,8 @@ def test_sdist_excludes_pyproject_toml_orig(tmp_path: Path) -> None:
     release = (ROOT / "scripts" / "release.sh").read_text()
     generated = release.find("_generated/client.py")
     build = release.find("uv build --package anumat-py")
-    strip = release.find("scripts/strip-sdist-orig.py dist")
-    publish = release.find("uv publish --token")
+    strip = release.find("scripts/strip-sdist-orig.py")
+    publish = release.find("finish-pypi.sh")
     assert generated != -1
     assert build != -1
     assert strip != -1
