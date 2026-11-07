@@ -288,6 +288,8 @@ Anything inside a directory named `ee/`, anywhere in this repository, is under t
 | `pnpm selfhost:up` | Starts Postgres, runs migrations, and starts the API. |
 | `pnpm selfhost:down` | Stops the API and Postgres. |
 | `pnpm selfhost:logs` | Follows the API logs. |
+| `pnpm bump:anumat:version` | Bumps `anumat-py` by one patch and refreshes `uv.lock`. |
+| `pnpm bump:engine:version` | Bumps `anumat-engine` by one patch and refreshes `uv.lock`. |
 | `pnpm release:engine` | Publishes `@anumat/engine` to npm. |
 | `pnpm release:engine-py` | Publishes `anumat-engine` to PyPI. |
 | `pnpm release:anumat` | Publishes `@anumat/js` to npm. |
@@ -299,10 +301,10 @@ Anything inside a directory named `ee/`, anywhere in this repository, is under t
 
 ## Releasing
 
-Bump `@anumat/js` or `@anumat/engine` with changesets. Bump `anumat-py` with `pnpm version:py`. Merge that branch to `main`. Publish from `main`.
+Bump `@anumat/js` or `@anumat/engine` with changesets. Bump `anumat-py` with `pnpm bump:anumat:version`. Bump `anumat-engine` with `pnpm bump:engine:version` when you want a patch on that package. Merge that branch to `main`. Publish from `main`.
 
 1. For `@anumat/js` or `@anumat/engine`, run `pnpm changeset`. Then run `pnpm changeset version`.
-2. For `anumat-py`, run `pnpm version:py`.
+2. For `anumat-py`, run `pnpm bump:anumat:version`. For `anumat-engine`, run `pnpm bump:engine:version`.
 3. Open a pull request.
 4. Squash-merge the pull request.
 5. Run `git checkout main && git pull`.

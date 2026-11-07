@@ -5,7 +5,7 @@ description: Maintainer commands that publish a package or tag the server image.
 
 Publish from a clean `main` that matches GitHub. `npm login` stores the npm token in `~/.npmrc`. Store `PYPI_TOKEN` in `~/.zshrc`. Keep both tokens out of the repo and out of `.env`.
 
-Bump `@anumat/js` or `@anumat/engine` with `pnpm changeset` and then `pnpm changeset version`. Bump `anumat-py` with `pnpm version:py`. `anumat-engine` follows the `@anumat/engine` version inside `pnpm release:engine-py`.
+Bump `@anumat/js` or `@anumat/engine` with `pnpm changeset` and then `pnpm changeset version`. Bump `anumat-py` with `pnpm bump:anumat:version`. Bump `anumat-engine` with `pnpm bump:engine:version` when you want a patch on that package. `pnpm release:engine-py` still sets `anumat-engine` to the `@anumat/engine` version.
 
 | Command | Publishes | Tag |
 | --- | --- | --- |
