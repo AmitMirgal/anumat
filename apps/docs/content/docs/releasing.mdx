@@ -23,7 +23,7 @@ Bump `@anumat/js` or `@anumat/engine` with `pnpm changeset` and then `pnpm chang
 
 `pnpm release:server` reads the version in `apps/api/package.json`, asks you to type that version, and pushes `server@` plus that version. The tag push publishes `ghcr.io/amitmirgal/anumat`.
 
-`pnpm release:engine-py` uses the version in `packages/engine-py`, runs the package tests, and builds one wheel for each platform. It publishes those wheels with `uv publish`. It creates the local tag `anumat-engine@<version>`. It prints the push lines and does not push. It does not copy or overwrite from `@anumat/engine`.
+`pnpm release:engine-py` uses the version in `packages/engine-py`, checks that the documented disposable Postgres is accepting connections at `127.0.0.1:5432`, runs the package tests, and builds one wheel for each platform. Catalog tests need that server (role `anumat` / `anumat`). They recreate only `anumat_engine_parity`. The release script does not start Docker and does not drop `anumat` or `anumat_test`. Start Postgres with the README `docker run` for `anumat-postgres` if the preflight fails. It publishes those wheels with `uv publish`. It creates the local tag `anumat-engine@<version>`. It prints the push lines and does not push. It does not copy or overwrite from `@anumat/engine`.
 
 ```bash
 git push origin main && git push origin tag anumat-engine@<version>

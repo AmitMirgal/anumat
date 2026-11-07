@@ -10,6 +10,7 @@ name="anumat-engine"
 : "${PYPI_TOKEN:?PYPI_TOKEN is not set. Add it to ~/.zshrc}"
 
 version=$(bash scripts/engine-py-release-version.sh)
+bash scripts/require-local-postgres.sh
 
 pnpm turbo run test --filter=anumat-engine
 

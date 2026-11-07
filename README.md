@@ -86,6 +86,8 @@ You need Node 24 (see `.nvmrc`, install it with nvm), pnpm 12 (enable it with Co
    docker exec anumat-postgres createdb -U anumat anumat_test
    ```
 
+   If that container already exists, `docker start anumat-postgres`. The HTTP API uses `anumat`. `pnpm test` uses `anumat_test`. `anumat-engine` package tests recreate only `anumat_engine_parity` on this same server. They need `psql` on `PATH`. Do not use a database you need to keep.
+
 2. Create `.env` from the example, and replace the `ANUMAT_API_KEYS` value with `dev:` followed by a random string of 16 or more characters.
 
    ```bash
@@ -316,7 +318,7 @@ Bump `@anumat/js` or `@anumat/engine` with changesets. Bump `anumat-py` with `pn
 
 `pnpm release:engine` publishes `@anumat/engine` from a clean `main` that matches GitHub. It builds, runs the tests, prints the `npm pack --dry-run` file list, and waits until you type the version. Bump `@anumat/engine` with changesets first, the same way as `@anumat/js`.
 
-`pnpm release:engine-py` publishes `anumat-engine` from a clean `main` that matches GitHub. It uses the version in `packages/engine-py` (the same field `pnpm bump:engine:version` writes). It does not copy the `@anumat/engine` version. It runs the package tests and builds one wheel for each platform with Bun. It publishes those wheels with `uv publish`. `PYPI_TOKEN` comes from the environment. The script creates the local tag `anumat-engine@<version>` and prints these two lines. It does not push.
+`pnpm release:engine-py` publishes `anumat-engine` from a clean `main` that matches GitHub. It uses the version in `packages/engine-py` (the same field `pnpm bump:engine:version` writes). It does not copy the `@anumat/engine` version. The package tests include a catalog integration test, so start the disposable Postgres in [Run it yourself](#run-it-yourself) first (`anumat-postgres` on `127.0.0.1:5432`, role `anumat` / `anumat`). The release script checks that port before pytest. It does not start Docker or drop `anumat` / `anumat_test`. The policy-case test recreates only `anumat_engine_parity`. Then it runs the package tests and builds one wheel for each platform with Bun. It publishes those wheels with `uv publish`. `PYPI_TOKEN` comes from the environment. The script creates the local tag `anumat-engine@<version>` and prints these two lines. It does not push.
 
 ```bash
 git push origin main && git push origin tag anumat-engine@<version>
