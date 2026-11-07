@@ -135,13 +135,15 @@ def test_propose_version_return_type() -> None:
     assert get_type_hints(Engine.propose_version)["return"] is ProposeVersionResult
 
 
-def test_release_script_builds_an_sdist_without_pushing() -> None:
+def test_release_script_uses_ci_sdist_without_pushing() -> None:
     root = Path(__file__).resolve().parents[3]
     script = (root / "scripts" / "release-engine-py.sh").read_text()
-    assert "uv build --sdist --package anumat-engine --out-dir dist" in script
+    assert "fetch-engine-ci-bundle.sh" in script
+    assert "uv build --sdist --package anumat-engine --out-dir dist" not in script
     for line in script.splitlines():
-        if "git push" in line:
-            assert line.lstrip().startswith("echo ")
+        code = line.split("#", 1)[0]
+        if "git push" in code:
+            assert code.lstrip().startswith("echo ")
     readme = (root / "packages" / "engine-py" / "README.md").read_text()
     assert "source distribution" in readme.lower()
 

@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   platforms:
@@ -97,3 +98,53 @@ jobs:
             exit 1
           fi
           echo "embedded migration sha256 $(cat "${files[0]}")"
+
+  sdist:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Build the source distribution
+        run: uv build --sdist --package anumat-engine --out-dir dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anumat-engine-sdist
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  release-bundle:
+    needs: [wheel, sdist, migration-checksum]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: anumat-engine-*
+          path: artifacts
+      - name: Assemble the publishable release bundle
+        env:
+          COMMIT: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          version=$(uv version --short --directory packages/engine-py)
+          python3 scripts/release/assemble_engine_bundle.py \
+            --repo . \
+            --artifacts-dir artifacts \
+            --out release-bundle \
+            --commit "$COMMIT" \
+            --version "$version" \
+            --run-id "$RUN_ID" \
+            --run-url "$RUN_URL"
+          python3 scripts/release/verify_engine_bundle.py \
+            --repo . \
+            --bundle release-bundle \
+            --commit "$COMMIT" \
+            --version "$version"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anumat-engine-release
+          path: release-bundle/*
+          if-no-files-found: error

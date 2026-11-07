@@ -15,6 +15,8 @@ test('embedded migration SQL is LF and the wheel jobs compare one checksum', () 
   const workflow = readFileSync(new URL('../../../.github/workflows/engine-wheels.yml', import.meta.url), 'utf8');
   expect(workflow).toContain('anumat-engine-migration-sha-');
   expect(workflow).toContain('expected 5 migration checksums');
+  expect(workflow).toContain('anumat-engine-sdist');
+  expect(workflow).toContain('anumat-engine-release');
 });
 
 test('the bun sidecar plugin does not fall through every import', () => {
