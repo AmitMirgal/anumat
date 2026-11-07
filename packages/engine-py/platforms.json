@@ -1,6 +1,6 @@
 [
   {
-    "runner": "macos-14",
+    "runner": "macos-15",
     "target": "bun-darwin-arm64",
     "platform": "macosx_11_0_arm64",
     "binary": "anumat-engine",
