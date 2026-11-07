@@ -316,10 +316,10 @@ Bump `@anumat/js` or `@anumat/engine` with changesets. Bump `anumat-py` with `pn
 
 `pnpm release:engine` publishes `@anumat/engine` from a clean `main` that matches GitHub. It builds, runs the tests, prints the `npm pack --dry-run` file list, and waits until you type the version. Bump `@anumat/engine` with changesets first, the same way as `@anumat/js`.
 
-`pnpm release:engine-py` publishes `anumat-engine` from a clean `main` that matches GitHub. It sets the Python package version to the `@anumat/engine` version, runs the package tests, and builds one wheel for each platform with Bun. It publishes those wheels with `uv publish`. `PYPI_TOKEN` comes from the environment. The script commits the version bump, creates the local tag `anumat-py@<version>`, and prints these two lines. It does not push.
+`pnpm release:engine-py` publishes `anumat-engine` from a clean `main` that matches GitHub. It uses the version in `packages/engine-py` (the same field `pnpm bump:engine:version` writes). It does not copy the `@anumat/engine` version. It runs the package tests and builds one wheel for each platform with Bun. It publishes those wheels with `uv publish`. `PYPI_TOKEN` comes from the environment. The script creates the local tag `anumat-engine@<version>` and prints these two lines. It does not push.
 
 ```bash
-git push origin main && git push origin tag anumat-py@<version>
+git push origin main && git push origin tag anumat-engine@<version>
 git push origin main --follow-tags
 ```
 
