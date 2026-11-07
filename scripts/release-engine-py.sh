@@ -9,33 +9,9 @@ git fetch -q origin main
 name="anumat-engine"
 : "${PYPI_TOKEN:?PYPI_TOKEN is not set. Add it to ~/.zshrc}"
 
-engine_version=$(node -p "require('./packages/engine/package.json').version")
-if curl -sf "https://pypi.org/pypi/$name/$engine_version/json" >/dev/null; then
-  echo "$name $engine_version is already on PyPI. Bump @anumat/engine first."
-  exit 1
-fi
+version=$(bash scripts/engine-py-release-version.sh)
 
 pnpm turbo run test --filter=anumat-engine
-
-current=$(uv version --short --directory packages/engine-py)
-if [[ "$current" != "$engine_version" ]]; then
-  uv version "$engine_version" --directory packages/engine-py --frozen
-  ENGINE_VERSION="$engine_version" python3 - <<'PY'
-import os
-from pathlib import Path
-
-path = Path("uv.lock")
-text = path.read_text()
-needle = 'name = "anumat-engine"\nversion = "'
-start = text.find(needle)
-if start < 0:
-    raise SystemExit("uv.lock is missing anumat-engine")
-ver_at = start + len(needle)
-end = text.find('"', ver_at)
-path.write_text(text[:ver_at] + os.environ["ENGINE_VERSION"] + text[end:])
-PY
-fi
-version=$(uv version --short --directory packages/engine-py)
 
 root=$(pwd)
 rm -rf dist
@@ -92,11 +68,6 @@ read -r -p "Publish $name $version for real? Type $version to confirm: " answer
 [[ "$answer" == "$version" ]] || { echo "Cancelled. Nothing was published."; exit 1; }
 
 uv publish --token "$PYPI_TOKEN" dist/*
-
-git add packages/engine-py/pyproject.toml uv.lock
-if ! git diff --cached --quiet; then
-  git commit -m "chore(anumat-engine): release $version"
-fi
 
 tag="anumat-engine@$version"
 git tag "$tag"

@@ -5,12 +5,12 @@ description: Maintainer commands that publish a package or tag the server image.
 
 Publish from a clean `main` that matches GitHub. `npm login` stores the npm token in `~/.npmrc`. Store `PYPI_TOKEN` in `~/.zshrc`. Keep both tokens out of the repo and out of `.env`.
 
-Bump `@anumat/js` or `@anumat/engine` with `pnpm changeset` and then `pnpm changeset version`. Bump `anumat-py` with `pnpm bump:anumat:version`. Bump `anumat-engine` with `pnpm bump:engine:version` when you want a patch on that package. `pnpm release:engine-py` still sets `anumat-engine` to the `@anumat/engine` version.
+Bump `@anumat/js` or `@anumat/engine` with `pnpm changeset` and then `pnpm changeset version`. Bump `anumat-py` with `pnpm bump:anumat:version`. Bump `anumat-engine` with `pnpm bump:engine:version` when you want a patch on that package. `pnpm release:engine-py` publishes that Python version. It does not copy the `@anumat/engine` version.
 
 | Command | Publishes | Tag |
 | --- | --- | --- |
 | `pnpm release:engine` | `@anumat/engine` on npm | `@anumat/engine@<version>` |
-| `pnpm release:engine-py` | `anumat-engine` on PyPI | `anumat-py@<version>` |
+| `pnpm release:engine-py` | `anumat-engine` on PyPI | `anumat-engine@<version>` |
 | `pnpm release:anumat` | `@anumat/js` on npm | `@anumat/js@<version>` |
 | `pnpm release:anumat-py` | `anumat-py` on PyPI | `anumat-py@<version>` |
 | `pnpm release:server` | nothing to a package registry | `server@<version>` |
@@ -23,13 +23,13 @@ Bump `@anumat/js` or `@anumat/engine` with `pnpm changeset` and then `pnpm chang
 
 `pnpm release:server` reads the version in `apps/api/package.json`, asks you to type that version, and pushes `server@` plus that version. The tag push publishes `ghcr.io/amitmirgal/anumat`.
 
-`pnpm release:engine-py` sets the Python package version to the `@anumat/engine` version, runs the package tests, and builds one wheel for each platform. It publishes those wheels with `uv publish`. It commits the version bump and creates the local tag. It prints the push lines and does not push.
+`pnpm release:engine-py` uses the version in `packages/engine-py`, runs the package tests, and builds one wheel for each platform. It publishes those wheels with `uv publish`. It creates the local tag `anumat-engine@<version>`. It prints the push lines and does not push. It does not copy or overwrite from `@anumat/engine`.
 
 ```bash
-git push origin main && git push origin tag anumat-py@<version>
+git push origin main && git push origin tag anumat-engine@<version>
 git push origin main --follow-tags
 ```
 
-`release:engine-py` and `release:anumat-py` both use the tag prefix `anumat-py@`. They publish different packages. Pushing one of those tags after the other package already used the same version updates that tag.
+`release:engine-py` tags `anumat-engine@<version>`. `release:anumat-py` tags `anumat-py@<version>`. They publish different packages.
 
 There is no `release:js` command and no `release:py` command.
