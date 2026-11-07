@@ -55,13 +55,29 @@ export ANUMAT_MIGRATION_SQL="${ANUMAT_MIGRATION_SQL:-packages/db/prisma/migratio
 # Migrate connects to that database, so a missing one exits before smoke.
 # Create it when Postgres is up. If Postgres is down, this stops with that fact.
 node packages/engine/scripts/ensure-smoke-database.mjs
-uv venv /tmp/anumat-engine-smoke --clear -q
-uv pip install -q --python /tmp/anumat-engine-smoke "$wheel"
-if [[ -x /tmp/anumat-engine-smoke/Scripts/python.exe ]]; then
-  smoke_python=/tmp/anumat-engine-smoke/Scripts/python.exe
-else
-  smoke_python=/tmp/anumat-engine-smoke/bin/python
+smoke_work=
+cleanup_smoke_work() {
+  if [[ -n "${smoke_work:-}" ]]; then
+    rm -rf "$smoke_work"
+  fi
+}
+trap cleanup_smoke_work EXIT
+{
+  IFS= read -r smoke_work
+  IFS= read -r smoke_python
+} < <(bash scripts/engine-py-make-smoke-venv.sh)
+if [[ -z "$smoke_work" || -z "${smoke_python:-}" || ! -x "$smoke_python" ]]; then
+  echo "failed to create the engine smoke virtualenv" >&2
+  exit 1
 fi
+case "$smoke_python" in
+  "$smoke_work"/*) ;;
+  *)
+    echo "smoke python is not inside the owned workspace" >&2
+    exit 1
+    ;;
+esac
+uv pip install -q --python "$smoke_python" "$wheel"
 echo "Smoking $wheel before publish."
 "$smoke_python" packages/engine-py/scripts/smoke.py
 
