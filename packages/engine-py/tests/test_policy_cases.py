@@ -17,6 +17,17 @@ FIXTURE = ROOT / "packages" / "engine" / "test" / "fixtures" / "policy_cases.jso
 ENGINE = ROOT / "packages" / "engine"
 ADMIN = "postgres://anumat:anumat@127.0.0.1:5432/postgres"
 DATABASE = "postgres://anumat:anumat@127.0.0.1:5432/anumat_engine_parity"
+POSTGRES_SETUP = """anumat-engine policy-case tests need Postgres at 127.0.0.1:5432 with role anumat / anumat.
+They drop and recreate only database anumat_engine_parity. They do not drop anumat or anumat_test.
+Start the documented disposable server, then re-run:
+
+docker run -d --name anumat-postgres -p 5432:5432 \\
+  -e POSTGRES_USER=anumat -e POSTGRES_PASSWORD=anumat -e POSTGRES_DB=anumat postgres:16
+docker exec anumat-postgres createdb -U anumat anumat_test
+
+If that container already exists: docker start anumat-postgres
+psql must be on PATH. Do not point these tests at a database you need to keep.
+"""
 
 EXPECTED = {
     "TEST-PA-05": "validation_failed",
@@ -152,20 +163,25 @@ def _seed_document(source_id: str, content: str) -> str:
 
 
 def _recreate_database() -> None:
-    subprocess.check_call(
-        [
-            "psql",
-            ADMIN,
-            "-v",
-            "ON_ERROR_STOP=1",
-            "-c",
-            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'anumat_engine_parity' AND pid <> pg_backend_pid()",
-            "-c",
-            "DROP DATABASE IF EXISTS anumat_engine_parity",
-            "-c",
-            "CREATE DATABASE anumat_engine_parity OWNER anumat",
-        ]
-    )
+    try:
+        subprocess.check_call(
+            [
+                "psql",
+                ADMIN,
+                "-v",
+                "ON_ERROR_STOP=1",
+                "-c",
+                "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'anumat_engine_parity' AND pid <> pg_backend_pid()",
+                "-c",
+                "DROP DATABASE IF EXISTS anumat_engine_parity",
+                "-c",
+                "CREATE DATABASE anumat_engine_parity OWNER anumat",
+            ]
+        )
+    except FileNotFoundError as error:
+        raise AssertionError(POSTGRES_SETUP) from error
+    except subprocess.CalledProcessError as error:
+        raise AssertionError(POSTGRES_SETUP) from error
     subprocess.check_call(
         ["pnpm", "--filter", "@anumat/db", "exec", "prisma", "migrate", "deploy"],
         cwd=ROOT,

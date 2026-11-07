@@ -100,4 +100,6 @@ The engine object has these methods besides `close`.
 
 Installing the source distribution on a platform without a wheel fails with the list of wheel tags. It does not leave a partial install that imports.
 
+Package tests include a catalog path against Postgres. Runtime extract without `database_url` does not need a database; those tests do. Start the repository README disposable server (`anumat-postgres`, role `anumat` / `anumat` on `127.0.0.1:5432`) and keep `psql` on `PATH`. `test_python_policy_cases_match_the_shared_fixture` drops and recreates only `anumat_engine_parity`. It does not drop `anumat` or `anumat_test`. Do not point it at a database you need to keep. `pnpm release:engine-py` checks that port before pytest and does not start Docker for you.
+
 `create_engine()` with no arguments is valid. Catalog methods then raise `EngineError` with code `database_not_configured` until you pass `database_url`.
