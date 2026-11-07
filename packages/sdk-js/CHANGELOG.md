@@ -1,5 +1,11 @@
 # @anumat/js
 
+## 1.0.2
+
+### Patch Changes
+
+- e572d08: Validate `createAnumatClient` options and publish separate ESM and CJS type entries.
+
 ## 1.0.0
 
 ### Major Changes
