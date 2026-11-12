@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+import re
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -9,6 +12,22 @@ SCRIPTS = [
     ROOT / "scripts/release-engine-py.sh",
     *sorted((ROOT / "scripts/release").glob("*.sh")),
 ]
+# Bash 4+ tokens that fail on macOS /bin/bash 3.2. Character-class commas
+# such as ${var//[[:space:]]/} are bash 3.2-safe and must not match.
+BASH4_ONLY = (
+    (re.compile(r"\bmapfile\b"), "mapfile"),
+    (re.compile(r"\breadarray\b"), "readarray"),
+    (re.compile(r"\bdeclare\s+-A\b"), "declare -A"),
+    (re.compile(r"\b(?:declare|local)\s+-n\b"), "nameref"),
+    (re.compile(r"\bcoproc\b"), "coproc"),
+    (re.compile(r"\bglobstar\b"), "globstar"),
+    (re.compile(r"\[\[\s+-v\b"), "[[ -v"),
+    (re.compile(r"&>>"), "&>>"),
+    (re.compile(r"\|&"), "|&"),
+    (re.compile(r"\$\{[^}]+,,}"), "${var,,}"),
+    (re.compile(r"\$\{[^}]+\^\^}"), "${var^^}"),
+    (re.compile(r";;&"), ";;&"),
+)
 
 
 def test_package_release_scripts_never_push() -> None:
@@ -76,3 +95,36 @@ def test_ci_smoke_does_not_start_or_destroy_docker() -> None:
     assert "docker" not in ci
     assert "require-local-postgres.sh" in ci
     assert "ensure-smoke-database.mjs" in ci
+
+
+def test_bash4_builtin_disable_is_effective(tmp_path: Path) -> None:
+    prelude = tmp_path / "disable-bash4.sh"
+    prelude.write_text("enable -n mapfile readarray 2>/dev/null || true\n")
+    script = tmp_path / "uses-mapfile.sh"
+    script.write_text("#!/usr/bin/env bash\nmapfile -t x < /dev/null\n")
+    env = os.environ.copy()
+    env["BASH_ENV"] = str(prelude)
+    result = subprocess.run(
+        ["bash", str(script)],
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "mapfile" in result.stderr
+
+
+def test_scripts_are_bash_32_compatible() -> None:
+    scripts = sorted((ROOT / "scripts").rglob("*.sh"))
+    assert scripts, "expected shell scripts under scripts/"
+    offenders: list[str] = []
+    for path in scripts:
+        for lineno, line in enumerate(path.read_text().splitlines(), 1):
+            code = line.split("#", 1)[0]
+            for pattern, name in BASH4_ONLY:
+                if pattern.search(code):
+                    offenders.append(f"{path.relative_to(ROOT)}:{lineno}: {name}: {line.strip()}")
+            if re.search(r"(^|[^&]);&([^&]|$)", code):
+                offenders.append(f"{path.relative_to(ROOT)}:{lineno}: ;&: {line.strip()}")
+    assert not offenders, "bash 4-only syntax (macOS /bin/bash is 3.2):\n" + "\n".join(offenders)

@@ -74,7 +74,12 @@ fi
 uv pip install -q --python "$smoke_python" "$wheel"
 "$smoke_python" -c "import anumat_py; print('Wheel installs and imports fine')"
 
-mapfile -t files < <(find "$dist" -maxdepth 1 -type f \( -name 'anumat_py-*.whl' -o -name 'anumat_py-*.tar.gz' \) | sort)
+# while-read, not mapfile: macOS /bin/bash is 3.2.
+files=()
+while IFS= read -r line || [[ -n "$line" ]]; do
+  [[ -z "$line" ]] && continue
+  files+=("$line")
+done < <(find "$dist" -maxdepth 1 -type f \( -name 'anumat_py-*.whl' -o -name 'anumat_py-*.tar.gz' \) | sort)
 if [[ "${#files[@]}" -lt 2 ]]; then
   echo "expected anumat-py wheel and sdist in ${dist}" >&2
   ls "$dist" >&2

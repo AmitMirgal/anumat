@@ -10,7 +10,13 @@ from release_fakes import FakeRegistry, sha256_bytes, write_executable
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def _env(bin_dir: Path, registry: FakeRegistry, extra: dict[str, str] | None = None) -> dict[str, str]:
+def _env(
+    bin_dir: Path,
+    registry: FakeRegistry,
+    extra: dict[str, str] | None = None,
+    *,
+    bash32: Path | None = None,
+) -> dict[str, str]:
     env = os.environ.copy()
     env["PATH"] = f"{bin_dir}{os.pathsep}{env.get('PATH', '')}"
     env["ANUMAT_PYPI_INDEX"] = registry.pypi_index()
@@ -18,6 +24,11 @@ def _env(bin_dir: Path, registry: FakeRegistry, extra: dict[str, str] | None = N
     env.pop("PYPI_TOKEN", None)
     if extra:
         env.update(extra)
+    if bash32 is not None:
+        # Non-interactive bash reads BASH_ENV before the script, so this
+        # reproduces macOS 3.2 (no mapfile) on CI's bash 5.
+        bash32.write_text("enable -n mapfile readarray 2>/dev/null || true\n")
+        env["BASH_ENV"] = str(bash32)
     return env
 
 
@@ -67,7 +78,7 @@ fi
                 str(sdist),
             ],
             cwd=ROOT,
-            env=_env(bin_dir, registry, {"PYPI_TOKEN": "test-token"}),
+            env=_env(bin_dir, registry, {"PYPI_TOKEN": "test-token"}, bash32=tmp_path / "disable-bash4.sh"),
             text=True,
             capture_output=True,
             check=False,
@@ -105,7 +116,7 @@ def test_publish_is_noop_when_hashes_match(tmp_path: Path) -> None:
         result = subprocess.run(
             ["bash", str(ROOT / "scripts/release/publish-pypi.sh"), "anumat-py", "0.1.2", str(wheel), str(sdist)],
             cwd=ROOT,
-            env=_env(bin_dir, registry, {"PYPI_TOKEN": "test-token"}),
+            env=_env(bin_dir, registry, {"PYPI_TOKEN": "test-token"}, bash32=tmp_path / "disable-bash4.sh"),
             text=True,
             capture_output=True,
             check=False,
@@ -136,7 +147,7 @@ def test_publish_refuses_mismatch_without_calling_uv(tmp_path: Path) -> None:
         result = subprocess.run(
             ["bash", str(ROOT / "scripts/release/publish-pypi.sh"), "anumat-py", "0.1.2", str(wheel)],
             cwd=ROOT,
-            env=_env(bin_dir, registry, {"PYPI_TOKEN": "test-token"}),
+            env=_env(bin_dir, registry, {"PYPI_TOKEN": "test-token"}, bash32=tmp_path / "disable-bash4.sh"),
             text=True,
             capture_output=True,
             check=False,
