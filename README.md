@@ -303,14 +303,14 @@ Anything inside a directory named `ee/`, anywhere in this repository, is under t
 
 ## Releasing
 
-Publish from a clean `main` that matches GitHub. The four package commands never push tags. They create a local tag after a successful publish (or after a hash-verified tag-only recovery) and print `git push origin tag <tag>`. Type the version to confirm before any publish or local tag. They do not bump versions.
+Publish from a clean `main` that matches GitHub. The four package commands never push tags. They create a local tag after a successful publish (or after a hash-verified tag-only recovery) and print `git push origin tag <tag>`. Type the version to confirm before any publish or local tag. They do not bump versions. Scripts under `scripts/` (including `scripts/release/`) are written for bash 3.2, the `/bin/bash` on macOS.
 
 JavaScript versions come from each package's `package.json` after Changesets. Python versions are independent: `anumat-py` from `packages/sdk-python`, `anumat-engine` from `packages/engine-py` (what `pnpm bump:engine:version` writes). `pnpm release:engine-py` does not copy `@anumat/engine`.
 
 1. For `@anumat/js` or `@anumat/engine`, run `pnpm changeset`, then `pnpm changeset version`.
 2. For `anumat-py`, run `pnpm bump:anumat:version`. For a patch of `anumat-engine`, run `pnpm bump:engine:version`.
 3. Open a pull request, squash-merge it, then `git checkout main && git pull`.
-4. Wait until CI is green on that commit. `pnpm release:engine-py` publishes the `anumat-engine-release` artifact from the Engine wheels run for `HEAD`. It does not compile wheels on the laptop. If that artifact is missing or expired, re-run `gh workflow run 'Engine wheels' --ref main` and wait; do not bump the version to recover.
+4. Wait until CI is green on that commit. `pnpm release:engine-py` publishes the `anumat-engine-release` artifact from the Engine wheels run for `HEAD`. It does not compile wheels on the laptop. If that artifact is missing or expired, re-run `gh workflow run 'Engine wheels' --ref main` and wait; do not bump the version to recover. Engine wheels cross-compiles the macOS arm64 sidecar on `macos-15-intel` and builds the Windows wheel without the Postgres smoke. Linux and macOS x64 still smoke against Postgres.
 5. Start the disposable Postgres in [Run it yourself](#run-it-yourself) (`anumat-postgres` on `127.0.0.1:5432`, role `anumat` / `anumat`, database `anumat_test` created). Release scripts check that port. They do not start Docker and do not drop `anumat` or `anumat_test`.
 6. Run one of `pnpm release:anumat`, `pnpm release:anumat-py`, `pnpm release:engine`, or `pnpm release:engine-py`.
 

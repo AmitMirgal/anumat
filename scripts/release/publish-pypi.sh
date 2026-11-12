@@ -15,7 +15,12 @@ if [[ "$#" -lt 1 ]]; then
 fi
 
 plan_json=$(python3 "$root/scripts/release/registry.py" pypi-plan --name "$name" --version "$version" -- "$@")
-mapfile -t to_upload < <(python3 -c 'import json,sys; print("\n".join(json.loads(sys.argv[1])["to_upload"]))' "$plan_json")
+# while-read, not mapfile: macOS /bin/bash is 3.2.
+to_upload=()
+while IFS= read -r line || [[ -n "$line" ]]; do
+  [[ -z "$line" ]] && continue
+  to_upload+=("$line")
+done < <(python3 -c 'import json,sys; print("\n".join(json.loads(sys.argv[1])["to_upload"]))' "$plan_json")
 state=$(python3 -c 'import json,sys; print(json.loads(sys.argv[1])["state"])' "$plan_json")
 
 if [[ "$state" == complete || "${#to_upload[@]}" -eq 0 || -z "${to_upload[0]:-}" ]]; then

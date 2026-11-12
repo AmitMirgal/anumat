@@ -54,7 +54,12 @@ uv pip install -q --python "$smoke_python" "$wheel"
 echo "Smoking $wheel from the Engine wheels CI bundle before publish."
 "$smoke_python" packages/engine-py/scripts/smoke.py
 
-mapfile -t files < <(python3 -c 'import json,sys; from pathlib import Path; bundle=Path(sys.argv[1]); names=json.loads((bundle/"provenance.json").read_text())["files"]; print("\n".join(str(bundle/name) for name in names))' "$bundle")
+# while-read, not mapfile: macOS /bin/bash is 3.2.
+files=()
+while IFS= read -r line || [[ -n "$line" ]]; do
+  [[ -z "$line" ]] && continue
+  files+=("$line")
+done < <(python3 -c 'import json,sys; from pathlib import Path; bundle=Path(sys.argv[1]); names=json.loads((bundle/"provenance.json").read_text())["files"]; print("\n".join(str(bundle/name) for name in names))' "$bundle")
 if [[ "${#files[@]}" -ne 6 ]]; then
   echo "expected 5 wheels and 1 sdist in the CI bundle" >&2
   exit 1
