@@ -9,7 +9,7 @@ Bump `@anumat/js` or `@anumat/engine` with `pnpm changeset` and then `pnpm chang
 
 Wait for CI on that commit before `pnpm release:engine-py`. That command downloads the `anumat-engine-release` artifact from the Engine wheels run for `HEAD`. It does not compile wheels on the laptop.
 
-Every package release command requires the disposable Postgres from the repository README (`127.0.0.1:5432`, role `anumat` / `anumat`). The scripts check that port. They do not start Docker. They do not drop `anumat` or `anumat_test`. Type the version to confirm before any publish or local tag. None of the four package commands push tags.
+Every package release command requires the disposable Postgres from the repository README (`127.0.0.1:5432`, role `anumat` / `anumat`). The scripts check that port. They do not start Docker. They do not drop `anumat` or `anumat_test`. Type the version to confirm before any publish or local tag. None of the four package commands push tags. Scripts under `scripts/` run on bash 3.2 (macOS `/bin/bash`).
 
 | Command | Publishes | Tag |
 | --- | --- | --- |

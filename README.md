@@ -303,7 +303,7 @@ Anything inside a directory named `ee/`, anywhere in this repository, is under t
 
 ## Releasing
 
-Publish from a clean `main` that matches GitHub. The four package commands never push tags. They create a local tag after a successful publish (or after a hash-verified tag-only recovery) and print `git push origin tag <tag>`. Type the version to confirm before any publish or local tag. They do not bump versions.
+Publish from a clean `main` that matches GitHub. The four package commands never push tags. They create a local tag after a successful publish (or after a hash-verified tag-only recovery) and print `git push origin tag <tag>`. Type the version to confirm before any publish or local tag. They do not bump versions. Scripts under `scripts/` (including `scripts/release/`) are written for bash 3.2, the `/bin/bash` on macOS.
 
 JavaScript versions come from each package's `package.json` after Changesets. Python versions are independent: `anumat-py` from `packages/sdk-python`, `anumat-engine` from `packages/engine-py` (what `pnpm bump:engine:version` writes). `pnpm release:engine-py` does not copy `@anumat/engine`.
 
