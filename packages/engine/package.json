@@ -1,6 +1,6 @@
 {
   "name": "@anumat/engine",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Check payer policy documents and store proposed versions.",
   "license": "Apache-2.0",
   "repository": {

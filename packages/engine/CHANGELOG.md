@@ -1,5 +1,11 @@
 # @anumat/engine
 
+## 0.3.0
+
+### Minor Changes
+
+- Fix triage rejecting code-list policy PDFs (policy name + CPT tables) as not_a_policy; empty or partial conversions now return conversion_failed, and not_a_policy errors include what triage saw.
+
 ## 0.2.0
 
 ### Minor Changes
