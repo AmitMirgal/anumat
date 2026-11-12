@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 import subprocess
@@ -88,6 +89,27 @@ def test_engine_wheels_workflow_builds_sdist_and_bundle() -> None:
     assert "verify_engine_bundle.py" in workflow
     assert "workflow_dispatch" in workflow
     assert "expected 5 migration checksums" in workflow
+    assert workflow.index("name: anumat-engine-${{ matrix.platform }}") < workflow.index(
+        "Start Postgres"
+    )
+    assert "concurrency:" in workflow
+
+
+def test_engine_wheels_avoid_scarce_macos_arm_and_windows_postgres() -> None:
+    platforms = json.loads((ROOT / "packages/engine-py/platforms.json").read_text())
+    arm = next(item for item in platforms if item["platform"] == "macosx_11_0_arm64")
+    assert arm["runner"] == "macos-15-intel"
+    assert arm["target"] == "bun-darwin-arm64"
+    assert arm["smoke"] is False
+    win = next(item for item in platforms if item["platform"] == "win_amd64")
+    assert win["runner"] == "windows-2022"
+    assert win["smoke"] is False
+    smokes = [item["platform"] for item in platforms if item["smoke"]]
+    assert smokes == [
+        "macosx_11_0_x86_64",
+        "manylinux_2_17_x86_64",
+        "manylinux_2_17_aarch64",
+    ]
 
 
 def test_ci_smoke_does_not_start_or_destroy_docker() -> None:

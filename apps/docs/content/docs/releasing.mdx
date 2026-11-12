@@ -7,7 +7,7 @@ Publish from a clean `main` that matches GitHub. `npm login` stores the npm toke
 
 Bump `@anumat/js` or `@anumat/engine` with `pnpm changeset` and then `pnpm changeset version`. Bump `anumat-py` with `pnpm bump:anumat:version`. Bump `anumat-engine` with `pnpm bump:engine:version` when you want a patch on that package. Python versions are independent. `pnpm release:engine-py` publishes the version in `packages/engine-py`. It does not copy `@anumat/engine`.
 
-Wait for CI on that commit before `pnpm release:engine-py`. That command downloads the `anumat-engine-release` artifact from the Engine wheels run for `HEAD`. It does not compile wheels on the laptop.
+Wait for CI on that commit before `pnpm release:engine-py`. That command downloads the `anumat-engine-release` artifact from the Engine wheels run for `HEAD`. It does not compile wheels on the laptop. Engine wheels cross-compiles the macOS arm64 sidecar on `macos-15-intel` so the job does not wait on GitHub's macOS arm64 hosted pool. The Windows wheel is built and uploaded without the Postgres smoke; Linux and macOS x64 still smoke against Postgres.
 
 Every package release command requires the disposable Postgres from the repository README (`127.0.0.1:5432`, role `anumat` / `anumat`). The scripts check that port. They do not start Docker. They do not drop `anumat` or `anumat_test`. Type the version to confirm before any publish or local tag. None of the four package commands push tags. Scripts under `scripts/` run on bash 3.2 (macOS `/bin/bash`).
 

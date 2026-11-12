@@ -6,6 +6,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Cancel superseded PR runs so they do not pile onto the scarce macOS pool.
+concurrency:
+  group: engine-wheels-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   platforms:
     runs-on: ubuntu-24.04
@@ -40,6 +45,19 @@ jobs:
       - name: Build the wheel
         shell: bash
         run: bash packages/engine-py/scripts/build-wheel.sh "${{ matrix.target }}" "${{ matrix.platform }}" "${{ matrix.binary }}" dist
+      # Upload before Postgres. A Windows createdb DLL failure used to skip
+      # these steps after a successful compile, so the wheel never reached
+      # migration-checksum / release-bundle.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anumat-engine-${{ matrix.platform }}
+          path: dist/*.whl
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anumat-engine-migration-sha-${{ matrix.platform }}
+          path: dist/migration.sha256
+          if-no-files-found: error
       - name: Start Postgres
         if: matrix.smoke
         uses: ikalnytskyi/action-setup-postgres@v9
@@ -56,16 +74,6 @@ jobs:
           DATABASE_URL: postgres://anumat:anumat@127.0.0.1:5432/anumat_engine
           ANUMAT_MIGRATION_SQL: packages/db/prisma/migrations/20260929061425_init/migration.sql
         run: bash packages/engine-py/scripts/ci-smoke.sh dist
-      - uses: actions/upload-artifact@v4
-        with:
-          name: anumat-engine-${{ matrix.platform }}
-          path: dist/*.whl
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        with:
-          name: anumat-engine-migration-sha-${{ matrix.platform }}
-          path: dist/migration.sha256
-          if-no-files-found: error
 
   migration-checksum:
     needs: wheel
