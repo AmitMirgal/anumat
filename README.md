@@ -380,8 +380,8 @@ flowchart TD
 `extract(engine, { pdf })` (Python: `engine.extract(pdf)`) runs convert, triage, and extract without storing an artifact or version. The HTTP API and `checkSource` use the path below and require Postgres.
 
 1. A check fetches the PDF, stores it at `pdf/<sha256>.pdf`, and locks the source row. It inserts an artifact only when the SHA-256 differs from the latest artifact for that source. The same PDF never creates a new artifact, document, or version.
-2. anydoc converts the PDF locally. When pages need OCR, Firecrawl Parse converts it if `FIRECRAWL_API_KEY` is set. Without the key, that document fails with `ocr_not_configured` and nothing else is affected.
-3. Triage reads the document outline and picks the rule sections. Extract reads those sections by id and calls `save_extraction`. The agent validates the tool input against the market schema, so invalid output goes back to the model with field-level errors.
+2. `@firecrawl/anydoc` converts the PDF locally. No Firecrawl API key is required for text PDFs, including two-column policy-name / CPT tables. When pages need OCR, Firecrawl Parse converts it if `FIRECRAWL_API_KEY` is set. Without the key, that document fails with `ocr_not_configured` and nothing else is affected. A missing key does not fall back to an empty converter. Empty or code-dropping conversions fail with `conversion_failed` rather than `not_a_policy`.
+3. Triage reads the document outline, including a short text preview of each section, and picks the rule sections. A policy-name plus procedure-code table is a valid prior-auth policy even without a Coverage Rationale heading. Extract reads those sections by id and calls `save_extraction`. The agent validates the tool input against the market schema, so invalid output goes back to the model with field-level errors. A `not_a_policy` error names the character count and outline sections triage saw.
 4. `proposeVersion` parses the extraction with the market schema again before it writes anything. It supersedes any open proposal for the policy, stores the new version as `proposed`, and stores the change set against the latest approved version.
 5. With a live model, the diff mode writes a reviewer summary and the review mode records findings on the diff. Both steps are best effort.
 6. A person approves or rejects the proposal. Approval assigns the next version number and requires that the proposal's base is still the latest approved version. The free `ReviewPolicy` allows that single approval.
@@ -395,12 +395,12 @@ One `AgentController` per market runs four modes on a shared agent. Each job run
 
 | Mode | Model | Tools | Job |
 | --- | --- | --- | --- |
-| `triage` | `ANUMAT_CHEAP_MODEL` | `get_policy_document`, `save_triage` | Reads the outline, rejects documents that are not policies, and picks rule sections. |
+| `triage` | `ANUMAT_CHEAP_MODEL` | `get_policy_document`, `save_triage` | Reads the outline (with text previews), rejects documents that are not policies, and picks rule sections. Code-list tables count as policies. |
 | `extract` | `ANUMAT_STRONG_MODEL` | `get_policy_document`, `save_extraction` | Reads the chosen sections and saves the extraction. |
 | `diff` | `ANUMAT_CHEAP_MODEL` | `get_approved_version`, `save_diff` | Summarizes the computed change set for the reviewer. |
 | `review` | `ANUMAT_STRONG_MODEL` | `get_policy_document`, `save_diff` | Checks each change against the source sections and records findings. |
 
-Documents never appear in prompts or tool definitions. The markdown stays in the BlobStore. `get_policy_document` returns an outline three heading levels deep, then whole sections by id, up to 40,000 characters per call. Instructions and tool schemas are fixed per mode, so the prompt prefix caches. Only the task message and tool results vary. On the three live seed PDFs, `packages/engine/scripts/context-report.ts` measured what the triage and extract steps receive.
+Documents never appear in prompts or tool definitions. The markdown stays in the BlobStore. `get_policy_document` returns an outline three heading levels deep, with a short text preview per section, then whole sections by id, up to 40,000 characters per call. Instructions and tool schemas are fixed per mode, so the prompt prefix caches. Only the task message and tool results vary. On the three live seed PDFs, `packages/engine/scripts/context-report.ts` measured what the triage and extract steps receive.
 
 | Document | Characters | Sent to the model |
 | --- | --- | --- |

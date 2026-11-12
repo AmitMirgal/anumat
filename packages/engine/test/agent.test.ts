@@ -81,7 +81,8 @@ test('tools refuse ids outside the job, and triage can stop a non-policy documen
 
   await expect(agent.extractDocument(job)).rejects.toMatchObject({
     code: 'not_a_policy',
-    message: `Triage found no prior-auth rules in document ${DOC}: Retired policy notice`,
+    message: `Triage found no prior-auth rules in document ${DOC} after seeing a ${markdown.length}-character converted document (outline was not read): Retired policy notice`,
+    details: { document_id: DOC, reason: 'Retired policy notice', total_chars: markdown.length },
   });
   expect(toolResults(models.calls('triage')[1]?.prompt ?? [])[0]?.value).toEqual({
     error: true,

@@ -39,7 +39,7 @@ client = AnumatClient("http://127.0.0.1:4471", "your-api-key")
 page = client.list_payers()
 ```
 
-`AnumatClient` takes the server origin and the API key. `base_url` has no `/api/v1` suffix. The client sends `Authorization: Bearer <api_key>` to `{base_url}/api/v1`.
+`AnumatClient` takes the server origin and the API key. `base_url` has no `/api/v1` suffix. The client sends `Authorization: Bearer <api_key>` to `{base_url}/api/v1`. HTTP errors raise `AnumatError` with `status`, `code`, and `details` when the server sends them (for example `not_a_policy` character counts).
 
 `list_payers` is synchronous and defaults `limit` to 20. `cursor` is optional. `list_payers_async` is the same call on an async client.
 

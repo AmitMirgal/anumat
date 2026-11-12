@@ -4,7 +4,8 @@ import { AgentController } from '@mastra/core/agent-controller';
 import { getProviderConfig, type MastraModelConfig, parseModelString } from '@mastra/core/llm';
 import { AppError } from '@anumat/core';
 import type { Change, Market } from '@anumat/markets';
-import { type AgentSources, createPolicyTools, JobScope, jobContext, type Review, scopeOf, type ToolName, type Triage } from './tools';
+import { recoverCodeListTriage } from '../documents/code-list';
+import { type AgentSources, createPolicyTools, JobScope, jobContext, type OutlineView, type Review, scopeOf, type ToolName, type Triage } from './tools';
 
 export type ModeId = 'triage' | 'extract' | 'diff' | 'review';
 
@@ -19,13 +20,13 @@ const MODES = {
     tier: 'cheap',
     tools: ['get_policy_document', 'save_triage'],
     instructions:
-      'Mode triage. Call get_policy_document once without section_ids to see the outline. Do not read section text. Call save_triage with the ids of the sections that hold coverage criteria, codes, exclusions, documentation requirements, and site of care. Skip clinical evidence, references, and policy history.',
+      'Mode triage. Call get_policy_document once without section_ids to see the outline. Each outline row includes a short text preview. A document that is a policy name plus a procedure or CPT/HCPCS code table is a prior-auth policy even when it has no Coverage Rationale heading. If the outline is only a preamble or the previews show codes, include preamble (or those sections) in section_ids. Read section text only when the outline and previews are not enough to decide. Call save_triage with the ids of the sections that hold coverage criteria, codes, exclusions, documentation requirements, and site of care. Skip clinical evidence, references, and policy history.',
   },
   extract: {
     tier: 'strong',
     tools: ['get_policy_document', 'save_extraction'],
     instructions:
-      'Mode extract. Read the sections the task names with get_policy_document. Read the outline only if those sections look wrong. Fill every save_extraction field from the document text. List each code once under its code system. Restate each criterion faithfully and briefly, and put alternatives in any_of. Use null or an empty list when the document is silent. Call save_extraction once, and if it returns validation errors, fix them and call it again.',
+      'Mode extract. Read the sections the task names with get_policy_document. Read the outline only if those sections look wrong. Fill every save_extraction field from the document text. List each code once under its code system. A prior-auth code list is a valid policy: capture every procedure code, and use an empty indications list when the document only lists codes. Restate each criterion faithfully and briefly, and put alternatives in any_of. Use null or an empty list when the document is silent. Call save_extraction once, and if it returns validation errors, fix them and call it again.',
   },
   diff: {
     tier: 'cheap',
@@ -83,6 +84,22 @@ function credentialEnvVar(model: string, reported: string | undefined): string |
 function compactChanges(changes: Change[]): string {
   const json = JSON.stringify(changes);
   return json.length > MAX_CHANGES_CHARS ? `${json.slice(0, MAX_CHANGES_CHARS)} ...(truncated)` : json;
+}
+
+function notAPolicyMessage(
+  documentId: string,
+  reason: string,
+  outline: OutlineView | undefined,
+  markdownChars: number,
+): string {
+  if (!outline) {
+    return `Triage found no prior-auth rules in document ${documentId} after seeing a ${markdownChars}-character converted document (outline was not read): ${reason}`;
+  }
+  const summary =
+    outline.sections.length === 0
+      ? 'no outline sections'
+      : outline.sections.map((section) => `${section.heading} (${section.chars} chars)`).join(', ');
+  return `Triage found no prior-auth rules in document ${documentId} after seeing ${outline.total_chars} characters across ${outline.sections.length} outline sections [${summary}]: ${reason}`;
 }
 
 export async function createPolicyAgent(options: {
@@ -180,10 +197,26 @@ export async function createPolicyAgent(options: {
       const about = `${job.payer}: ${job.title}`;
       const triageScope = new JobScope('triage', { documentId: job.documentId });
       await run(triageScope, `Triage document ${job.documentId} (${about}). Read its outline, then call save_triage.`);
-      const triage = triageScope.triage;
-      if (!triage) throw new AppError('extraction_failed', 'The triage step ended without calling save_triage', { mode: 'triage' });
+      const saved = triageScope.triage;
+      if (!saved) throw new AppError('extraction_failed', 'The triage step ended without calling save_triage', { mode: 'triage' });
+      const markdown = await sources.markdown(job.documentId);
+      const triage = recoverCodeListTriage(markdown, saved);
+      triageScope.triage = triage;
       if (!triage.is_prior_auth_policy) {
-        throw new AppError('not_a_policy', `Triage found no prior-auth rules in document ${job.documentId}: ${triage.reason}`);
+        throw new AppError(
+          'not_a_policy',
+          notAPolicyMessage(job.documentId, triage.reason, triageScope.lastOutline, markdown.length),
+          {
+          document_id: job.documentId,
+          reason: triage.reason,
+          total_chars: triageScope.lastOutline?.total_chars ?? markdown.length,
+          sections: (triageScope.lastOutline?.sections ?? []).map(({ id, heading, chars, preview }) => ({
+            id,
+            heading,
+            chars,
+            preview,
+          })),
+        });
       }
 
       const extractScope = new JobScope('extract', { documentId: job.documentId });

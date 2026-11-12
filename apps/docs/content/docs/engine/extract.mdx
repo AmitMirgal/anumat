@@ -58,3 +58,21 @@ with create_engine(
 </Tabs>
 
 Pass `payer` and `title` when you know them. They are hints for the extract step, not patient data. Omit `llm` only if you do not need a model yet; extract then fails with `llm_not_configured`.
+
+## Converter
+
+Text PDFs convert locally with `@firecrawl/anydoc`. That step does not use a Firecrawl API key. Two-column policy-name / CPT tables convert to Markdown tables. `result.converter` is `anydoc`.
+
+Scanned or image-only pages need Firecrawl Parse. Pass `firecrawl: { apiKey }` to `createEngine` (HTTP API: `FIRECRAWL_API_KEY`). Without the key those pages fail with `ocr_not_configured`. A missing key does not fall back to an empty or weaker converter.
+
+Empty conversions, and conversions that drop procedure codes that are present as text in the PDF, fail with `conversion_failed`. They are not reported as `not_a_policy`.
+
+## Gemini
+
+Set `GOOGLE_API_KEY` or `GOOGLE_GENERATIVE_AI_API_KEY` and pass Google router ids:
+
+```ts
+llm: { strong: 'google/gemini-2.5-pro', cheap: 'google/gemini-2.5-flash' }
+```
+
+A policy that is a name plus a procedure-code table is a valid prior-auth policy. Triage outline rows include a short text preview so a cheap model can see CPT codes even when the table sits in a preamble. If triage still rejects a code-list table, the engine recovers it. A true `not_a_policy` error names the character count and outline sections triage saw.

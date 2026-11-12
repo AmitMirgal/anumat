@@ -29,3 +29,30 @@ export const bariatricV2: UsExtraction = {
   effective_date: '2026-11-01',
   codes: [...bariatricV1.codes, { system: 'CPT', code: '43645', display: 'Laparoscopic gastric bypass with small intestine reconstruction' }],
 };
+
+export const priorAuthCodeList: UsExtraction = {
+  market: 'us',
+  title: 'Commercial Prior Authorization Procedure Code List',
+  payer: 'Example Health',
+  policy_number: null,
+  effective_date: '2026-01-01',
+  revision_date: null,
+  auth_type: 'prior_authorization',
+  codes: [
+    { system: 'CPT', code: '43644', display: 'Bariatric Surgery' },
+    { system: 'CPT', code: '43645', display: 'Bariatric Surgery' },
+    { system: 'CPT', code: '43775', display: 'Bariatric Surgery' },
+    { system: 'CPT', code: '95810', display: 'Obstructive Sleep Apnea Treatment' },
+    { system: 'CPT', code: '95811', display: 'Obstructive Sleep Apnea Treatment' },
+  ],
+  indications: [
+    {
+      name: 'Services on this list',
+      match: 'all',
+      criteria: [{ text: 'Services on this list require prior authorization.' }],
+    },
+  ],
+  exclusions: [],
+  documentation_requirements: [],
+  site_of_care: [],
+};

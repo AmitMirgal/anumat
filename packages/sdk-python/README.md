@@ -15,7 +15,7 @@ page = client.list_payers()
 
 `base_url` is the server origin, without `/api/v1`. It must be an `http` or `https` URL. `api_key` must contain a non-blank value. `AnumatClient` raises `AnumatError` with code `validation_failed` when either value is wrong. The client sends `Authorization: Bearer <api_key>`.
 
-Each method has a sync form and an `_async` form. An HTTP error raises `AnumatError` with `status` and `code` from the response.
+Each method has a sync form and an `_async` form. An HTTP error raises `AnumatError` with `status` and `code` from the response. When the server sends `details` (for example a `not_a_policy` character count and outline sections), they are on `AnumatError.details`.
 
 - `create_payer`, `list_payers`
 - `create_source`, `list_sources`, `get_source`, `check_source`
