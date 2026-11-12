@@ -15,11 +15,15 @@ export type AgentSources = {
 export const triageSchema = z.strictObject({
   is_prior_auth_policy: z
     .boolean()
-    .describe('False for index pages, retired-policy notices, bulletins, and other documents without coverage rules'),
+    .describe(
+      'False only for index pages, retired-policy notices, bulletins, and other documents with no coverage rules and no procedure/CPT/HCPCS code table. A policy-name plus procedure-code table is a valid prior-auth policy even when it has no narrative coverage criteria.',
+    ),
   section_ids: z
     .array(z.string().min(1))
     .max(12)
-    .describe('Outline sections holding coverage criteria, codes, exclusions, documentation, and site of care'),
+    .describe(
+      'Outline sections holding coverage criteria, codes, exclusions, documentation, and site of care. Include preamble when that is where the code list or policy table lives.',
+    ),
   reason: z.string().min(3).max(400),
 });
 export type Triage = z.infer<typeof triageSchema>;
@@ -35,7 +39,11 @@ export type Review = z.infer<typeof reviewSchema>;
 
 const MAX_CHARS_PER_READ = 40_000;
 const OUTLINE_DEPTH = 3;
+const OUTLINE_PREVIEW_CHARS = 400;
 const SCOPE_KEY = 'anumat.job';
+
+export type OutlineSectionView = { id: string; level: number; heading: string; chars: number; preview: string };
+export type OutlineView = { total_chars: number; sections: OutlineSectionView[] };
 
 export class JobScope {
   triage: Triage | undefined;
@@ -44,6 +52,7 @@ export class JobScope {
   review: Review | undefined;
   charsRead = 0;
   sectionsRead: string[] = [];
+  lastOutline: OutlineView | undefined;
 
   constructor(
     readonly mode: ModeId,
@@ -67,7 +76,7 @@ export function createPolicyTools(market: Market, sources: AgentSources) {
   const get_policy_document = createTool({
     id: 'get_policy_document',
     description:
-      'Read a converted policy document by id. Without section_ids it returns the outline: section ids, levels, headings, and sizes in characters, three heading levels deep. With section_ids it returns those sections, each with all its subsections, up to 40,000 characters per call.',
+      'Read a converted policy document by id. Without section_ids it returns the outline: section ids, levels, headings, sizes in characters, and a short text preview of each section, three heading levels deep. Previews include table rows and CPT/HCPCS codes when those appear at the start of the section. With section_ids it returns those sections, each with all its subsections, up to 40,000 characters per call.',
     inputSchema: z.object({
       document_id: z.string(),
       section_ids: z.array(z.string()).min(1).max(12).optional(),
@@ -78,16 +87,26 @@ export function createPolicyTools(market: Market, sources: AgentSources) {
       const markdown = await sources.markdown(document_id);
       const sections = outline(markdown);
       const topLevel = Math.min(...sections.map((section) => section.level || Number.POSITIVE_INFINITY));
-      const result = section_ids
-        ? { document_id, ...readSections(markdown, sections, section_ids, MAX_CHARS_PER_READ) }
-        : {
-            document_id,
-            total_chars: markdown.length,
-            sections: sections
-              .filter((section) => section.level < topLevel + OUTLINE_DEPTH)
-              .map(({ id, level, heading, start, end }) => ({ id, level, heading: heading.slice(0, 120), chars: end - start })),
-          };
-      if ('unknown_ids' in result) scope.sectionsRead.push(...result.sections.map((section) => section.id));
+      if (!section_ids) {
+        const outlineView: OutlineView = {
+          total_chars: markdown.length,
+          sections: sections
+            .filter((section) => section.level < topLevel + OUTLINE_DEPTH)
+            .map(({ id, level, heading, start, end }) => ({
+              id,
+              level,
+              heading: heading.slice(0, 120),
+              chars: end - start,
+              preview: markdown.slice(start, Math.min(end, start + OUTLINE_PREVIEW_CHARS)).trim(),
+            })),
+        };
+        scope.lastOutline = outlineView;
+        const result = { document_id, ...outlineView };
+        scope.charsRead += JSON.stringify(result).length;
+        return result;
+      }
+      const result = { document_id, ...readSections(markdown, sections, section_ids, MAX_CHARS_PER_READ) };
+      scope.sectionsRead.push(...result.sections.map((section) => section.id));
       scope.charsRead += JSON.stringify(result).length;
       return result;
     },

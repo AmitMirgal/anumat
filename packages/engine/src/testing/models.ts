@@ -4,11 +4,11 @@ import { finalText, type StreamResult } from '../agent/replay-model';
 
 type Step = (options: Parameters<MastraLanguageModelV2Mock['doStream']>[0]) => StreamResult;
 
-export function scriptedModels(script: Partial<Record<ModeId, Step[]>>) {
+export function scriptedModels(script: Partial<Record<ModeId, Step[]>>, name = 'test') {
   const mocks = new Map<ModeId, MastraLanguageModelV2Mock>();
   const source: ModelSource = {
     kind: 'scripted',
-    name: 'test',
+    name,
     model: (mode) => {
       const existing = mocks.get(mode);
       if (existing) return existing;

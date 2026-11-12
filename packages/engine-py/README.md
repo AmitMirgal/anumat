@@ -76,7 +76,9 @@ For local files, pass `storage={"kind": "local", "data_dir": "data/policies"}`. 
 
 `endpoint` on S3 is the custom URL for an S3-compatible store. Prefer `kind` `gcs` or `supabase` when you want the native SDK. The HTTP API uses `ANUMAT_STORAGE` and the matching `ANUMAT_*` variables instead of these arguments, and it requires `DATABASE_URL`.
 
-Pass `llm={"strong": "anthropic/claude-sonnet-4-5", "cheap": "anthropic/claude-haiku-4-5"}` when extract or a check should call a model. Omit `llm` until a call needs one.
+Pass `llm={"strong": "anthropic/claude-sonnet-4-5", "cheap": "anthropic/claude-haiku-4-5"}` when extract or a check should call a model. Omit `llm` until a call needs one. Google: `{"strong": "google/gemini-2.5-pro", "cheap": "google/gemini-2.5-flash"}` with `GOOGLE_API_KEY` or `GOOGLE_GENERATIVE_AI_API_KEY` in the environment.
+
+Text PDFs convert inside the sidecar with local `@firecrawl/anydoc`. That does not need a Firecrawl API key. Two-column policy-name / CPT tables convert to Markdown tables and extract as structured codes. Python `create_engine` has no `firecrawl` argument, so a scanned PDF that needs OCR fails with `ocr_not_configured`. Empty or code-dropping conversions fail with `conversion_failed`. A `not_a_policy` `EngineError` includes `details` with the character count and outline sections triage saw.
 
 Engine methods use snake_case names for the functions exported by `@anumat/engine`. `engine.list_payers()` calls `listPayers`. `slugify` is the same slug function the JavaScript package exports.
 

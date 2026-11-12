@@ -16,7 +16,7 @@ const anumat = createAnumatClient({
 const page = await anumat.payers.list.query({ limit: 20 });
 ```
 
-`baseUrl` must be an `http` or `https` URL. `apiKey` must contain a non-blank value. `createAnumatClient` throws `AnumatClientError` with code `validation_failed` when either value is wrong. The client sends `Authorization: Bearer <apiKey>`.
+`baseUrl` must be an `http` or `https` URL. `apiKey` must contain a non-blank value. `createAnumatClient` throws `AnumatClientError` with code `validation_failed` when either value is wrong. The client sends `Authorization: Bearer <apiKey>`. Server errors keep the API `message` (for `not_a_policy`, that includes the character count and outline sections triage saw). Details are on the tRPC error `cause`.
 
 The client follows the tRPC router. These calls cover the REST resources.
 

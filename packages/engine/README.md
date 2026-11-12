@@ -89,7 +89,9 @@ The HTTP API reads `ANUMAT_STORAGE=local|s3|gcs|supabase` and the matching `ANUM
 
 Pass `llm` as `{ strong, cheap }` with two `provider/model` ids when extract or a check should call a model. Omit `llm` until a call needs one.
 
-Pass `firecrawl` as `{ apiKey, apiUrl }` when a scanned PDF needs hosted OCR. Text PDFs do not need it.
+Pass `firecrawl` as `{ apiKey, apiUrl }` when a scanned PDF needs hosted OCR. Text PDFs convert with local `@firecrawl/anydoc` and do not need a Firecrawl key. A missing key on a scanned PDF fails with `ocr_not_configured`; it does not silently skip OCR.
+
+Google models: pass `llm: { strong: 'google/gemini-2.5-pro', cheap: 'google/gemini-2.5-flash' }` and set `GOOGLE_API_KEY` or `GOOGLE_GENERATIVE_AI_API_KEY`. A policy that is a name plus a CPT/procedure-code table is a valid prior-auth policy. Empty conversions fail with `conversion_failed`. A `not_a_policy` error includes the character count and outline sections triage saw.
 
 ## Call a policy method
 

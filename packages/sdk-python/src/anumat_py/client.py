@@ -373,15 +373,15 @@ def _body(response: Any) -> JsonObject:
     status = int(response.status_code)
     parsed = response.parsed
     if status >= 400 or parsed is None or not hasattr(parsed, "to_dict"):
-        message, code = _error_message_and_code(response, status)
-        raise AnumatError(message, status=status, code=code)
+        message, code, details = _error_message_and_code(response, status)
+        raise AnumatError(message, status=status, code=code, details=details)
     body = parsed.to_dict()
     if not isinstance(body, dict):
         raise AnumatError("expected a JSON object", status=status)
     return body
 
 
-def _error_message_and_code(response: Any, status: int) -> tuple[str, str | None]:
+def _error_message_and_code(response: Any, status: int) -> tuple[str, str | None, dict[str, Any] | None]:
     payloads: list[Any] = []
     parsed = getattr(response, "parsed", None)
     if parsed is not None:
@@ -404,28 +404,30 @@ def _error_message_and_code(response: Any, status: int) -> tuple[str, str | None
         except json.JSONDecodeError:
             pass
     for payload in payloads:
-        message, code = _read_error(payload)
+        message, code, details = _read_error(payload)
         if message is not None or code is not None:
             text = message if isinstance(message, str) and message != "" else f"Anumat returned HTTP {status}"
-            return text, code
-    return f"Anumat returned HTTP {status}", None
+            return text, code, details
+    return f"Anumat returned HTTP {status}", None, None
 
 
-def _read_error(payload: Any) -> tuple[str | None, str | None]:
+def _read_error(payload: Any) -> tuple[str | None, str | None, dict[str, Any] | None]:
     if isinstance(payload, dict):
         nested = payload.get("error")
         if isinstance(nested, dict):
             json_body = nested.get("json")
             if isinstance(json_body, dict):
                 return _read_error(json_body)
-            return _string_field(nested, "message"), _code_field(nested)
-        return _string_field(payload, "message"), _code_field(payload)
+            return _string_field(nested, "message"), _code_field(nested), _details_field(nested)
+        return _string_field(payload, "message"), _code_field(payload), _details_field(payload)
     message = getattr(payload, "message", None)
     code = getattr(payload, "code", None)
     data = getattr(payload, "data", None)
     if isinstance(message, str) or isinstance(code, str) or isinstance(data, dict):
-        return message if isinstance(message, str) else None, _code_field({"code": code, "data": data})
-    return None, None
+        packed = {"code": code, "data": data}
+        details = _details_field(data) if isinstance(data, dict) else None
+        return message if isinstance(message, str) else None, _code_field(packed), details
+    return None, None, None
 
 
 def _string_field(payload: dict[str, Any], key: str) -> str | None:
@@ -443,3 +445,8 @@ def _code_field(payload: dict[str, Any]) -> str | None:
         if isinstance(nested, str) and nested != "":
             return nested
     return None
+
+
+def _details_field(payload: dict[str, Any]) -> dict[str, Any] | None:
+    details = payload.get("details")
+    return details if isinstance(details, dict) else None

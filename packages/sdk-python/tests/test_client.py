@@ -158,7 +158,26 @@ def test_error_bodies_keep_the_server_message_and_code() -> None:
     with pytest.raises(AnumatError) as wrapped:
         _body(nested)
     assert wrapped.value.code == "not_found"
+    assert wrapped.value.details is None
     assert "TEST-missing" in str(wrapped.value)
+
+    rejected = SimpleNamespace(
+        status_code=422,
+        parsed=None,
+        content=json.dumps(
+            {
+                "error": {
+                    "code": "not_a_policy",
+                    "message": "Triage found no prior-auth rules in document abc after seeing 12 characters",
+                    "details": {"total_chars": 12, "sections": [{"id": "preamble", "chars": 12}]},
+                }
+            }
+        ).encode(),
+    )
+    with pytest.raises(AnumatError) as policy:
+        _body(rejected)
+    assert policy.value.code == "not_a_policy"
+    assert policy.value.details == {"total_chars": 12, "sections": [{"id": "preamble", "chars": 12}]}
 
 
 def test_check_and_approve_send_json_and_keep_not_found(api_url: str) -> None:

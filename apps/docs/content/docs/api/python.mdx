@@ -7,7 +7,7 @@ description: Public functions on anumat-engine and anumat-py.
 
 `anumat_engine` exports `Engine`, `EngineError`, `ProposeVersionResult`, `create_engine`, and `slugify`.
 
-`create_engine(database_url=None, storage=None, llm=None)` returns an `Engine`. `database_url` is optional. Omit it to extract rules without a catalog. Catalog, versioning, and approval methods then raise `EngineError` with code `database_not_configured`. `slugify(value)` takes a string and returns a string. `EngineError` has `code` and `details`. `code` defaults to `"internal"`.
+`create_engine(database_url=None, storage=None, llm=None)` returns an `Engine`. `database_url` is optional. Omit it to extract rules without a catalog. Catalog, versioning, and approval methods then raise `EngineError` with code `database_not_configured`. `slugify(value)` takes a string and returns a string. `EngineError` has `code` and `details`. `code` defaults to `"internal"`. `not_a_policy` includes the converted character count and outline sections triage saw in `details`. `conversion_failed` is used for empty or code-dropping PDF conversion.
 
 The HTTP API that `anumat-py` calls is a different process and requires `DATABASE_URL`.
 

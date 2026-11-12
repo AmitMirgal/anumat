@@ -42,6 +42,22 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {"result": {"items": [], "nextCursor": None}})
             return
         if method == "extract":
+            incoming = payload.get("input") if isinstance(payload.get("input"), dict) else {}
+            if incoming.get("title") == "Retired notice":
+                self._json(
+                    422,
+                    {
+                        "error": {
+                            "code": "not_a_policy",
+                            "message": "Triage found no prior-auth rules in document x after seeing 12 characters across 1 outline sections [Preamble (12 chars)]: Retired policy notice",
+                            "details": {
+                                "total_chars": 12,
+                                "sections": [{"id": "preamble", "heading": "Preamble", "chars": 12}],
+                            },
+                        }
+                    },
+                )
+                return
             self._json(
                 200,
                 {

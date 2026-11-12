@@ -29,6 +29,14 @@ def test_create_engine_works_without_a_database(monkeypatch: pytest.MonkeyPatch)
         result = engine.extract(b"%PDF-1.4 fixture policy", payer="UnitedHealthcare", title="Bariatric Surgery")
         assert result["extraction"]["payer"] == "UnitedHealthcare"
         assert result["converter"] == "anydoc"
+        with pytest.raises(EngineError) as policy:
+            engine.extract(b"%PDF-1.4 retired", title="Retired notice")
+        assert policy.value.code == "not_a_policy"
+        assert policy.value.details == {
+            "total_chars": 12,
+            "sections": [{"id": "preamble", "heading": "Preamble", "chars": 12}],
+        }
+        assert "12 characters" in str(policy.value)
     finally:
         engine.close()
 

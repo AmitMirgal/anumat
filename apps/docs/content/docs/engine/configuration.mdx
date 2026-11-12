@@ -53,7 +53,9 @@ Pass `databaseUrl` only when you want the catalog. For object storage, pass `sto
 
 Install `@aws-sdk/client-s3`, `@google-cloud/storage`, or `@supabase/supabase-js` only for the backend you use. Local disk needs no extra package. A missing SDK fails with `storage_not_configured` and names the package. Pass `endpoint` on S3 for a custom S3-compatible URL, including the GCS XML API and Supabase's S3 protocol. Prefer `kind: 'gcs'` or `kind: 'supabase'` for the native clients.
 
-Pass `firecrawl` as `{ apiKey, apiUrl }` when a scanned PDF needs hosted OCR. Text PDFs do not need it. `apiKey` and `apiUrl` are both optional on the type.
+Pass `firecrawl` as `{ apiKey, apiUrl }` when a scanned PDF needs hosted OCR. Text PDFs convert with local anydoc and do not need a Firecrawl key. `apiKey` and `apiUrl` are both optional on the type. A missing key on a scanned PDF fails with `ocr_not_configured`; it does not silently skip OCR.
+
+Google models use `google/gemini-2.5-pro` and `google/gemini-2.5-flash` with `GOOGLE_API_KEY` or `GOOGLE_GENERATIVE_AI_API_KEY`.
 
   </Tab>
   <Tab value="Python">
@@ -98,7 +100,7 @@ Pass `database_url` only when you want the catalog. For object storage, pass `st
 }
 ```
 
-`llm` requires both `strong` and `cheap` strings. Python has no `firecrawl` argument. A scanned PDF that needs hosted OCR has no equivalent in `create_engine`.
+`llm` requires both `strong` and `cheap` strings. Google: `{"strong": "google/gemini-2.5-pro", "cheap": "google/gemini-2.5-flash"}` with `GOOGLE_API_KEY` or `GOOGLE_GENERATIVE_AI_API_KEY` in the process environment. Python has no `firecrawl` argument. Text PDFs still convert with local anydoc. A scanned PDF that needs hosted OCR has no equivalent in `create_engine` and fails with `ocr_not_configured`.
 
   </Tab>
 </Tabs>

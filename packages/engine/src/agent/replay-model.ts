@@ -53,16 +53,31 @@ function taskText(prompt: CallOptions['prompt']): string {
     .join('\n');
 }
 
-const outlineResult = z.object({ sections: z.array(z.object({ id: z.string(), level: z.number(), heading: z.string() })) });
+const outlineResult = z.object({
+  sections: z.array(
+    z.object({
+      id: z.string(),
+      level: z.number(),
+      heading: z.string(),
+      chars: z.number().optional(),
+      preview: z.string().optional(),
+    }),
+  ),
+});
 const RULE_HEADING = /coverage|codes|coding|documentation|criteria/i;
+const CODEISH = /\b\d{4}[0-9FTU]\b|\b[A-V]\d{4}\b|\|[\t :\-]+\|/;
 
 function ruleSections(outline: unknown): string[] {
   const parsed = outlineResult.safeParse(outline);
   if (!parsed.success) return [];
-  return parsed.data.sections
-    .filter((section) => section.level <= 2 && RULE_HEADING.test(section.heading))
-    .map((section) => section.id)
-    .slice(0, 12);
+  const sections = parsed.data.sections.filter((section) => section.level <= 2);
+  const byHeading = sections.filter((section) => RULE_HEADING.test(section.heading)).map((section) => section.id);
+  if (byHeading.length > 0) return byHeading.slice(0, 12);
+  const byPreview = sections
+    .filter((section) => CODEISH.test(section.preview ?? '') || CODEISH.test(section.heading))
+    .map((section) => section.id);
+  if (byPreview.length > 0) return byPreview.slice(0, 12);
+  return sections.map((section) => section.id).slice(0, 12);
 }
 
 function replayStep(mode: ModeId, options: CallOptions, extractionFor: (ref: PolicyRef) => unknown): StreamResult {
@@ -97,10 +112,10 @@ function replayStep(mode: ModeId, options: CallOptions, extractionFor: (ref: Pol
   return finalText(`Replay does not script the ${mode} mode.`);
 }
 
-export function replayModels(extractionFor: (ref: PolicyRef) => unknown): ModelSource {
+export function replayModels(extractionFor: (ref: PolicyRef) => unknown, name = 'replay'): ModelSource {
   return {
     kind: 'scripted',
-    name: 'replay',
+    name,
     model: (mode) => new MastraLanguageModelV2Mock({ doStream: async (options) => replayStep(mode, options, extractionFor) }),
   };
 }
