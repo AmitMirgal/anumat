@@ -4,6 +4,21 @@ set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 cd "$root"
 
+bundle_dir=${ANUMAT_ENGINE_RELEASE_DIR:-}
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --bundle-dir)
+      bundle_dir=${2:?--bundle-dir requires a directory}
+      shift 2
+      ;;
+    *)
+      echo "usage: $0 [--bundle-dir DIR]" >&2
+      echo "Or set ANUMAT_ENGINE_RELEASE_DIR to a directory from: gh run download <run> --name anumat-engine-release --dir DIR" >&2
+      exit 1
+      ;;
+  esac
+done
+
 bash scripts/release/require-clean-main.sh
 
 name="anumat-engine"
@@ -13,17 +28,32 @@ tag="${name}@${version}"
 bash scripts/require-local-postgres.sh
 pnpm turbo run test --filter=anumat-engine
 
-bundle=$(mktemp -d "${TMPDIR:-/tmp}/anumat-engine-bundle.XXXXXX")
+owned_bundle=1
+if [[ -n "$bundle_dir" ]]; then
+  bundle=$(cd "$bundle_dir" && pwd) || {
+    echo "ANUMAT_ENGINE_RELEASE_DIR / --bundle-dir is not a directory: $bundle_dir" >&2
+    exit 1
+  }
+  owned_bundle=0
+else
+  bundle=$(mktemp -d "${TMPDIR:-/tmp}/anumat-engine-bundle.XXXXXX")
+fi
 smoke_work=
 cleanup() {
-  rm -rf "$bundle"
+  if [[ "$owned_bundle" -eq 1 ]]; then
+    rm -rf "$bundle"
+  fi
   if [[ -n "${smoke_work:-}" ]]; then
     rm -rf "$smoke_work"
   fi
 }
 trap cleanup EXIT
 
-bash scripts/release/fetch-engine-ci-bundle.sh "$bundle"
+if [[ "$owned_bundle" -eq 0 ]]; then
+  bash scripts/release/fetch-engine-ci-bundle.sh --bundle-dir "$bundle"
+else
+  bash scripts/release/fetch-engine-ci-bundle.sh "$bundle"
+fi
 python3 scripts/release/verify_engine_bundle.py \
   --repo "$root" \
   --bundle "$bundle" \
