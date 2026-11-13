@@ -59,6 +59,8 @@ def test_four_commands_scope_tests_and_confirm_before_publish() -> None:
         "pnpm turbo run test --filter=anumat-engine"
     )
     assert "fetch-engine-ci-bundle.sh" in engine_py
+    assert "ANUMAT_ENGINE_RELEASE_DIR" in engine_py
+    assert "--bundle-dir" in engine_py
     assert "verify_engine_bundle.py" in engine_py
     assert "select_native_wheel.py" in engine_py
     assert "compile-sidecar.ts" not in engine_py
@@ -135,6 +137,21 @@ def test_bash4_builtin_disable_is_effective(tmp_path: Path) -> None:
     )
     assert result.returncode != 0
     assert "mapfile" in result.stderr
+
+
+def test_fetch_engine_ci_bundle_retries_and_classifies_download_errors() -> None:
+    fetch = (ROOT / "scripts/release/fetch-engine-ci-bundle.sh").read_text()
+    engine_py = (ROOT / "scripts/release-engine-py.sh").read_text()
+    assert "ANUMAT_ENGINE_DOWNLOAD_BACKOFF" in fetch
+    assert "attempt ${attempt}/4" in fetch
+    assert "Network error downloading" in fetch
+    assert "ANUMAT_ENGINE_RELEASE_DIR" in fetch
+    assert "--bundle-dir" in fetch
+    assert "Check gh permissions (repo and workflow/artifact read)" not in fetch
+    assert "compile-sidecar.ts" not in fetch
+    assert "build-wheel.sh" not in fetch
+    assert "owned_bundle" in engine_py
+    assert engine_py.index("verify_engine_bundle.py") > engine_py.index("fetch-engine-ci-bundle.sh")
 
 
 def test_scripts_are_bash_32_compatible() -> None:
