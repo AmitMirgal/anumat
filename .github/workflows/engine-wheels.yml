@@ -58,6 +58,9 @@ jobs:
           name: anumat-engine-migration-sha-${{ matrix.platform }}
           path: dist/migration.sha256
           if-no-files-found: error
+      - name: Convert-smoke the wheel
+        shell: bash
+        run: bash packages/engine-py/scripts/ci-convert-smoke.sh dist
       - name: Start Postgres
         if: matrix.smoke
         uses: ikalnytskyi/action-setup-postgres@v9

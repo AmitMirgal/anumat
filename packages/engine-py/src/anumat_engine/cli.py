@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import os
 import subprocess
 import sys
 
-from anumat_engine._binary import binary_path
+from anumat_engine._binary import binary_path, sidecar_env
 
 USAGE = "Usage: anumat-engine migrate --db <url>"
 
@@ -22,7 +21,7 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit(1) from None
     completed = subprocess.run(
         [str(binary_path()), "migrate", "--db", database_url],
-        env={**os.environ, "ANUMAT_ENGINE_SIDECAR": "1"},
+        env=sidecar_env(),
         check=False,
     )
     raise SystemExit(completed.returncode)

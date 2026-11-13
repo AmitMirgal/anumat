@@ -1,15 +1,24 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { dirname, join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { toAppError } from '@anumat/core';
 import * as z from 'zod';
 import { closeContext } from './context';
+import { pdfToMarkdown } from './convert/pdf-to-markdown';
 import { createEngine, type CreateEngineOptions, type EngineStorage } from './engine';
 import { callEngineMethod, toJson } from './sidecar-rpc';
 import { runBundledMigrations } from './sidecar-migrate';
 
-const usage = 'Usage: anumat-engine migrate --db <url>';
+const usage = 'Usage: anumat-engine migrate --db <url> | anumat-engine convert --pdf <file>';
 const bodyLimit = 32 * 1024 * 1024;
+
+if (!process.env.NAPI_RS_NATIVE_LIBRARY_PATH) {
+  const candidate = join(dirname(process.execPath), 'anydoc.node');
+  if (existsSync(candidate)) process.env.NAPI_RS_NATIVE_LIBRARY_PATH = candidate;
+}
 
 const localStorage = z.object({
   kind: z.literal('local'),
@@ -57,12 +66,42 @@ async function main(): Promise<void> {
     for (const name of result.applied) console.log(`Applied ${name}`);
     return;
   }
+  if (command === 'convert') {
+    const pdfPath = parseConvertArgs(process.argv.slice(2));
+    const bytes = await readFile(pdfPath);
+    const { markdown, converter } = await pdfToMarkdown(bytes, {
+      apiKey: process.env.FIRECRAWL_API_KEY,
+      apiUrl: process.env.FIRECRAWL_API_URL,
+    });
+    process.stdout.write(`${JSON.stringify({ converter, markdown })}\n`);
+    return;
+  }
   if (command === 'serve') {
     if (process.argv.length !== 3) fail(usage);
     await serve();
     return;
   }
   fail(usage);
+}
+
+function parseConvertArgs(args: string[]): string {
+  if (args[0] !== 'convert') fail(usage);
+  let pdfPath: string | undefined;
+  for (let index = 1; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === '--pdf') {
+      index += 1;
+      pdfPath = args[index];
+      continue;
+    }
+    if (arg?.startsWith('--pdf=')) {
+      pdfPath = arg.slice('--pdf='.length);
+      continue;
+    }
+    fail(usage);
+  }
+  if (!pdfPath) fail(usage);
+  return pdfPath;
 }
 
 function parseMigrateArgs(args: string[]): string {

@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -22,9 +22,41 @@ if (bundled.status !== 0) {
 const entry = bundled.stdout.trim();
 assertNoBuildPath('prebundled sidecar', readFileSync(entry), root);
 
+// bun compile stores JS on $bunfs. dlopen cannot load a napi .node from
+// there, so --asset / embedding the binding inside the binary does not work.
+// Ship anydoc.node next to the executable and point NAPI-RS at that real path.
+const nativeDest = join(dirname(outfile), 'anydoc.node');
+mkdirSync(dirname(nativeDest), { recursive: true });
+const fetched = spawnSync(
+  'node',
+  [join(root, 'packages/engine-py/scripts/fetch-anydoc-native.mjs'), target, nativeDest],
+  { encoding: 'utf8' },
+);
+if (fetched.status !== 0) {
+  process.stderr.write(fetched.stderr);
+  process.stderr.write(fetched.stdout);
+  process.exit(fetched.status ?? 1);
+}
+process.stdout.write(fetched.stdout);
+
+const compileEntry = join(dirname(entry), 'compile-entry.mjs');
+writeFileSync(
+  compileEntry,
+  `import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+
+if (!process.env.NAPI_RS_NATIVE_LIBRARY_PATH) {
+  const candidate = join(dirname(process.execPath), 'anydoc.node');
+  if (existsSync(candidate)) process.env.NAPI_RS_NATIVE_LIBRARY_PATH = candidate;
+}
+
+await import('./sidecar.mjs');
+`,
+);
+
 const stub = join(root, 'packages/engine/src/optional/empty.ts');
 const result = await Bun.build({
-  entrypoints: [entry],
+  entrypoints: [compileEntry],
   compile: {
     target,
     outfile,

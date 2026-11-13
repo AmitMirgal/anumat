@@ -1,6 +1,9 @@
-import { toMarkdownBytes } from '@firecrawl/anydoc';
 import { AppError } from '@anumat/core';
 import { procedureCodesInPdf, procedureCodesInText } from '../documents/code-list';
+
+async function loadAnydoc() {
+  return import('@firecrawl/anydoc');
+}
 
 export const converters = ['anydoc', 'firecrawl-parse'] as const;
 export type Converter = (typeof converters)[number];
@@ -49,6 +52,7 @@ export async function pdfToMarkdown(
   ocr: OcrOptions,
 ): Promise<{ markdown: string; converter: Converter }> {
   try {
+    const { toMarkdownBytes } = await loadAnydoc();
     const markdown = await toMarkdownBytes(bytes);
     const quality = conversionQualityError(markdown, bytes);
     if (quality) throw quality;
@@ -66,6 +70,7 @@ export async function pdfToMarkdown(
     }
   }
   try {
+    const { toMarkdownBytes } = await loadAnydoc();
     const markdown = await toMarkdownBytes(bytes, null, { ocr: 'hosted', apiKey: ocr.apiKey, apiUrl: ocr.apiUrl });
     const quality = conversionQualityError(markdown, bytes);
     if (quality) throw quality;

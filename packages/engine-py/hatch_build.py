@@ -29,8 +29,11 @@ class CustomBuildHook(BuildHookInterface):
             raise RuntimeError(_source_install_error())
         binary_name = "anumat-engine.exe" if platform.startswith("win_") else "anumat-engine"
         binary = Path(self.root) / "src" / "anumat_engine" / "bin" / binary_name
+        native = Path(self.root) / "src" / "anumat_engine" / "bin" / "anydoc.node"
         if not binary.is_file():
             raise RuntimeError(f"Missing {binary}")
+        if not native.is_file():
+            raise RuntimeError(f"Missing {native}")
         build_data["pure_python"] = False
         build_data["tag"] = f"py3-none-{platform}"
         force_include = build_data.get("force_include")
@@ -38,3 +41,4 @@ class CustomBuildHook(BuildHookInterface):
             force_include = {}
             build_data["force_include"] = force_include
         force_include[str(binary)] = f"anumat_engine/bin/{binary_name}"
+        force_include[str(native)] = "anumat_engine/bin/anydoc.node"

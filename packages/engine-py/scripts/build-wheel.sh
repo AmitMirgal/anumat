@@ -28,6 +28,10 @@ if [[ ! -f "$stage/$binary_name" ]]; then
   echo "Compile did not write $stage/$binary_name" >&2
   exit 1
 fi
+if [[ ! -f "$stage/anydoc.node" ]]; then
+  echo "Compile did not write $stage/anydoc.node" >&2
+  exit 1
+fi
 chmod +x "$stage/$binary_name" || true
 if command -v python3 >/dev/null 2>&1; then
   PYTHON=python3
