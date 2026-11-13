@@ -50,7 +50,15 @@ function findInNodeModules(npmPkg, file) {
     const nodePath = join(dirname(pkgJson), file);
     if (existsSync(nodePath)) return nodePath;
   } catch {
-    return null;
+    // pnpm does not let the engine package require optional platform addons.
+  }
+  const pnpmDir = join(root, 'node_modules/.pnpm');
+  if (!existsSync(pnpmDir)) return null;
+  const prefix = `${npmPkg.replace(/^@/, '').replace('/', '+')}@`;
+  for (const entry of readdirSync(pnpmDir)) {
+    if (!entry.startsWith(prefix)) continue;
+    const nodePath = join(pnpmDir, entry, 'node_modules', npmPkg, file);
+    if (existsSync(nodePath)) return nodePath;
   }
   return null;
 }
@@ -69,7 +77,10 @@ function npmPackNode(npmPkg, file, version) {
     }
     const tgz = readdirSync(dir).find((name) => name.endsWith('.tgz'));
     if (!tgz) throw new Error(`npm pack did not write a tarball in ${dir}`);
-    const extracted = spawnSync('tar', ['-xzf', join(dir, tgz), '-C', dir], { encoding: 'utf8' });
+    // GNU tar treats C: in an absolute Windows path as a remote host.
+    // Extract by tarball basename with cwd set to the temp dir.
+    const tarArgs = process.platform === 'win32' ? ['--force-local', '-xzf', tgz] : ['-xzf', tgz];
+    const extracted = spawnSync('tar', tarArgs, { cwd: dir, encoding: 'utf8' });
     if (extracted.status !== 0) {
       process.stderr.write(extracted.stderr || extracted.stdout || 'tar failed\n');
       throw new Error(`failed to extract ${tgz}`);

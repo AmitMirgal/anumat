@@ -133,6 +133,9 @@ def test_anydoc_native_targets_cover_wheel_bun_targets() -> None:
     assert "anydoc.node" in hatch
     assert "NAPI_RS_NATIVE_LIBRARY_PATH" in compile_sidecar
     assert "fetch-anydoc-native.mjs" in compile_sidecar
+    assert "--force-local" in source
+    assert "cwd: dir" in source
+    assert "join(dir, tgz)" not in source
     convert = (ROOT / "packages/engine-py/scripts/ci-convert-smoke.sh").read_text()
     assert "docker" not in convert
     assert "convert_smoke.py" in convert
