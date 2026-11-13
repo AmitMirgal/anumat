@@ -10,6 +10,7 @@ MAKE_VENV = ROOT / "scripts" / "release" / "make-smoke-venv.sh"
 WRAPPER = ROOT / "scripts" / "engine-py-make-smoke-venv.sh"
 RELEASE = ROOT / "scripts" / "release-engine-py.sh"
 CI_SMOKE = ROOT / "packages" / "engine-py" / "scripts" / "ci-smoke.sh"
+CI_CONVERT = ROOT / "packages" / "engine-py" / "scripts" / "ci-convert-smoke.sh"
 ANUMAT_PY = ROOT / "scripts" / "release.sh"
 
 
@@ -157,10 +158,15 @@ def test_release_and_ci_smoke_use_owned_venv_and_native_wheel() -> None:
     py = ANUMAT_PY.read_text()
     helper = MAKE_VENV.read_text()
     assert "bash scripts/release/make-smoke-venv.sh" in script
+    convert = CI_CONVERT.read_text()
     assert "bash scripts/release/make-smoke-venv.sh" in ci
     assert "bash scripts/release/make-smoke-venv.sh anumat-py-smoke" in py
     assert "select_native_wheel.py" in script
     assert "select_native_wheel.py" in ci
+    assert "select_native_wheel.py" in convert
+    assert "convert_smoke.py" in convert
+    assert "docker" not in convert
+    _no_force_clear(CI_CONVERT)
     assert "uv venv /tmp/anumat-engine-smoke --clear" not in script
     assert "uv venv /tmp/anumat-engine-smoke --clear" not in ci
     assert "/tmp/anutest" not in py

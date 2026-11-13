@@ -8,7 +8,7 @@
 pip install anumat-engine
 ```
 
-Each wheel contains the binary for one platform.
+Each wheel contains the sidecar binary for one platform and the matching `@firecrawl/anydoc` native binding (`anydoc.node`) next to it. The compiled sidecar cannot load that `.node` from Bun's virtual `$bunfs`, so the wheel ships a real file and the process sets `NAPI_RS_NATIVE_LIBRARY_PATH`.
 
 ## Extract without a database
 

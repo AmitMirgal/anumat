@@ -24,3 +24,16 @@ test('the bun sidecar plugin does not fall through every import', () => {
   expect(source).toContain('filter: /^@opentelemetry\\/api$/');
   expect(source).not.toContain('filter: /.*/');
 });
+
+test('the compiled sidecar ships anydoc.node instead of embedding it in $bunfs', () => {
+  const compile = readFileSync(new URL('../../engine-py/scripts/compile-sidecar.ts', import.meta.url), 'utf8');
+  const convert = readFileSync(new URL('../src/convert/pdf-to-markdown.ts', import.meta.url), 'utf8');
+  const sidecar = readFileSync(new URL('../src/sidecar.ts', import.meta.url), 'utf8');
+  expect(compile).toContain('anydoc.node');
+  expect(compile).toContain('NAPI_RS_NATIVE_LIBRARY_PATH');
+  expect(compile).toContain('$bunfs');
+  expect(convert).toContain("import('@firecrawl/anydoc')");
+  expect(convert).not.toContain("import { toMarkdownBytes } from '@firecrawl/anydoc'");
+  expect(sidecar).toContain('anumat-engine convert --pdf');
+  expect(sidecar).toContain('NAPI_RS_NATIVE_LIBRARY_PATH');
+});

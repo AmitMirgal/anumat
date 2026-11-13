@@ -97,21 +97,45 @@ def test_engine_wheels_workflow_builds_sdist_and_bundle() -> None:
     assert "concurrency:" in workflow
 
 
-def test_engine_wheels_avoid_scarce_macos_arm_and_windows_postgres() -> None:
+def test_engine_wheels_convert_smoke_runs_on_every_wheel_job() -> None:
+    workflow = (ROOT / ".github/workflows/engine-wheels.yml").read_text()
+    assert "ci-convert-smoke.sh" in workflow
+    assert workflow.index("ci-convert-smoke.sh") < workflow.index("Start Postgres")
     platforms = json.loads((ROOT / "packages/engine-py/platforms.json").read_text())
     arm = next(item for item in platforms if item["platform"] == "macosx_11_0_arm64")
-    assert arm["runner"] == "macos-15-intel"
+    assert arm["runner"] == "macos-15"
     assert arm["target"] == "bun-darwin-arm64"
-    assert arm["smoke"] is False
+    assert arm["smoke"] is True
     win = next(item for item in platforms if item["platform"] == "win_amd64")
     assert win["runner"] == "windows-2022"
     assert win["smoke"] is False
     smokes = [item["platform"] for item in platforms if item["smoke"]]
     assert smokes == [
+        "macosx_11_0_arm64",
         "macosx_11_0_x86_64",
         "manylinux_2_17_x86_64",
         "manylinux_2_17_aarch64",
     ]
+
+
+def test_anydoc_native_targets_cover_wheel_bun_targets() -> None:
+    source = (ROOT / "packages/engine-py/scripts/fetch-anydoc-native.mjs").read_text()
+    hatch = (ROOT / "packages/engine-py/hatch_build.py").read_text()
+    compile_sidecar = (ROOT / "packages/engine-py/scripts/compile-sidecar.ts").read_text()
+    for target in (
+        "bun-darwin-arm64",
+        "bun-darwin-x64",
+        "bun-linux-x64",
+        "bun-linux-arm64",
+        "bun-windows-x64",
+    ):
+        assert target in source
+    assert "anydoc.node" in hatch
+    assert "NAPI_RS_NATIVE_LIBRARY_PATH" in compile_sidecar
+    assert "fetch-anydoc-native.mjs" in compile_sidecar
+    convert = (ROOT / "packages/engine-py/scripts/ci-convert-smoke.sh").read_text()
+    assert "docker" not in convert
+    assert "convert_smoke.py" in convert
 
 
 def test_ci_smoke_does_not_start_or_destroy_docker() -> None:
@@ -155,7 +179,10 @@ def test_fetch_engine_ci_bundle_retries_and_classifies_download_errors() -> None
 
 
 def test_scripts_are_bash_32_compatible() -> None:
-    scripts = sorted((ROOT / "scripts").rglob("*.sh"))
+    scripts = [
+        *sorted((ROOT / "scripts").rglob("*.sh")),
+        *sorted((ROOT / "packages/engine-py/scripts").glob("*.sh")),
+    ]
     assert scripts, "expected shell scripts under scripts/"
     offenders: list[str] = []
     for path in scripts:

@@ -15,7 +15,7 @@ import urllib.parse
 import urllib.request
 from typing import Any, Literal, TypedDict
 
-from anumat_engine._binary import binary_path
+from anumat_engine._binary import binary_path, sidecar_env
 from anumat_engine.errors import EngineError
 
 JsonObject = dict[str, Any]
@@ -270,8 +270,7 @@ def create_engine(
 
 
 def _spawn(binary: os.PathLike[str]) -> subprocess.Popen[bytes]:
-    env = os.environ.copy()
-    env["ANUMAT_ENGINE_SIDECAR"] = "1"
+    env = sidecar_env()
     command = [os.fspath(binary), "serve"]
     if os.name == "posix":
         return subprocess.Popen(

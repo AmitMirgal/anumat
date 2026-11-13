@@ -19,3 +19,17 @@ def binary_path() -> Path:
     if not path.is_file():
         raise EngineError(f"anumat-engine binary is not installed at {path}", code="internal")
     return path
+
+
+def native_library_path() -> Path | None:
+    path = binary_path().parent / "anydoc.node"
+    return path if path.is_file() else None
+
+
+def sidecar_env(base: dict[str, str] | None = None) -> dict[str, str]:
+    env = os.environ.copy() if base is None else dict(base)
+    env["ANUMAT_ENGINE_SIDECAR"] = "1"
+    native = native_library_path()
+    if native is not None:
+        env["NAPI_RS_NATIVE_LIBRARY_PATH"] = str(native)
+    return env
